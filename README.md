@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # GeoSense
 GeoSense monitors urban environmental health using satellite-derived indicators such as NDVI (vegetation health), NDWI (surface water presence), Land Surface Temperature (LST), and National Air Quality Index (AQI). It detects abnormal spatial patterns across city zones to highlight emerging environmental stress and ecological risk.
 =======
@@ -127,5 +126,3 @@ Environmental risk modeling
 
 Future phases may incorporate advanced ensemble models and temporal trend analysis.
 
-This version positions your project as:
->>>>>>> a162814 (added README)
