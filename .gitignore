@@ -1,0 +1,42 @@
+# ── Dependencies ──────────────────────────────────────────────
+node_modules/
+
+# ── Build output ──────────────────────────────────────────────
+dist/
+dist-ssr/
+
+# ── Environment variables (contains real API keys / tokens) ───
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# .env.example is safe to commit — keep it
+
+# ── Vite cache ────────────────────────────────────────────────
+.vite/
+
+# ── OS files ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor / IDE ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Logs ──────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# ── Misc ──────────────────────────────────────────────────────
+*.zip
+*.tar.gz
