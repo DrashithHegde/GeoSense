@@ -72,8 +72,9 @@ export default function LayerControls({ activeLayers, onToggleLayer }) {
       className="slide-in-left"
       style={{
         position: "fixed",
-        top: 90,
+        top: "50%",
         left: 20,
+        transform: "translateY(-50%)",
         zIndex: 30,
         width: 252,
         display: "flex",
@@ -102,7 +103,7 @@ export default function LayerControls({ activeLayers, onToggleLayer }) {
               textTransform: "uppercase",
             }}
           >
-            Data Layers
+            Metric Layers
           </span>
         </div>
 

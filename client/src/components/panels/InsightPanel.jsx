@@ -35,9 +35,18 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
   const activeLayerId = resolveActiveLayerId(activeLayers);
   const isCompositeView = activeLayerId === "all";
   const activeLayerMeta = LAYER_META[activeLayerId] || LAYER_META.aqi;
-  const panelValue = isCompositeView
-    ? zone?.severity.toFixed(1)
-    : getMetricDisplay(activeLayerId, metrics);
+
+  // Extract unit for LST display
+  let panelValue, panelUnit = "";
+  if (isCompositeView) {
+    panelValue = zone?.severity.toFixed(1);
+  } else if (activeLayerId === "lst") {
+    panelValue = metrics?.lst.toFixed(1);
+    panelUnit = "°C";
+  } else {
+    panelValue = getMetricDisplay(activeLayerId, metrics);
+  }
+
   const panelLabel = isCompositeView
     ? "Composite Risk Score"
     : `${activeLayerMeta.label} Metric`;
@@ -204,18 +213,36 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
                 >
                   {panelLabel}
                 </span>
-                <span
-                  style={{
-                    fontFamily: "'Syne', sans-serif",
-                    fontSize: "2.2rem",
-                    fontWeight: 700,
-                    color: panelValueColor,
-                    textShadow: `0 0 24px ${panelValueColor}66`,
-                    lineHeight: 1,
-                  }}
-                >
-                  {panelValue}
-                </span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                  <span
+                    style={{
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: "2.2rem",
+                      fontWeight: 600,
+                      color: panelValueColor,
+                      textShadow: `0 0 24px ${panelValueColor}66`,
+                      lineHeight: 1,
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    {panelValue}
+                  </span>
+                  {panelUnit && (
+                    <span
+                      style={{
+                        fontFamily: "'DM Mono', monospace",
+                        fontSize: "0.9rem",
+                        fontWeight: 600,
+                        color: panelValueColor,
+                        textShadow: `0 0 24px ${panelValueColor}66`,
+                        lineHeight: 1,
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      {panelUnit}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Stress index bar */}
@@ -224,7 +251,7 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    fontSize: "0.56rem",
+                    fontSize: "0.58rem",
                     color: "var(--text-dim)",
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
@@ -232,7 +259,7 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
                   }}
                 >
                   <span>{stressLabel}</span>
-                  <span style={{ color: panelValueColor }}>{Math.round(stressValue)}%</span>
+                  <span style={{ color: panelValueColor, fontFamily: "'DM Mono', monospace", fontWeight: 400, fontSize: "0.58rem" }}>{Math.round(stressValue)}%</span>
                 </div>
                 <div
                   style={{

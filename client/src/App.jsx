@@ -26,8 +26,9 @@ import BottomBar from "./components/panels/BottomBar";
 // ── HUD ───────────────────────────────────────────────────────────────────
 import HUDCorners from "./components/hud/HUDCorners";
 import StatusBar from "./components/hud/StatusBar";
-import Toast from "./components/hud/Toast";
-
+import Toast from "./components/hud/Toast"; import ClassificationHeader from "./components/hud/ClassificationHeader";
+import OrbitalPass from "./components/hud/OrbitalPass";
+import TelemetryOverlay from "./components/hud/TelemetryOverlay";
 // ─────────────────────────────────────────────────────────────────────────────
 // App — root component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -302,6 +303,15 @@ export default function App() {
 
       {/* ── Toast ────────────────────────────────────────────────────────── */}
       <Toast message={toastMsg} phase={toastPhase} />
+
+      {/* ── Intelligence Agency Overlays ─────────────────────────────────── */}
+      {panelsVisible && activeCity && (
+        <>
+          <ClassificationHeader />
+          <OrbitalPass recTime={recTime} />
+          <TelemetryOverlay coords={coords} />
+        </>
+      )}
 
       {/* ── Status bar ───────────────────────────────────────────────────── */}
       {panelsVisible && (

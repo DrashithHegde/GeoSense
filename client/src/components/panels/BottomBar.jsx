@@ -173,6 +173,33 @@ export default function BottomBar({ activeCity, onSelectCity }) {
         animationDelay: "0.2s",
       }}
     >
+      {/* Bottom left intel text - only show when zoomed into city */}
+      {activeCity && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 105,
+            left: 20,
+            fontSize: "0.58rem",
+            letterSpacing: "0.15em",
+            color: "rgba(217,127,42,0.75)",
+            textTransform: "uppercase",
+            maxWidth: 200,
+            lineHeight: 1.4,
+          }}
+        >
+          <div style={{ animation: "glitchFade 3s ease-in-out infinite", animationDelay: "0s" }}>
+            INTEGRATED SATELLITE ARRAY
+          </div>
+          <div style={{ animation: "glitchFade 3s ease-in-out infinite", animationDelay: "0.5s" }}>
+            AUTOMATED ANOMALY DETECTION
+          </div>
+          <div style={{ animation: "glitchFade 3s ease-in-out infinite", animationDelay: "1s" }}>
+            MULTI-SENSOR FUSION
+          </div>
+        </div>
+      )}
+
       <SeverityLegend />
       <CitySelector activeCity={activeCity} onSelect={onSelectCity} />
     </div>

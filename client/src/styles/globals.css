@@ -168,7 +168,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .intro-fade-out {
-  animation: introFadeOut 0.85s ease-in-out forwards;
+  animation: introFadeOut 4s ease-in-out forwards;
 }
 
 /* Globe pulse */
@@ -184,24 +184,28 @@ input[type="range"]::-webkit-slider-thumb:hover {
   }
 }
 
-/* Orbit ring rotations */
+/* Reticle pulsing glow */
 @keyframes spin {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg);
+
+  0%,
+  100% {
+    opacity: 0.3;
   }
 
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
+  50% {
+    opacity: 0.8;
   }
 }
 
 @keyframes spinReverse {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg);
+
+  0%,
+  100% {
+    opacity: 0.5;
   }
 
-  to {
-    transform: translate(-50%, -50%) rotate(-360deg);
+  50% {
+    opacity: 0.9;
   }
 }
 
@@ -212,11 +216,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
     opacity: 0;
   }
 
-  5% {
+  3% {
     opacity: 1;
   }
 
-  95% {
+  33% {
+    top: 100%;
+    opacity: 1;
+  }
+
+  66% {
+    top: 0%;
+    opacity: 1;
+  }
+
+  97% {
     opacity: 1;
   }
 
@@ -240,6 +254,18 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 @keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-28px) translateY(-50%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(-50%);
+  }
+}
+
+@keyframes slideInLeftFlatTop {
   from {
     opacity: 0;
     transform: translateX(-28px);
@@ -269,6 +295,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .slide-in-left {
   animation: slideInLeft 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slide-in-left-flat-top {
+  animation: slideInLeftFlatTop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .slide-in-up {
@@ -312,6 +342,198 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .anomaly-zone-ring-2 {
   animation: anomalyRing 2s ease-out infinite 0.7s;
+}
+
+/* Typewriter animation */
+@keyframes typewriter {
+  0% {
+    width: 0;
+  }
+
+  45% {
+    width: 100%;
+  }
+
+  55% {
+    width: 100%;
+  }
+
+  100% {
+    width: 0;
+  }
+}
+
+.typewriter-text {
+  animation: typewriter 12s steps(55, end) infinite;
+  border-right: 2px solid #d97f2a;
+}
+
+.typewriter-text::after {
+  animation: blink 0.7s infinite;
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 0.9em;
+  background: #d97f2a;
+  margin-left: 2px;
+}
+
+/* Text reveal/hide animation - text appears as cursor moves right, disappears as it moves left */
+@keyframes textReveal {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  40% {
+    clip-path: inset(0 0 0 0);
+  }
+
+  60% {
+    clip-path: inset(0 0 0 0);
+  }
+
+  100% {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+.coords-typewriter {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  animation: textReveal 10s steps(32, end) infinite;
+}
+
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Telemetry line 1: Glow pulse */
+@keyframes glowPulse {
+
+  0%,
+  100% {
+    opacity: 0.6;
+    textShadow: 0 0 8px rgba(217, 127, 42, 0.3);
+  }
+
+  50% {
+    opacity: 1;
+    textShadow: 0 0 16px rgba(217, 127, 42, 0.8);
+  }
+}
+
+/* Telemetry line 2: Fade flicker */
+@keyframes fadeFlicker {
+
+  0%,
+  10%,
+  30%,
+  50%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+
+  5%,
+  25%,
+  45%,
+  65% {
+    opacity: 0.4;
+  }
+}
+
+/* Glitch fade effect - corrupted signal distortion */
+@keyframes glitchFade {
+  0% {
+    opacity: 0.65;
+    textShadow: 2px 2px rgba(217, 127, 42, 0.5);
+    transform: translateX(0);
+  }
+
+  20% {
+    opacity: 0.3;
+    textShadow: -2px 0 rgba(217, 127, 42, 0.8);
+    transform: translateX(-2px);
+  }
+
+  40% {
+    opacity: 0.65;
+    textShadow: 2px -2px rgba(217, 127, 42, 0.6);
+    transform: translateX(1px);
+  }
+
+  60% {
+    opacity: 0.4;
+    textShadow: -1px 1px rgba(217, 127, 42, 0.7);
+    transform: translateX(-1px);
+  }
+
+  80% {
+    opacity: 0.65;
+    textShadow: 1px -1px rgba(217, 127, 42, 0.5);
+    transform: translateX(0);
+  }
+
+  100% {
+    opacity: 0.65;
+    textShadow: 0 0 rgba(217, 127, 42, 0.5);
+    transform: translateX(0);
+  }
+}
+
+/* Digital flicker effect - rapid brightness and color pulses */
+@keyframes digitalFlicker {
+  0% {
+    opacity: 0.85;
+    color: #d97f2a;
+    textShadow: 0 0 8px rgba(217, 127, 42, 0.5);
+  }
+
+  10% {
+    opacity: 0.4;
+    color: #ff9e4a;
+    textShadow: 0 0 12px rgba(255, 158, 74, 0.7);
+  }
+
+  20% {
+    opacity: 0.85;
+    color: #d97f2a;
+    textShadow: 0 0 8px rgba(217, 127, 42, 0.5);
+  }
+
+  35% {
+    opacity: 0.55;
+    color: #ffa844;
+    textShadow: 0 0 10px rgba(255, 168, 68, 0.6);
+  }
+
+  50% {
+    opacity: 0.75;
+    color: #d97f2a;
+    textShadow: 0 0 12px rgba(217, 127, 42, 0.8);
+  }
+
+  65% {
+    opacity: 0.3;
+    color: #ffb85a;
+    textShadow: 0 0 15px rgba(255, 184, 90, 0.9);
+  }
+
+  80% {
+    opacity: 0.85;
+    color: #d97f2a;
+    textShadow: 0 0 8px rgba(217, 127, 42, 0.5);
+  }
+
+  100% {
+    opacity: 0.85;
+    color: #d97f2a;
+    textShadow: 0 0 8px rgba(217, 127, 42, 0.5);
+  }
 }
 
 /* Heatmap drift */

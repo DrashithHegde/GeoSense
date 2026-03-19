@@ -25,7 +25,7 @@ export default function RootCauseBar({ icon, label, value, color, normalizedValu
 
       <span
         style={{
-          fontSize: "0.6rem",
+          fontSize: "0.58rem",
           color: "var(--text-dim)",
           letterSpacing: "0.08em",
           width: 52,
@@ -58,11 +58,13 @@ export default function RootCauseBar({ icon, label, value, color, normalizedValu
 
       <span
         style={{
-          fontSize: "0.6rem",
+          fontSize: "0.58rem",
           color,
           width: 28,
           textAlign: "right",
-          letterSpacing: "0.05em",
+          letterSpacing: "0em",
+          fontFamily: "'DM Mono', monospace",
+          fontWeight: 400,
           flexShrink: 0,
         }}
       >

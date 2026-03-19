@@ -761,11 +761,11 @@ function MetricCard({ label, value, valueColor = "var(--cyan)" }) {
             <div
                 style={{
                     marginTop: 5,
-                    fontFamily: "'Syne', sans-serif",
+                    fontFamily: "'DM Mono', monospace",
                     fontSize: "1.12rem",
                     color: valueColor,
-                    fontWeight: 700,
-                    letterSpacing: "0.03em",
+                    fontWeight: 600,
+                    letterSpacing: "-0.02em",
                 }}
             >
                 {value}

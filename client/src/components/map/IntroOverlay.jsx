@@ -31,7 +31,7 @@ export default function IntroOverlay({ phase }) {
       >
         <defs>
           <pattern id="sat-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#00e5ff" strokeWidth="0.5" />
+            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#d97f2a" strokeWidth="0.5" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#sat-grid)" />
@@ -40,8 +40,8 @@ export default function IntroOverlay({ phase }) {
       {/* ── Horizontal scan line ───────────────────────────────────────── */}
       <div style={{
         position: "absolute", left: 0, right: 0, height: 1,
-        background: "linear-gradient(to right, transparent 0%, rgba(0,229,255,0.18) 20%, rgba(0,229,255,0.5) 50%, rgba(0,229,255,0.18) 80%, transparent 100%)",
-        animation: "satScan 3.2s ease-in-out infinite",
+        background: "linear-gradient(to right, transparent 0%, rgba(217,127,42,0.18) 20%, rgba(217,127,42,0.5) 50%, rgba(217,127,42,0.18) 80%, transparent 100%)",
+        animation: "satScan 5s ease-in-out infinite",
         pointerEvents: "none",
       }} />
 
@@ -55,7 +55,7 @@ export default function IntroOverlay({ phase }) {
         <div key={i} style={{
           position: "absolute", ...s,
           width: 32, height: 32,
-          borderColor: "rgba(0,229,255,0.35)",
+          borderColor: "rgba(217,127,42,0.5)",
           pointerEvents: "none",
         }} />
       ))}
@@ -65,63 +65,10 @@ export default function IntroOverlay({ phase }) {
         position: "absolute", top: 22, left: 0, right: 0,
         display: "flex", justifyContent: "space-between", padding: "0 62px",
         fontFamily: "'DM Mono', monospace", fontSize: "0.5rem",
-        letterSpacing: "0.2em", color: "rgba(0,229,255,0.38)", textTransform: "uppercase",
+        letterSpacing: "0.2em", color: "rgba(217,127,42,0.6)", textTransform: "uppercase",
       }}>
         <span>SAT-ENV // v3.0 // GSD: 10M</span>
         <span>SYS BOOT // LINK ACTIVE</span>
-      </div>
-
-      {/* ── Targeting reticle ────────────────────────────────────────── */}
-      <div style={{ position: "relative", width: 120, height: 120, marginBottom: 44, flexShrink: 0 }}>
-        {/* Outer rotating dashes */}
-        <div style={{
-          position: "absolute", inset: 0,
-          border: "1px dashed rgba(0,229,255,0.2)",
-          borderRadius: "50%",
-          animation: "spin 12s linear infinite",
-        }} />
-        {/* Inner circle */}
-        <div style={{
-          position: "absolute", inset: 14,
-          border: "1px solid rgba(0,229,255,0.3)",
-          borderRadius: "50%",
-          animation: "spinReverse 8s linear infinite",
-        }} />
-        {/* Centre dot */}
-        <div style={{
-          position: "absolute", top: "50%", left: "50%",
-          transform: "translate(-50%,-50%)",
-          width: 8, height: 8, borderRadius: "50%",
-          background: "rgba(0,229,255,0.9)",
-          boxShadow: "0 0 14px rgba(0,229,255,0.9)",
-        }} />
-        {/* Cross-hair lines */}
-        {[
-          { top: "50%", left: 0, width: "34%", height: 1 },
-          { top: "50%", right: 0, width: "34%", height: 1 },
-          { left: "50%", top: 0, height: "34%", width: 1 },
-          { left: "50%", bottom: 0, height: "34%", width: 1 },
-        ].map((s, i) => (
-          <div key={i} style={{
-            position: "absolute", ...s,
-            background: "rgba(0,229,255,0.4)",
-            pointerEvents: "none",
-          }} />
-        ))}
-        {/* Corner tick marks */}
-        {[
-          { top: 8, left: 8, borderTop: "1px solid", borderLeft: "1px solid" },
-          { top: 8, right: 8, borderTop: "1px solid", borderRight: "1px solid" },
-          { bottom: 8, left: 8, borderBottom: "1px solid", borderLeft: "1px solid" },
-          { bottom: 8, right: 8, borderBottom: "1px solid", borderRight: "1px solid" },
-        ].map((s, i) => (
-          <div key={i} style={{
-            position: "absolute", ...s,
-            width: 10, height: 10,
-            borderColor: "rgba(0,229,255,0.55)",
-            pointerEvents: "none",
-          }} />
-        ))}
       </div>
 
       {/* ── GEOSENSE wordmark ────────────────────────────────────────────── */}
@@ -129,8 +76,9 @@ export default function IntroOverlay({ phase }) {
         fontFamily: "'Syne', sans-serif",
         fontSize: "3.6rem", fontWeight: 800,
         letterSpacing: "0.28em", color: "#ffffff",
-        textShadow: "0 0 30px rgba(0,229,255,0.6), 0 0 80px rgba(0,229,255,0.2)",
+        textShadow: "0 0 30px rgba(217,127,42,0.6), 0 0 80px rgba(217,127,42,0.2)",
         lineHeight: 1,
+        marginTop: "50px",
       }}>
         GEOSENSE
       </div>
@@ -138,7 +86,7 @@ export default function IntroOverlay({ phase }) {
       {/* ── Hair-line divider ──────────────────────────────────────────── */}
       <div style={{
         width: 320, height: 1, margin: "16px 0 18px",
-        background: "linear-gradient(to right, transparent, rgba(0,229,255,0.5), transparent)",
+        background: "linear-gradient(to right, transparent, rgba(217,127,42,0.6), transparent)",
       }} />
 
       {/* ── Boot sequence lines ───────────────────────────────────────── */}
@@ -149,7 +97,7 @@ export default function IntroOverlay({ phase }) {
       }}>
         {BOOT_LINES.map((line, i) => (
           <div key={i} style={{
-            color: i < 3 ? "rgba(0,229,255,0.55)" : "rgba(72,255,160,0.7)",
+            color: i < 3 ? "rgba(217,127,42,0.75)" : "rgba(217,127,42,0.85)",
             animation: `introFadeIn ${0.4 + i * 0.18}s ease both`,
           }}>
             {i < 3 ? `[ OK ] ${line}` : `[ ██ ] ${line}`}
@@ -161,7 +109,7 @@ export default function IntroOverlay({ phase }) {
       <div style={{
         marginTop: 28,
         fontFamily: "'DM Mono', monospace", fontSize: "0.5rem",
-        letterSpacing: "0.16em", color: "rgba(200,220,255,0.22)",
+        letterSpacing: "0.16em", color: "rgba(217,127,42,0.4)",
         textTransform: "uppercase",
       }}>
         LAT: 20.5937° N &nbsp;·&nbsp; LNG: 78.9629° E &nbsp;·&nbsp; ALT: 705 KM
@@ -172,7 +120,7 @@ export default function IntroOverlay({ phase }) {
         position: "absolute", bottom: 22, left: 0, right: 0,
         textAlign: "center",
         fontFamily: "'DM Mono', monospace", fontSize: "0.46rem",
-        letterSpacing: "0.2em", color: "rgba(0,229,255,0.22)",
+        letterSpacing: "0.2em", color: "rgba(217,127,42,0.35)",
         textTransform: "uppercase",
       }}>
         Environmental Intelligence Platform &nbsp;·&nbsp; Real-time Satellite Analysis

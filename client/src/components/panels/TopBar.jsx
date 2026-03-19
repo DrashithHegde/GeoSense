@@ -23,7 +23,7 @@ export default function TopBar({ activeLayers, recTime, coords }) {
       }}
     >
       {/* ── Logo ─────────────────────────────────────────────────────────── */}
-      <div className="slide-in-left" style={{ pointerEvents: "all" }}>
+      <div className="slide-in-left-flat-top" style={{ pointerEvents: "all" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           {/* Wordmark only — no icon */}
           <div>
@@ -60,7 +60,7 @@ export default function TopBar({ activeLayers, recTime, coords }) {
             marginTop: 6,
             fontSize: "0.52rem",
             letterSpacing: "0.18em",
-            color: "rgba(255,211,42,0.55)",
+            color: "rgba(217,127,42,0.7)",
           }}
         >
           ENV-SIG // REAL-TIME // CLASSIFIED
@@ -100,7 +100,7 @@ export default function TopBar({ activeLayers, recTime, coords }) {
         </div>
 
         {/* Coordinates */}
-        <div
+        <div className="coords-typewriter"
           style={{
             marginTop: 4,
             fontSize: "0.56rem",
