@@ -20,6 +20,7 @@ import IntroOverlay from "./components/map/IntroOverlay";
 import TopBar from "./components/panels/TopBar";
 import LayerControls from "./components/panels/LayerControls";
 import InsightPanel from "./components/panels/InsightPanel";
+import DeepAnalysisOverlay from "./components/panels/DeepAnalysisOverlay";
 import BottomBar from "./components/panels/BottomBar";
 
 // ── HUD ───────────────────────────────────────────────────────────────────
@@ -32,8 +33,6 @@ import Toast from "./components/hud/Toast";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const defaultCity = CITY_CONFIG.mumbai;
-
   // ── Intro & panel visibility ─────────────────────────────────────────────
   const { phase: introPhase, panelsVisible } = useIntro();
 
@@ -44,11 +43,12 @@ export default function App() {
   const { message: toastMsg, phase: toastPhase, show: showToast } = useToast();
 
   // ── City & layer state ───────────────────────────────────────────────────
-  const [activeCity, setActiveCity] = useState(null);   // starts on globe view
+  const [activeCity, setActiveCity] = useState(null);   // starts on India overview
   const [activeLayers, setActiveLayers] = useState({
-    air: true,
-    water: false,
-    land: false,
+    aqi: true,
+    ndvi: false,
+    ndwi: false,
+    lst: false,
     all: false,
   });
   const [coords, setCoords] = useState({
@@ -59,7 +59,11 @@ export default function App() {
   // ── Insight panel state ──────────────────────────────────────────────────
   const [selectedZone, setSelectedZone] = useState(null);
   const [insightOpen, setInsightOpen] = useState(false);
+  const [deepAnalysisOpen, setDeepAnalysisOpen] = useState(false);
   const [trendData, setTrendData] = useState([]);
+  const [layerControlsVisible, setLayerControlsVisible] = useState(false);
+  const [isLeavingCity, setIsLeavingCity] = useState(false);
+  const activeCityLabel = activeCity ? CITY_CONFIG[activeCity]?.label : null;
 
   // ── Mapbox container ref (used in production) ────────────────────────────
   const mapContainerRef = useRef(null);
@@ -75,10 +79,33 @@ export default function App() {
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   function handleCitySelect(cityId) {
+    if (cityId === "india") {
+      // Start zoom-out and fade-out simultaneously
+      setSelectedZone(null);
+      setInsightOpen(false);
+      setDeepAnalysisOpen(false);
+      setIsLeavingCity(true);
+      setLayerControlsVisible(false);
+      setActiveCity(null); // Start map zoom-out immediately
+
+      setTimeout(() => {
+        setIsLeavingCity(false); // Remove mask fade animation
+        setCoords({
+          lat: "22.0000",
+          lng: "79.0000",
+        });
+        showToast("RETURNED TO PAN-INDIA OVERVIEW // NATIONAL SWEEP ACTIVE");
+      }, 700);
+      return;
+    }
+
     if (activeCity === cityId) return;
 
     setSelectedZone(null);
     setInsightOpen(false);
+    setDeepAnalysisOpen(false);
+    setLayerControlsVisible(false);
+    setIsLeavingCity(false);
     setActiveCity(cityId);
 
     const city = CITY_CONFIG[cityId];
@@ -88,34 +115,88 @@ export default function App() {
     });
 
     showToast(`SCANNING ${city.label.toUpperCase()} // ANOMALY DETECTION ACTIVE`);
+
+    // Show layer controls after zoom animation (700ms)
+    setTimeout(() => {
+      setLayerControlsVisible(true);
+    }, 700);
   }
 
   function handleZoneClick(zone) {
     setSelectedZone(zone);
     setTrendData(generateTrend(zone.severity));
     setInsightOpen(true);
+    setDeepAnalysisOpen(false);
     showToast(`ANOMALY DETECTED // ${zone.name.toUpperCase()}`);
   }
 
   function handleInsightClose() {
     setInsightOpen(false);
+    setDeepAnalysisOpen(false);
     setTimeout(() => setSelectedZone(null), 420); // wait for slide-out
+  }
+
+  function handleDeepAnalysisOpen() {
+    if (!selectedZone) return;
+    setDeepAnalysisOpen(true);
+  }
+
+  function handleDeepAnalysisClose() {
+    setDeepAnalysisOpen(false);
   }
 
   const handleLayerToggle = useCallback((layerId) => {
     setActiveLayers((prev) => {
-      const next = { ...prev, [layerId]: !prev[layerId] };
-      // Ensure at least one layer is always on
-      if (!Object.values(next).some(Boolean)) return prev;
-      return next;
-    });
-  }, []);
+      if (layerId === "all") {
+        const isCurrentlyActive = prev.all;
+        if (isCurrentlyActive) {
+          // Toggle off all layers
+          return {
+            aqi: false,
+            ndvi: false,
+            ndwi: false,
+            lst: false,
+            all: false,
+          };
+        } else {
+          // Toggle on all layers
+          return {
+            aqi: true,
+            ndvi: true,
+            ndwi: true,
+            lst: true,
+            all: true,
+          };
+        }
+      }
 
-  const handleParamChange = useCallback((paramName, value) => {
-    // Wire up to Mapbox layer paint properties in production
-    // e.g. map.setPaintProperty('env-heat', 'heatmap-radius', value * 0.8)
-    console.debug("[GeoSense] param change:", paramName, value);
-  }, []);
+      // Individual layer toggle: if already active, turn it off; otherwise activate it
+      const isCurrentlyActive = prev[layerId];
+      if (isCurrentlyActive) {
+        // Toggle off — show base map only
+        return {
+          aqi: false,
+          ndvi: false,
+          ndwi: false,
+          lst: false,
+          all: false,
+        };
+      } else {
+        // Toggle on — single-select
+        return {
+          aqi: layerId === "aqi",
+          ndvi: layerId === "ndvi",
+          ndwi: layerId === "ndwi",
+          lst: layerId === "lst",
+          all: false,
+        };
+      }
+    });
+
+    const layerLabel = LAYER_CONFIG[layerId]?.label || "Layer";
+    const action = activeLayers[layerId] ? "DEACTIVATED" : "ACTIVATED";
+    showToast(`${layerLabel.toUpperCase()} LAYER ${action}`);
+  }, [showToast, activeLayers]);
 
   // Prevent browser-level zoom (Ctrl/Cmd + wheel / +/- / 0)
   // so only the map surface performs zoom interactions.
@@ -161,6 +242,14 @@ export default function App() {
       {/* ── Real Mapbox map container ───────────────────────────────────── */}
       <div ref={mapContainerRef} style={{ position: "absolute", inset: 0, zIndex: 0 }} />
 
+      {/* ── Satellite circular mask overlays ─────────────────────────────── */}
+      {(activeCity || isLeavingCity) && (
+        <div
+          className="satellite-mask"
+          style={isLeavingCity ? { animation: "fadeOutMask 0.7s ease-in-out forwards" } : { animation: "fadeInMask 0.7s ease-in-out forwards" }}
+        />
+      )}
+
       {/* ── Intro overlay ────────────────────────────────────────────────── */}
       <IntroOverlay phase={introPhase} />
 
@@ -176,20 +265,32 @@ export default function App() {
             coords={coords}
           />
 
-          {/* Layer controls hide when insight panel is open */}
-          {!insightOpen && (
+          {/* Layer controls on left — appears after city animation */}
+          {layerControlsVisible && (
             <LayerControls
               activeLayers={activeLayers}
               onToggleLayer={handleLayerToggle}
-              onParamChange={handleParamChange}
             />
           )}
 
+          {/* Insight panel on right */}
           <InsightPanel
             zone={selectedZone}
+            cityLabel={activeCityLabel}
             trendData={trendData}
+            activeLayers={activeLayers}
             isOpen={insightOpen}
             onClose={handleInsightClose}
+            onDeepAnalysis={handleDeepAnalysisOpen}
+          />
+
+          <DeepAnalysisOverlay
+            zone={selectedZone}
+            cityLabel={activeCityLabel}
+            trendData={trendData}
+            activeLayers={activeLayers}
+            isOpen={deepAnalysisOpen}
+            onClose={handleDeepAnalysisClose}
           />
 
           <BottomBar

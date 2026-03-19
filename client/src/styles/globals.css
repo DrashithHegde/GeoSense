@@ -30,7 +30,11 @@ body {
 }
 
 /* Buttons and interactive elements get the hand pointer */
-button, a, [role="button"], label, select {
+button,
+a,
+[role="button"],
+label,
+select {
   cursor: pointer !important;
 }
 
@@ -69,6 +73,27 @@ button, a, [role="button"], label, select {
 .mapboxgl-ctrl-top-left,
 .mapboxgl-ctrl-top-right {
   display: none !important;
+}
+
+.satellite-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 56%,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0) 26%,
+      rgba(0, 0, 0, 0.68) 47%,
+      rgba(0, 0, 0, 0.96) 72%,
+      rgba(0, 0, 0, 1) 100%);
+  backdrop-filter: blur(16px) brightness(0.34) saturate(0.65);
+  -webkit-backdrop-filter: blur(16px) brightness(0.34) saturate(0.65);
+  -webkit-mask-image: radial-gradient(circle at 50% 56%, transparent 0 28%, #000 50%, #000 100%);
+  mask-image: radial-gradient(circle at 50% 56%, transparent 0 28%, #000 50%, #000 100%);
+}
+
+.satellite-ring {
+  display: none;
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────────────────── */
@@ -393,6 +418,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
   animation: toastOut 0.3s ease forwards;
 }
 
+.toast-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: recBlink 1.4s ease-in-out infinite;
+}
+
 /* ── Glassmorphism helper class ───────────────────────────────────────────── */
 .glass {
   background: rgba(11, 15, 20, 0.72);
@@ -537,4 +570,25 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .layer-row:last-child {
   border-bottom: none !important;
+}
+
+/* ── Satellite mask fade-in animation ────────────────────────────────────── */
+@keyframes fadeInMask {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOutMask {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }

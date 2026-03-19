@@ -3,11 +3,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const LAYER_CONFIG = {
-  air: {
-    id: "air",
-    label: "Air",
+  aqi: {
+    id: "aqi",
+    label: "CPCB AQI",
     icon: "○",
-    desc: "AQI & particulate density",
+    desc: "National AQI (CPCB)",
     gradient: {
       0.0: "rgba(0,0,0,0)",
       0.15: "rgba(29,209,161,0.6)",
@@ -22,11 +22,11 @@ export const LAYER_CONFIG = {
     ],
   },
 
-  water: {
-    id: "water",
-    label: "Water",
+  ndvi: {
+    id: "ndvi",
+    label: "NDVI",
     icon: "◈",
-    desc: "Contamination risk index",
+    desc: "Vegetation health index",
     gradient: {
       0.0: "rgba(0,0,0,0)",
       0.2: "rgba(0,119,182,0.55)",
@@ -41,11 +41,11 @@ export const LAYER_CONFIG = {
     ],
   },
 
-  land: {
-    id: "land",
-    label: "Land",
+  ndwi: {
+    id: "ndwi",
+    label: "NDWI",
     icon: "◇",
-    desc: "Degradation & soil stress",
+    desc: "Surface water index",
     gradient: {
       0.0: "rgba(0,0,0,0)",
       0.2: "rgba(45,106,79,0.6)",
@@ -60,11 +60,30 @@ export const LAYER_CONFIG = {
     ],
   },
 
+  lst: {
+    id: "lst",
+    label: "LST",
+    icon: "▣",
+    desc: "Land surface temperature",
+    gradient: {
+      0.0: "rgba(0,0,0,0)",
+      0.2: "rgba(40,90,160,0.55)",
+      0.45: "rgba(255,211,42,0.75)",
+      0.75: "rgba(255,120,0,0.88)",
+      1.0: "rgba(255,59,59,0.95)",
+    },
+    blobColors: [
+      "rgba(255,59,59,0.28)",
+      "rgba(255,120,0,0.22)",
+      "rgba(255,211,42,0.14)",
+    ],
+  },
+
   all: {
     id: "all",
-    label: "All Layers",
+    label: "Composite View",
     icon: "⬡",
-    desc: "Composite anomaly index",
+    desc: "Combined multi-metric overlay",
     gradient: {
       0.0: "rgba(0,0,0,0)",
       0.15: "rgba(29,209,161,0.6)",
