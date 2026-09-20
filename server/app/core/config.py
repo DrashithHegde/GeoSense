@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_name: str = "geosense"
     db_user: str = "postgres"
-    db_password: str = "postgres"
+    db_password: str = ""
     aqicn_token: str | None = None
     openaq_aqi_key: str | None = None
     gee_project: str | None = None
