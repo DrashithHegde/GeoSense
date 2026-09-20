@@ -27,10 +27,10 @@ export default function EnvironmentMetrics({ activeLayers, selectedZone }) {
                                     {layer.label.toUpperCase()}
                                 </div>
                                 <div style={{ fontSize: "1rem", color: "var(--cyan)", fontWeight: "bold" }}>
-                                    Severity {selectedZone.severity.toFixed(1)}
+                                    Composite {selectedZone.composite?.score == null ? "N/A" : selectedZone.composite.score.toFixed(1)}
                                 </div>
                                 <div style={{ fontSize: "0.5rem", color: "var(--text-dim)" }}>
-                                    Composite anomaly index
+                                    Backend environmental stress score
                                 </div>
                             </div>
                         );

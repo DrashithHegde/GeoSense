@@ -57,15 +57,14 @@ export function getNdviBand(ndvi) {
 }
 
 /**
- * NDWI moisture/water condition band
+ * Water Health condition band. Higher backend score means better condition.
  */
-export function getNdwiBand(ndwi) {
-  const value = Math.max(-1, Math.min(1, Number(ndwi) || 0));
-  if (value < -0.1) return "VERY LOW MOISTURE";
-  if (value < 0.05) return "LOW MOISTURE";
-  if (value < 0.2) return "MODERATE MOISTURE";
-  if (value < 0.35) return "HIGH MOISTURE";
-  return "VERY HIGH MOISTURE";
+export function getWaterHealthBand(score) {
+  if (score === null || score === undefined) return "UNAVAILABLE";
+  const value = Math.max(0, Math.min(1, Number(score)));
+  if (value >= 0.75) return "GOOD CONDITION";
+  if (value >= 0.5) return "WATCH";
+  return "POTENTIAL CONCERN";
 }
 
 /**
@@ -105,44 +104,29 @@ export function generateTrend(endValue, points = 14) {
 
 export function getZoneMetrics(zone) {
   if (!zone) {
-    return { aqi: 0, ndvi: 0, ndwi: 0, lst: 0 };
+    return { aqi: null, ndvi: null, lst: null, water_health_score: null };
   }
 
   const hasNativeMetrics =
     zone.aqi !== undefined &&
     zone.ndvi !== undefined &&
-    zone.ndwi !== undefined &&
     zone.lst !== undefined;
 
   if (hasNativeMetrics) {
     return {
-      aqi: Number(zone.aqi),
-      ndvi: Number(zone.ndvi),
-      ndwi: Number(zone.ndwi),
-      lst: Number(zone.lst),
+      aqi: zone.aqi == null ? null : Number(zone.aqi),
+      ndvi: zone.ndvi == null ? null : Number(zone.ndvi),
+      lst: zone.lst == null ? null : Number(zone.lst),
+      water_health_score: zone.water_health_score == null ? null : Number(zone.water_health_score),
     };
   }
 
-  // Backward-compatible mapping from legacy mock fields:
-  // air(0-100), water(0-100), land(0-100), severity(0-100)
-  const air = Number(zone.air ?? 0);
-  const water = Number(zone.water ?? 0);
-  const land = Number(zone.land ?? 0);
-  const severity = Number(zone.severity ?? 0);
-
-  // AQI approx range: 0-500 (higher = worse)
-  const aqi = Math.round(35 + air * 3.1);
-
-  // NDVI approx range: -0.20 to 0.80 (higher vegetation = better)
-  const ndvi = +(Math.max(-0.2, Math.min(0.8, -0.2 + (land / 100) * 1.0))).toFixed(2);
-
-  // NDWI approx range: -0.30 to 0.60 (higher water presence = better)
-  const ndwi = +(Math.max(-0.3, Math.min(0.6, -0.3 + (water / 100) * 0.9))).toFixed(2);
-
-  // LST approx range: 24°C to 47°C (higher = hotter)
-  const lst = +(24 + severity * 0.18 + (100 - land) * 0.03).toFixed(1);
-
-  return { aqi, ndvi, ndwi, lst };
+  return {
+    aqi: zone.aqi ?? null,
+    ndvi: zone.ndvi ?? null,
+    lst: zone.lst ?? null,
+    water_health_score: zone.water_health_score ?? null,
+  };
 }
 
 export function getMetricDisplay(metricId, metrics) {
@@ -150,13 +134,13 @@ export function getMetricDisplay(metricId, metrics) {
 
   switch (metricId) {
     case "aqi":
-      return `${metrics.aqi}`;
+      return metrics.aqi == null ? "N/A" : `${metrics.aqi}`;
     case "ndvi":
-      return `${metrics.ndvi.toFixed(2)}`;
-    case "ndwi":
-      return `${metrics.ndwi.toFixed(2)}`;
+      return metrics.ndvi == null ? "N/A" : `${metrics.ndvi.toFixed(2)}`;
+    case "water_health":
+      return metrics.water_health_score == null ? "N/A" : `${(metrics.water_health_score * 100).toFixed(0)}%`;
     case "lst":
-      return `${metrics.lst.toFixed(1)}°C`;
+      return metrics.lst == null ? "N/A" : `${metrics.lst.toFixed(1)}°C`;
     case "all":
       return "Composite";
     default:
@@ -201,15 +185,9 @@ function normalizeNdviStress(ndvi) {
   return interpolate(value, 0.5, 0.8, 40, 20);
 }
 
-// App semantics: higher NDWI indicates higher water anomaly stress
-function normalizeNdwiStress(ndwi) {
-  const value = Math.max(-0.3, Math.min(0.6, Number(ndwi) || 0));
-
-  if (value <= 0.0) return interpolate(value, -0.3, 0.0, 20, 40);
-  if (value <= 0.2) return interpolate(value, 0.0, 0.2, 40, 60);
-  if (value <= 0.35) return interpolate(value, 0.2, 0.35, 60, 75);
-  if (value <= 0.5) return interpolate(value, 0.35, 0.5, 75, 90);
-  return interpolate(value, 0.5, 0.6, 90, 100);
+function normalizeWaterHealthStress(score) {
+  if (score === null || score === undefined) return null;
+  return clampScore((1 - Number(score)) * 100);
 }
 
 // Higher LST means higher thermal stress
@@ -231,8 +209,8 @@ export function normalizeMetric(metricId, metrics) {
       return clampScore(normalizeAqiCpcb(metrics.aqi));
     case "ndvi":
       return clampScore(normalizeNdviStress(metrics.ndvi));
-    case "ndwi":
-      return clampScore(normalizeNdwiStress(metrics.ndwi));
+    case "water_health":
+      return normalizeWaterHealthStress(metrics.water_health_score);
     case "lst":
       return clampScore(normalizeLstStress(metrics.lst));
     default:
@@ -245,26 +223,248 @@ export function normalizeMetric(metricId, metrics) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Converts city zones into a Mapbox-ready GeoJSON FeatureCollection
+ * Converts zones into a Mapbox-ready GeoJSON FeatureCollection.
+ * @param {object} city - city config object (used for non-Mumbai placeholder cities)
+ * @param {Array}  liveZones - real zones from backend (optional; takes precedence when provided)
  */
-export function buildGeoJSON(city) {
-  if (!city) return { type: "FeatureCollection", features: [] };
+export function buildGeoJSON(city, liveZones) {
+  // Prefer real backend zones when provided
+  const zones = (liveZones && liveZones.length > 0)
+    ? liveZones
+    : (city?.zones ?? []);
+
+  if (!zones.length) return { type: "FeatureCollection", features: [] };
 
   return {
     type: "FeatureCollection",
-    features: city.zones.map((zone) => ({
+    features: zones.map((zone) => ({
       type: "Feature",
       geometry: {
         type: "Point",
         coordinates: zone.coords,
       },
       properties: {
-        severity: zone.severity / 100,
+        severity: zone.severity == null ? 0 : zone.severity / 100,
+        composite_score: zone.composite?.score == null ? null : zone.composite.score / 100,
+        water_health_score: zone.water_health_score == null ? null : zone.water_health_score,
+        water_health_stress: zone.water_health_score == null ? null : 1 - zone.water_health_score,
+        water_health_available: zone.water_health_score != null,
+        aqi_stress: zone.composite?.normalized_components?.aqi == null ? null : zone.composite.normalized_components.aqi / 100,
+        aqi_weight: zone.aqi == null ? null : Math.max(0, Math.min(1, Number(zone.aqi) / 500)),
+        ndvi_stress: zone.composite?.normalized_components?.ndvi == null ? null : zone.composite.normalized_components.ndvi / 100,
+        lst_stress: zone.composite?.normalized_components?.lst == null ? null : zone.composite.normalized_components.lst / 100,
         color: getSeverityConfig(zone.type).hex,
         zone: JSON.stringify(zone),
       },
     })),
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POLYGON GEOJSON BUILDER  (primary map visualization)
+// Builds Mapbox-ready polygon FeatureCollection from backend zone data.
+// Each feature carries normalized metric values for fill-color expressions.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Clamps a value between 0 and 1 (returns null if value is null/undefined)
+ */
+function clamp01(v) {
+  if (v == null) return null;
+  return Math.max(0, Math.min(1, v));
+}
+
+/**
+ * Normalizes AQI (0–500 CPCB scale) to 0–1 stress value.
+ * Higher AQI → higher norm (worse).
+ */
+function normalizeAqi(aqi) {
+  if (aqi == null) return null;
+  return clamp01(Number(aqi) / 500);
+}
+
+/**
+ * Normalizes NDVI (-1 to 1) to 0–1 STRESS value.
+ * Lower NDVI → higher stress (inverted).
+ */
+function normalizeNdviToStress(ndvi) {
+  if (ndvi == null) return null;
+  // Map NDVI range [-0.2, 0.8] → stress [1.0, 0.0]
+  const v = Math.max(-0.2, Math.min(0.8, Number(ndvi)));
+  return clamp01((0.8 - v) / 1.0);
+}
+
+/**
+ * Normalizes LST (°C) to 0–1 stress value.
+ * Higher LST → higher stress.
+ */
+function normalizeLst(lst) {
+  if (lst == null) return null;
+  // Map [20°C, 50°C] → [0, 1]
+  const v = Math.max(20, Math.min(50, Number(lst)));
+  return clamp01((v - 20) / 30);
+}
+
+/**
+ * Normalizes Water Health score (0–1 condition) to 0–1 STRESS value.
+ * Higher score = better water → lower stress (inverted).
+ */
+function normalizeWaterHealthToStress(score) {
+  if (score == null) return null;
+  return clamp01(1 - Number(score));
+}
+
+/**
+ * Converts backend zones into a Mapbox-ready FeatureCollection of polygons.
+ * Uses the actual zone MultiPolygon geometries from the backend.
+ * Each feature carries normalized 0–1 metric stress values for paint expressions.
+ *
+ * @param {Array} zones - real zones from backend (with .geometry from ST_AsGeoJSON)
+ * @returns {GeoJSON.FeatureCollection}
+ */
+export function buildZonesGeoJSON(zones) {
+  if (!zones || zones.length === 0) {
+    return { type: "FeatureCollection", features: [] };
+  }
+
+  const features = [];
+
+  for (const zone of zones) {
+    // Use actual polygon geometry if available, fallback to Point centroid
+    const geometry = zone.geometry
+      ? zone.geometry
+      : zone.coords
+        ? { type: "Point", coordinates: zone.coords }
+        : null;
+
+    if (!geometry) continue;
+
+    // Composite normalized value from backend (already 0-100 → convert to 0-1)
+    const compositeNorm = zone.composite?.score != null
+      ? clamp01(zone.composite.score / 100)
+      : null;
+
+    features.push({
+      type: "Feature",
+      id: zone.id,   // promoteId: "id" needs this at Feature level
+      geometry: geometry,
+      properties: {
+        // Identifiers
+        id: zone.id,
+        name: zone.name,
+        ward: zone.ward,
+
+        // Normalized 0–1 values for Mapbox paint expressions
+        aqi_norm: normalizeAqi(zone.aqi),
+        ndvi_norm: normalizeNdviToStress(zone.ndvi),
+        lst_norm: normalizeLst(zone.lst),
+        water_norm: normalizeWaterHealthToStress(zone.water_health_score),
+        composite_norm: compositeNorm,
+
+        // Raw values for click retrieval
+        aqi: zone.aqi,
+        ndvi: zone.ndvi,
+        lst: zone.lst,
+        water_health_score: zone.water_health_score,
+
+        // Serialized full zone for click handler
+        zone_json: JSON.stringify(zone),
+      },
+    });
+  }
+
+  return { type: "FeatureCollection", features };
+}
+
+export function buildMunicipalitiesGeoJSON(municipalities) {
+  if (!municipalities || municipalities.length === 0) {
+    return { type: "FeatureCollection", features: [] };
+  }
+
+  const features = [];
+  for (const muni of municipalities) {
+    if (!muni.geometry) continue;
+
+    const compositeNorm = muni.composite_score != null
+      ? clamp01(muni.composite_score / 100)
+      : null;
+
+    features.push({
+      type: "Feature",
+      id: muni.id,
+      geometry: muni.geometry,
+      properties: {
+        id: muni.id,
+        name: muni.name,
+        aqi_norm: normalizeAqi(muni.aqi),
+        ndvi_norm: normalizeNdviToStress(muni.ndvi),
+        lst_norm: normalizeLst(muni.lst),
+        water_norm: null, // Water health is handled separately
+        composite_norm: compositeNorm,
+        aqi: muni.aqi,
+        ndvi: muni.ndvi,
+        lst: muni.lst,
+        composite_score: muni.composite_score,
+        zone_count: muni.zone_count,
+        representative_zone_id: muni.representative_zone_id,
+        // Mock a zone object for the InsightPanel using representative ID + aggregated metrics
+        zone_json: JSON.stringify({
+          id: muni.representative_zone_id,
+          name: muni.name,
+          aqi: muni.aqi,
+          ndvi: muni.ndvi,
+          lst: muni.lst,
+          water_health_score: muni.water_health_score,
+          composite: { score: muni.composite_score },
+          // Derive a representative coordinate from the polygon geometry centroid bbox.
+          // InsightPanel and DeepAnalysisOverlay both display zone.coords[0]/[1].
+          coords: (() => {
+            try {
+              const geom = typeof muni.geometry === "string" ? JSON.parse(muni.geometry) : muni.geometry;
+              const ring = geom?.coordinates?.[0]?.[0] ?? geom?.coordinates?.[0];
+              if (!ring || ring.length === 0) return null;
+              // Compute bbox centre of the outer ring
+              const points = Array.isArray(ring[0]) ? ring : [ring];
+              let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+              for (const pt of points) {
+                if (pt[0] < minLng) minLng = pt[0];
+                if (pt[0] > maxLng) maxLng = pt[0];
+                if (pt[1] < minLat) minLat = pt[1];
+                if (pt[1] > maxLat) maxLat = pt[1];
+              }
+              return [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+            } catch (_) { return null; }
+          })(),
+        }),
+      }
+    });
+  }
+  return { type: "FeatureCollection", features };
+}
+
+export function buildWaterBodiesGeoJSON(waterBodies) {
+  if (!waterBodies || waterBodies.length === 0) {
+    return { type: "FeatureCollection", features: [] };
+  }
+
+  const features = [];
+  for (const wb of waterBodies) {
+    if (!wb.geometry) continue;
+
+    features.push({
+      type: "Feature",
+      id: wb.id,
+      geometry: wb.geometry,
+      properties: {
+        id: wb.id,
+        name: wb.name,
+        water_norm: normalizeWaterHealthToStress(wb.water_health_score),
+        water_health_score: wb.water_health_score,
+        water_health_status: wb.water_health_status,
+      }
+    });
+  }
+  return { type: "FeatureCollection", features };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

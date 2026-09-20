@@ -8,77 +8,13 @@ export const CITY_CONFIG = {
     id: "mumbai",
     label: "Mumbai",
     center: [72.8777, 19.076],
-    zoom: 11.5,
-    zones: [
-      {
-        id: "mum-1",
-        name: "Dharavi Industrial Corridor",
-        coords: [72.8556, 19.0478],
-        severity: 91,
-        aqi: 286,
-        ndvi: 0.21,
-        ndwi: 0.19,
-        lst: 41.2,
-        type: "critical",
-      },
-      {
-        id: "mum-2",
-        name: "Deonar Waste Complex",
-        coords: [72.9275, 19.0425],
-        severity: 88,
-        aqi: 309,
-        ndvi: 0.14,
-        ndwi: 0.16,
-        lst: 42.1,
-        type: "critical",
-      },
-      {
-        id: "mum-3",
-        name: "Chembur Petrochemical Belt",
-        coords: [72.9005, 19.0522],
-        severity: 76,
-        aqi: 248,
-        ndvi: 0.25,
-        ndwi: 0.05,
-        lst: 39.0,
-        type: "severe",
-      },
-      {
-        id: "mum-4",
-        name: "Versova Creek Estuary",
-        coords: [72.8137, 19.1357],
-        severity: 64,
-        aqi: 142,
-        ndvi: 0.43,
-        ndwi: 0.39,
-        lst: 34.8,
-        type: "high",
-      },
-      {
-        id: "mum-5",
-        name: "Bandra-Kurla Zone",
-        coords: [72.8652, 19.0654],
-        severity: 46,
-        aqi: 176,
-        ndvi: 0.49,
-        ndwi: -0.05,
-        lst: 31.7,
-        type: "moderate",
-      },
-    ],
-    // Positions relative to simulated map canvas (percentages)
-    zonePositions: [
-      { id: "mum-1", x: "43%", y: "61%" },
-      { id: "mum-2", x: "57%", y: "63%" },
-      { id: "mum-3", x: "55%", y: "55%" },
-      { id: "mum-4", x: "32%", y: "38%" },
-      { id: "mum-5", x: "48%", y: "52%" },
-    ],
+    zoom: 10.8,
+    zones: [], // Loaded live from backend
   },
 
-  bangalore: {
-    id: "bangalore",
-    label: "Bangaluru",
+  bengaluru: {
+    id: "bengaluru",
+    label: "Bengaluru",
     center: [77.5946, 12.9716],
     zoom: 11.5,
     zones: [
@@ -92,6 +28,7 @@ export const CITY_CONFIG = {
         ndwi: 0.51,
         lst: 38.2,
         type: "critical",
+        _placeholder: true,
       },
       {
         id: "blr-2",
@@ -103,6 +40,7 @@ export const CITY_CONFIG = {
         ndwi: 0.47,
         lst: 35.9,
         type: "severe",
+        _placeholder: true,
       },
       {
         id: "blr-3",
@@ -114,6 +52,7 @@ export const CITY_CONFIG = {
         ndwi: -0.02,
         lst: 39.8,
         type: "severe",
+        _placeholder: true,
       },
       {
         id: "blr-4",
@@ -125,6 +64,7 @@ export const CITY_CONFIG = {
         ndwi: -0.07,
         lst: 30.4,
         type: "moderate",
+        _placeholder: true,
       },
     ],
     zonePositions: [
@@ -135,9 +75,9 @@ export const CITY_CONFIG = {
     ],
   },
 
-  delhi: {
-    id: "delhi",
-    label: "Delhi",
+  new_delhi: {
+    id: "new_delhi",
+    label: "New Delhi",
     center: [77.209, 28.6139],
     zoom: 11,
     zones: [
@@ -151,6 +91,7 @@ export const CITY_CONFIG = {
         ndwi: 0.04,
         lst: 44.6,
         type: "critical",
+        _placeholder: true,
       },
       {
         id: "del-2",
@@ -162,6 +103,7 @@ export const CITY_CONFIG = {
         ndwi: 0.52,
         lst: 39.4,
         type: "critical",
+        _placeholder: true,
       },
       {
         id: "del-3",
@@ -173,6 +115,7 @@ export const CITY_CONFIG = {
         ndwi: 0.18,
         lst: 43.3,
         type: "critical",
+        _placeholder: true,
       },
       {
         id: "del-4",
@@ -184,6 +127,7 @@ export const CITY_CONFIG = {
         ndwi: -0.01,
         lst: 41.7,
         type: "severe",
+        _placeholder: true,
       },
       {
         id: "del-5",
@@ -195,6 +139,7 @@ export const CITY_CONFIG = {
         ndwi: 0.1,
         lst: 40.1,
         type: "severe",
+        _placeholder: true,
       },
     ],
     zonePositions: [

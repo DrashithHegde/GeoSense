@@ -5,13 +5,11 @@ import "./styles/globals.css";
 
 // ── Hooks ─────────────────────────────────────────────────────────────────
 import { useClock, useToast, useIntro, useMapbox } from "./hooks";
+import { useGeoSenseData, useZoneExplanation } from "./hooks/useGeoSenseData";
 
 // ── Constants ─────────────────────────────────────────────────────────────
 import { CITY_CONFIG } from "./constants/cities";
 import { LAYER_CONFIG } from "./constants/layers";
-
-// ── Utils ─────────────────────────────────────────────────────────────────
-import { generateTrend } from "./utils/helpers";
 
 // ── Map ───────────────────────────────────────────────────────────────────
 import IntroOverlay from "./components/map/IntroOverlay";
@@ -48,7 +46,7 @@ export default function App() {
   const [activeLayers, setActiveLayers] = useState({
     aqi: true,
     ndvi: false,
-    ndwi: false,
+    water_health: false,
     lst: false,
     all: false,
   });
@@ -61,10 +59,13 @@ export default function App() {
   const [selectedZone, setSelectedZone] = useState(null);
   const [insightOpen, setInsightOpen] = useState(false);
   const [deepAnalysisOpen, setDeepAnalysisOpen] = useState(false);
-  const [trendData, setTrendData] = useState([]);
   const [layerControlsVisible, setLayerControlsVisible] = useState(false);
   const [isLeavingCity, setIsLeavingCity] = useState(false);
   const activeCityLabel = activeCity ? CITY_CONFIG[activeCity]?.label : null;
+
+  // ── Data Fetching ────────────────────────────────────────────────────────
+  const { zones: liveZones, liveMunicipalities, waterBodies, aqiSurface, ndviSurface, lstSurface, boundary: liveBoundary, loading: zonesLoading, error: zonesError } = useGeoSenseData(activeCity);
+  const { explanationData, explanationLoading, fetchExplanation, clearExplanation } = useZoneExplanation();
 
   // ── Mapbox container ref (used in production) ────────────────────────────
   const mapContainerRef = useRef(null);
@@ -75,6 +76,12 @@ export default function App() {
     activeCity,
     activeLayers,
     onZoneClick: handleZoneClick,
+    liveMunicipalities,
+    waterBodies,
+    aqiSurface,
+    ndviSurface,
+    lstSurface,
+    boundary: liveBoundary,
   });
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -83,6 +90,7 @@ export default function App() {
     if (cityId === "india") {
       // Start zoom-out and fade-out simultaneously
       setSelectedZone(null);
+      clearExplanation();
       setInsightOpen(false);
       setDeepAnalysisOpen(false);
       setIsLeavingCity(true);
@@ -103,6 +111,7 @@ export default function App() {
     if (activeCity === cityId) return;
 
     setSelectedZone(null);
+    clearExplanation();
     setInsightOpen(false);
     setDeepAnalysisOpen(false);
     setLayerControlsVisible(false);
@@ -125,7 +134,13 @@ export default function App() {
 
   function handleZoneClick(zone) {
     setSelectedZone(zone);
-    setTrendData(generateTrend(zone.severity));
+    if (zone.id && !String(zone.id).startsWith("mum-") && !String(zone.id).startsWith("blr-") && !String(zone.id).startsWith("del-")) {
+      // Real backend zone ID
+      fetchExplanation(zone.id);
+    } else {
+      // Placeholder UI zone - no real backend data
+      clearExplanation();
+    }
     setInsightOpen(true);
     setDeepAnalysisOpen(false);
     showToast(`ANOMALY DETECTED // ${zone.name.toUpperCase()}`);
@@ -134,7 +149,10 @@ export default function App() {
   function handleInsightClose() {
     setInsightOpen(false);
     setDeepAnalysisOpen(false);
-    setTimeout(() => setSelectedZone(null), 420); // wait for slide-out
+    setTimeout(() => {
+      setSelectedZone(null);
+      clearExplanation();
+    }, 420); // wait for slide-out
   }
 
   function handleDeepAnalysisOpen() {
@@ -155,7 +173,7 @@ export default function App() {
           return {
             aqi: false,
             ndvi: false,
-            ndwi: false,
+            water_health: false,
             lst: false,
             all: false,
           };
@@ -164,7 +182,7 @@ export default function App() {
           return {
             aqi: true,
             ndvi: true,
-            ndwi: true,
+            water_health: true,
             lst: true,
             all: true,
           };
@@ -178,7 +196,7 @@ export default function App() {
         return {
           aqi: false,
           ndvi: false,
-          ndwi: false,
+          water_health: false,
           lst: false,
           all: false,
         };
@@ -187,7 +205,7 @@ export default function App() {
         return {
           aqi: layerId === "aqi",
           ndvi: layerId === "ndvi",
-          ndwi: layerId === "ndwi",
+          water_health: layerId === "water_health",
           lst: layerId === "lst",
           all: false,
         };
@@ -278,7 +296,7 @@ export default function App() {
           <InsightPanel
             zone={selectedZone}
             cityLabel={activeCityLabel}
-            trendData={trendData}
+            explanationData={explanationData}
             activeLayers={activeLayers}
             isOpen={insightOpen}
             onClose={handleInsightClose}
@@ -288,7 +306,7 @@ export default function App() {
           <DeepAnalysisOverlay
             zone={selectedZone}
             cityLabel={activeCityLabel}
-            trendData={trendData}
+            explanationData={explanationData}
             activeLayers={activeLayers}
             isOpen={deepAnalysisOpen}
             onClose={handleDeepAnalysisClose}

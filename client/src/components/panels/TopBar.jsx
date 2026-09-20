@@ -1,11 +1,12 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 // TopBar
 // Floating header with GeoSense logo (left) and live REC / coords (right)
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 
 export default function TopBar({ activeLayers, recTime, coords }) {
-  const primaryLayer =
-    Object.entries(activeLayers).find(([, v]) => v)?.[0]?.toUpperCase() || "—";
+  const primaryLayer = activeLayers.all
+    ? "COMPOSITE"
+    : Object.entries(activeLayers).find(([, v]) => v)?.[0]?.toUpperCase() || "—";
 
   return (
     <div
@@ -22,8 +23,8 @@ export default function TopBar({ activeLayers, recTime, coords }) {
         pointerEvents: "none",
       }}
     >
-      {/* ── Logo ─────────────────────────────────────────────────────────── */}
-      <div className="slide-in-left-flat-top" style={{ pointerEvents: "all" }}>
+      {/* ── Logo ───────────────────────────────────────────────────────────── */}
+      <div className="slide-in-left-flat-top" style={{ pointerEvents: "all" }}> 
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           {/* Wordmark only — no icon */}
           <div>
@@ -67,7 +68,7 @@ export default function TopBar({ activeLayers, recTime, coords }) {
         </div>
       </div>
 
-      {/* ── Right — REC badge + telemetry ────────────────────────────────── */}
+      {/* ── Right — REC badge + telemetry ─────────────────────────── */}     
       <div
         className="slide-in-right"
         style={{ textAlign: "right", pointerEvents: "none" }}

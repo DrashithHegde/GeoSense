@@ -1,8 +1,8 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 // ClassificationHeader
 // Top-left intelligence/surveillance agency classification overlay
 // Positioned below the logo to avoid overlap
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 
 export default function ClassificationHeader() {
     return (
@@ -22,10 +22,10 @@ export default function ClassificationHeader() {
             }}
         >
             <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                TOP SECRET // GEOSENSE // NOFORN
+                ENVIRONMENTAL SENSOR GRID // ACTIVE
             </div>
             <div style={{ fontSize: "0.55rem", opacity: 0.85 }}>
-                SENTINEL-02 GEO-4208
+                SENTINEL-02 // LANDSAT-08
             </div>
             <div style={{ fontSize: "0.55rem", opacity: 0.85, marginTop: 3 }}>
                 CRT

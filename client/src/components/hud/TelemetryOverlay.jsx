@@ -27,7 +27,6 @@ export default function TelemetryOverlay({ coords = {} }) {
             <div
                 style={{
                     fontSize: "0.55rem",
-                    animation: "glowPulse 3s ease-in-out infinite",
                 }}
             >
                 RESOLUTION: 10M QUALITY: 8.7
@@ -35,7 +34,6 @@ export default function TelemetryOverlay({ coords = {} }) {
             <div
                 style={{
                     fontSize: "0.55rem",
-                    animation: "fadeFlicker 2.5s ease-in-out infinite",
                 }}
             >
                 COVERAGE: ACTIVE • CLOUD FREE

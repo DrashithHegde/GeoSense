@@ -1,4 +1,16 @@
-fastapi==0.115.12
+﻿fastapi==0.115.12
 uvicorn[standard]==0.34.0
 pydantic-settings==2.8.1
 python-dotenv==1.0.1
+psycopg2-binary==2.9.11
+SQLAlchemy==2.0.41
+GeoAlchemy2==0.17.1
+alembic==1.18.5
+numpy==2.3.2
+scikit-learn==1.8.0
+earthengine-api==1.7.22
+google-auth==2.23.0
+httpx
+google-generativeai
+rasterio
+Pillow

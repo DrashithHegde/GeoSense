@@ -6,7 +6,7 @@
 const BOOT_LINES = [
   "SENSOR ARRAY.............. ONLINE",
   "SPECTRAL BANDS............ CALIBRATED",
-  "NDVI / NDWI / LST / AQI.. READY",
+  "NDVI / WATER HEALTH / LST / AQI.. READY",
   "ANOMALY DETECTION......... ACTIVE",
 ];
 

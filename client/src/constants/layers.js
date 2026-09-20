@@ -1,6 +1,6 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // DATA LAYER CONFIGURATION
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export const LAYER_CONFIG = {
   aqi: {
@@ -10,10 +10,12 @@ export const LAYER_CONFIG = {
     desc: "National AQI (CPCB)",
     gradient: {
       0.0: "rgba(0,0,0,0)",
-      0.15: "rgba(29,209,161,0.6)",
-      0.4: "rgba(255,211,42,0.75)",
-      0.7: "rgba(255,140,0,0.85)",
-      1.0: "rgba(255,59,59,0.95)",
+      0.2: "#00E400", // Green
+      0.45: "#FFFF00", // Light Green
+      0.6: "#FF7E00", // Orange
+      0.8: "#FF0000", // Red
+      0.9: "#8F3F97", // Purple
+      1.0: "#7E0023", // Maroon
     },
     blobColors: [
       "rgba(255,59,59,0.28)",
@@ -25,14 +27,16 @@ export const LAYER_CONFIG = {
   ndvi: {
     id: "ndvi",
     label: "NDVI",
-    icon: "◈",
+    icon: "◇",
     desc: "Vegetation health index",
     gradient: {
-      0.0: "rgba(0,0,0,0)",
-      0.2: "rgba(0,119,182,0.55)",
-      0.5: "rgba(0,180,216,0.75)",
-      0.8: "rgba(72,202,228,0.85)",
-      1.0: "rgba(255,59,59,0.9)",
+      0.0: "#5C4033", // Dark Brown
+      0.2: "#8B4513", // Brown
+      0.45: "#D2B48C", // Light Brown
+      0.6: "#FFFF00", // Yellow
+      0.8: "#32CD32", // Light Green
+      0.9: "#008000", // Green
+      1.0: "#006400", // Dark Green
     },
     blobColors: [
       "rgba(0,180,216,0.28)",
@@ -41,17 +45,17 @@ export const LAYER_CONFIG = {
     ],
   },
 
-  ndwi: {
-    id: "ndwi",
-    label: "NDWI",
-    icon: "◇",
-    desc: "Surface water index",
+  water_health: {
+    id: "water_health",
+    label: "Water Health",
+    icon: "◈",
+    desc: "Water condition indicator",
     gradient: {
       0.0: "rgba(0,0,0,0)",
-      0.2: "rgba(45,106,79,0.6)",
-      0.5: "rgba(116,198,157,0.75)",
-      0.8: "rgba(212,160,23,0.85)",
-      1.0: "rgba(196,18,31,0.95)",
+      0.2: "#1dd1a1",
+      0.45: "#ffd32a",
+      0.7: "#ff8c00",
+      1.0: "#ff3b3b",
     },
     blobColors: [
       "rgba(196,18,31,0.25)",
@@ -66,11 +70,13 @@ export const LAYER_CONFIG = {
     icon: "▣",
     desc: "Land surface temperature",
     gradient: {
-      0.0: "rgba(0,0,0,0)",
-      0.2: "rgba(40,90,160,0.55)",
-      0.45: "rgba(255,211,42,0.75)",
-      0.75: "rgba(255,120,0,0.88)",
-      1.0: "rgba(255,59,59,0.95)",
+      0.0: "#00008B", // Dark Blue
+      0.25: "#00BFFF", // Light Blue
+      0.5: "#008000", // Green
+      0.6: "#FFFF00", // Yellow
+      0.75: "#FF7E00", // Orange
+      0.9: "#FF0000", // Red
+      1.0: "#8B0000", // Dark Red
     },
     blobColors: [
       "rgba(255,59,59,0.28)",
@@ -82,7 +88,7 @@ export const LAYER_CONFIG = {
   all: {
     id: "all",
     label: "Composite View",
-    icon: "⬡",
+    icon: "⊚",
     desc: "Combined multi-metric overlay",
     gradient: {
       0.0: "rgba(0,0,0,0)",
@@ -100,9 +106,9 @@ export const LAYER_CONFIG = {
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // SEVERITY COLORS
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export const SEVERITY_COLORS = {
   critical: {
@@ -130,6 +136,4 @@ export const SEVERITY_COLORS = {
     hex: "#1dd1a1",
   },
 };
-
-// Mapbox token — set VITE_MAPBOX_TOKEN in your .env file
 export const MAPBOX_TOKEN = import.meta.env?.VITE_MAPBOX_TOKEN || "";

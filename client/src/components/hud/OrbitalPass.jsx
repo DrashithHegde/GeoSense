@@ -25,13 +25,13 @@ export default function OrbitalPass({ recTime }) {
                 textAlign: "right",
             }}
         >
-            <div style={{ fontSize: "0.55rem", opacity: 0.85, marginBottom: 6, animation: "digitalFlicker 1.8s ease-in-out infinite", animationDelay: "0s" }}>
+            <div style={{ fontSize: "0.55rem", opacity: 0.85, marginBottom: 6 }}>
                 SCAN {dateStr} {timeStr}Z
             </div>
-            <div style={{ fontSize: "0.55rem", opacity: 0.85, marginBottom: 3, animation: "digitalFlicker 1.8s ease-in-out infinite", animationDelay: "0.2s" }}>
+            <div style={{ fontSize: "0.55rem", opacity: 0.85, marginBottom: 3 }}>
                 ZONE: INDIA-GRID PASS: ACTIVE-526
             </div>
-            <div style={{ fontSize: "0.55rem", opacity: 0.85, animation: "digitalFlicker 1.8s ease-in-out infinite", animationDelay: "0.4s" }}>
+            <div style={{ fontSize: "0.55rem", opacity: 0.85 }}>
                 DATA ACQUISITION • NOMINAL STATUS
             </div>
         </div>

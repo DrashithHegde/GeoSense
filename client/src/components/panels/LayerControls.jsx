@@ -22,8 +22,8 @@ function LayerChip({ config, active, onClick }) {
         transition: "all 0.22s ease",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: "10px", width: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: "11px", width: 24, textAlign: "center", color: active ? "rgba(0,229,255,0.9)" : "var(--text-dim)" }}>
           {config.icon}
         </span>
         <div>
@@ -75,7 +75,7 @@ export default function LayerControls({ activeLayers, onToggleLayer }) {
         top: "50%",
         left: 20,
         transform: "translateY(-50%)",
-        zIndex: 30,
+        zIndex: 35,
         width: 252,
         display: "flex",
         flexDirection: "column",

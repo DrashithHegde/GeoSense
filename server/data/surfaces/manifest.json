@@ -1,0 +1,131 @@
+{
+  "surfaces": {
+    "lst": {
+      "bounds": {
+        "east": 72.98,
+        "north": 19.34,
+        "south": 18.84,
+        "west": 72.69
+      },
+      "checksums": {
+        "geotiff_sha256": "ed3df2402173cc0ad913cf05e13bab0b382832d7e3805e634401af3bb5edc945",
+        "glow_png_sha256": "351fd0e5a38bf268784b091ce54ed0b026e0778c2f4852ea257063079c1d616b",
+        "png_sha256": "29a843cf15af4084a8f4ade3f8c80fdbad7210a959e532e13e91e68e422a4d33"
+      },
+      "coordinates": [
+        [
+          72.69,
+          19.34
+        ],
+        [
+          72.98,
+          19.34
+        ],
+        [
+          72.98,
+          18.84
+        ],
+        [
+          72.69,
+          18.84
+        ]
+      ],
+      "dataset": "LANDSAT/LC08/C02/T1_L2 + LANDSAT/LC09/C02/T1_L2",
+      "files": {
+        "geotiff": "lst_20260816T000000Z.tif",
+        "glow_png": "lst_20260816T000000Z_glow.png",
+        "png": "lst_20260816T000000Z.png"
+      },
+      "generated_at": "2026-09-20T08:22:10.494384+00:00",
+      "glow_threshold_c": 35.0,
+      "image_count": 2000,
+      "lst_max_c": 40.99,
+      "lst_mean_c": 33.67,
+      "lst_median_c": 34.05,
+      "lst_min_c": 27.25,
+      "methodology": "Landsat 8/9 Collection 2 Level-2 median composite LST",
+      "metric": "lst",
+      "nodata": true,
+      "nodata_value": -9999.0,
+      "scale_m": 30,
+      "source_period": {
+        "days": 45,
+        "end": "2026-08-16",
+        "start": "2026-07-02"
+      },
+      "timestamp": "20260816T000000Z",
+      "unit": "celsius",
+      "valid_pixels": 939644
+    },
+    "ndvi": {
+      "bounds": {
+        "east": 72.95002826666445,
+        "north": 19.220084324436044,
+        "south": 18.88995345752212,
+        "west": 72.76991605219848
+      },
+      "checksums": {
+        "geotiff_sha256": "9ce4257f0f28f1beabe1ba559a2ee4eda695c279157d2d790ec1abeddbc44a92",
+        "png_sha256": "b2902d205f600e42fda47677909b32ffbf43ec757ec3a3e70314036432e26636"
+      },
+      "crs": "EPSG:4326",
+      "dataset": "COPERNICUS/S2_SR_HARMONIZED",
+      "generated_at": "2026-09-13T13:16:27.233996+00:00",
+      "generation_status": "generated",
+      "geotiff_filename": "ndvi/ndvi_20260913T000000Z.tif",
+      "height": 3675,
+      "images_found": 12,
+      "interpretation": "Satellite-derived vegetation index; higher NDVI generally indicates a stronger green-vegetation signal.",
+      "mapbox_coordinates": [
+        [
+          72.76991605219848,
+          19.220084324436044
+        ],
+        [
+          72.95002826666445,
+          19.220084324436044
+        ],
+        [
+          72.95002826666445,
+          18.88995345752212
+        ],
+        [
+          72.76991605219848,
+          18.88995345752212
+        ]
+      ],
+      "methodology": "Sentinel-2 median composite NDVI",
+      "metric": "ndvi",
+      "ndvi_statistics": {
+        "max": 1.0,
+        "mean": 0.1428738534450531,
+        "min": -0.6599525809288025
+      },
+      "nodata_pixels": 0,
+      "nodata_semantics": "transparent; no valid cloud-masked satellite NDVI pixel",
+      "nodata_value": -9999.0,
+      "pixel_size_degrees": {
+        "latitude": 8.983152841195169e-05,
+        "longitude": 8.983152841195231e-05
+      },
+      "png_filename": "ndvi/ndvi_20260913T000000Z.png",
+      "preprocessing": {
+        "cloud_mask": "project-established QA60-cloud filtering with cirrus exclusion",
+        "composite": "median",
+        "ndvi_formula": "normalizedDifference(B8,B4)",
+        "window_days": 14
+      },
+      "source": "Google Earth Engine / Sentinel-2",
+      "source_period": {
+        "end": "2026-09-13",
+        "start": "2026-08-30"
+      },
+      "source_scale_m": 10,
+      "source_timestamp": "2026-09-13T00:00:00+00:00",
+      "valid_pixel_percent": 100.0,
+      "valid_pixels": 7368375,
+      "width": 2005
+    }
+  },
+  "version": 1
+}

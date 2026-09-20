@@ -1,14 +1,14 @@
-import { getAqiCpcbBand, getLstBand, getNdviBand, getNdwiBand, getSeverityColor, getSeverityLabel, getZoneMetrics, getMetricDisplay, normalizeMetric } from "../../utils/helpers";
+import { getAqiCpcbBand, getLstBand, getNdviBand, getWaterHealthBand, getSeverityColor, getSeverityLabel, getZoneMetrics, getMetricDisplay, normalizeMetric } from "../../utils/helpers";
 import TrendSparkline from "../ui/TrendSparkline";
 import RootCauseBar from "../ui/RootCauseBar";
 
-const LAYER_PRIORITY = ["aqi", "ndvi", "ndwi", "lst"];
+const LAYER_PRIORITY = ["aqi", "ndvi", "water_health", "lst"];
 const COMPOSITE_ACCENT_COLOR = "#b45309";
 
 const LAYER_META = {
   aqi: { icon: "○", label: "AQI", color: "#ff8c00" },
   ndvi: { icon: "◇", label: "NDVI", color: "#1dd1a1" },
-  ndwi: { icon: "◈", label: "NDWI", color: "#00b4d8" },
+  water_health: { icon: "◈", label: "Water Health", color: "#00b4d8" },
   lst: { icon: "▣", label: "LST", color: "#ff5f57" },
 };
 
@@ -30,7 +30,7 @@ function resolveActiveLayerId(activeLayers) {
 // Root cause analysis panel
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function InsightPanel({ zone, cityLabel, trendData, activeLayers, isOpen, onClose, onDeepAnalysis }) {
+export default function InsightPanel({ zone, cityLabel, explanationData, activeLayers, isOpen, onClose, onDeepAnalysis }) {
   const metrics = zone ? getZoneMetrics(zone) : null;
   const activeLayerId = resolveActiveLayerId(activeLayers);
   const isCompositeView = activeLayerId === "all";
@@ -39,10 +39,12 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
   // Extract unit for LST display
   let panelValue, panelUnit = "";
   if (isCompositeView) {
-    panelValue = zone?.severity.toFixed(1);
+    panelValue = zone?.composite?.score == null ? "N/A" : zone.composite.score.toFixed(1);
+  } else if (activeLayerId === "water_health") {
+    panelValue = metrics?.water_health_score == null ? "N/A" : `${(metrics.water_health_score * 100).toFixed(0)}%`;
   } else if (activeLayerId === "lst") {
-    panelValue = metrics?.lst.toFixed(1);
-    panelUnit = "°C";
+    panelValue = metrics?.lst !== null && metrics?.lst !== undefined ? metrics.lst.toFixed(1) : "N/A";
+    panelUnit = metrics?.lst !== null && metrics?.lst !== undefined ? "°C" : "";
   } else {
     panelValue = getMetricDisplay(activeLayerId, metrics);
   }
@@ -52,7 +54,7 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
     : `${activeLayerMeta.label} Metric`;
   const panelValueColor = isCompositeView ? COMPOSITE_ACCENT_COLOR : activeLayerMeta.color;
   const stressValue = isCompositeView
-    ? zone?.severity
+    ? zone?.composite?.score ?? null
     : normalizeMetric(activeLayerId, metrics);
   const stressLabel = isCompositeView ? "Stress Index" : `${activeLayerMeta.label} Intensity`;
   const breakdownLabel = isCompositeView
@@ -65,7 +67,7 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
   const severityLabel = (() => {
     if (activeLayerId === "aqi") return getAqiCpcbBand(metrics?.aqi);
     if (activeLayerId === "ndvi") return getNdviBand(metrics?.ndvi);
-    if (activeLayerId === "ndwi") return getNdwiBand(metrics?.ndwi);
+    if (activeLayerId === "water_health") return getWaterHealthBand(metrics?.water_health_score);
     if (activeLayerId === "lst") return getLstBand(metrics?.lst);
     return getSeverityLabel(severityScore);
   })();
@@ -73,15 +75,22 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
   const severityScopeLabel = isCompositeView ? "Composite" : activeLayerId === "aqi" ? "CPCB AQI" : activeLayerMeta.label;
   const zoneDisplayName = cityLabel ? `${zone?.name}, ${cityLabel}` : zone?.name;
 
+  // Real backend classification if available
+  const classification = explanationData?.classification
+    ? explanationData.classification.toUpperCase()
+    : zone?.is_anomaly
+      ? "ANOMALY"
+      : "INLIER";
+
   return (
     <div
       style={{
         position: "fixed",
-        top: 100,
+        top: 160,
         right: 16,
         bottom: 120,
         zIndex: 40,
-        width: 420,
+        width: 380,
         transform: isOpen ? "translateX(0)" : "translateX(100%)",
         opacity: isOpen ? 1 : 0,
         transition: "transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease",
@@ -150,13 +159,13 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
                 style={{
                   fontSize: "0.52rem",
                   letterSpacing: "0.2em",
-                  color: "rgba(0,229,255,0.5)",
+                  color: classification === "ANOMALY" ? "rgba(255,59,59,0.7)" : "rgba(0,229,255,0.5)",
                   textTransform: "uppercase",
                   marginBottom: 6,
                   marginTop: 6,
                 }}
               >
-                ROOT CAUSE ANALYSIS
+                {classification === "ANOMALY" ? "ANOMALY DETECTED" : "ROOT CAUSE ANALYSIS"}
               </div>
 
               <div
@@ -187,7 +196,7 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
                   {severityLabel}
                 </span>
                 {"  ·  "}
-                {zone.coords[1].toFixed(4)}°N {zone.coords[0].toFixed(4)}°E
+                {zone.coords ? `${zone.coords[1].toFixed(4)}°N ${zone.coords[0].toFixed(4)}°E` : ""}
               </div>
             </div>
 
@@ -259,7 +268,7 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
                   }}
                 >
                   <span>{stressLabel}</span>
-                  <span style={{ color: panelValueColor, fontFamily: "'DM Mono', monospace", fontWeight: 400, fontSize: "0.58rem" }}>{Math.round(stressValue)}%</span>
+                  <span style={{ color: panelValueColor, fontFamily: "'DM Mono', monospace", fontWeight: 400, fontSize: "0.58rem" }}>{stressValue == null ? "N/A" : `${Math.round(stressValue)}%`}</span>
                 </div>
                 <div
                   style={{
@@ -272,7 +281,7 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
                   <div
                     style={{
                       height: "100%",
-                      width: `${Math.max(0, Math.min(100, stressValue))}%`,
+                      width: `${stressValue == null ? 0 : Math.max(0, Math.min(100, stressValue))}%`,
                       background: panelValueColor,
                       boxShadow: `0 0 10px ${panelValueColor}88`,
                       borderRadius: 2,
@@ -286,14 +295,14 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
               <Divider />
 
               {/* Root cause breakdown */}
-              <SectionLabel>{breakdownLabel}</SectionLabel>
-              {isCompositeView ? (
+              {isCompositeView && (
                 <>
+                  <SectionLabel>{breakdownLabel}</SectionLabel>
                   <RootCauseBar
                     icon="○"
                     label="AQI"
                     value={metrics.aqi}
-                    normalizedValue={normalizeMetric("aqi", metrics)}
+                    normalizedValue={zone.composite?.contributions?.aqi == null ? null : zone.composite.contributions.aqi * 100}
                     displayValue={getMetricDisplay("aqi", metrics)}
                     color="#ff8c00"
                   />
@@ -301,67 +310,61 @@ export default function InsightPanel({ zone, cityLabel, trendData, activeLayers,
                     icon="◇"
                     label="NDVI"
                     value={metrics.ndvi}
-                    normalizedValue={normalizeMetric("ndvi", metrics)}
+                    normalizedValue={zone.composite?.contributions?.ndvi == null ? null : zone.composite.contributions.ndvi * 100}
                     displayValue={getMetricDisplay("ndvi", metrics)}
                     color="#1dd1a1"
                   />
                   <RootCauseBar
                     icon="◈"
-                    label="NDWI"
-                    value={metrics.ndwi}
-                    normalizedValue={normalizeMetric("ndwi", metrics)}
-                    displayValue={getMetricDisplay("ndwi", metrics)}
+                    label="Water"
+                    value={metrics.water_health_score}
+                    normalizedValue={zone.composite?.contributions?.water_health == null ? null : zone.composite.contributions.water_health * 100}
+                    displayValue={metrics.water_health_score == null ? "N/A" : `${(metrics.water_health_score * 100).toFixed(0)}%`}
                     color="#00b4d8"
                   />
                   <RootCauseBar
                     icon="▣"
                     label="LST"
                     value={metrics.lst}
-                    normalizedValue={normalizeMetric("lst", metrics)}
+                    normalizedValue={zone.composite?.contributions?.lst == null ? null : zone.composite.contributions.lst * 100}
                     displayValue={getMetricDisplay("lst", metrics)}
                     color="#ff5f57"
                   />
+                  {/* Divider */}
+                  <Divider />
                 </>
-              ) : (
-                <RootCauseBar
-                  icon={activeLayerMeta.icon}
-                  label={activeLayerMeta.label}
-                  value={metrics[activeLayerId]}
-                  normalizedValue={normalizeMetric(activeLayerId, metrics)}
-                  displayValue={getMetricDisplay(activeLayerId, metrics)}
-                  color={activeLayerMeta.color}
-                />
               )}
 
-              {/* Divider */}
-              <Divider />
-
-              {/* Trend */}
-              <SectionLabel>{trendLabel}</SectionLabel>
+              {/* Trend / Explanation */}
+              <SectionLabel>Insight Summary</SectionLabel>
               <div
                 style={{
-                  height: 62,
+                  minHeight: 62,
                   borderLeft: "1px solid rgba(0,229,255,0.14)",
-                  borderBottom: "1px solid rgba(0,229,255,0.14)",
-                  marginBottom: 4,
-                  position: "relative",
-                }}
-              >
-                <TrendSparkline data={trendData} color={panelValueColor} />
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "0.5rem",
-                  color: "rgba(200,214,229,0.25)",
-                  letterSpacing: "0.1em",
                   marginBottom: 16,
+                  paddingLeft: 12,
+                  position: "relative",
+                  color: "var(--text-dim)",
+                  fontSize: "0.75rem",
+                  lineHeight: 1.4,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
                 }}
               >
-                <span>14D AGO</span>
-                <span>TREND</span>
-                <span>NOW</span>
+                {explanationData ? (
+                  explanationData._unavailable ? (
+                    <span style={{ fontStyle: "italic", opacity: 0.7 }}>Temporal data: insufficient history.</span>
+                  ) : (
+                    <span>
+                      {explanationData.deterministic_explanation
+                        ? explanationData.deterministic_explanation.split('\n')[0]
+                        : "Analysis unavailable."}
+                    </span>
+                  )
+                ) : (
+                  <span style={{ opacity: 0.5 }}>Loading analysis...</span>
+                )}
               </div>
 
               {/* CTA (for non-composite, scrolls with content) */}
