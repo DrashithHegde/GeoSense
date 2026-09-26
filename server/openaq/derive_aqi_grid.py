@@ -22,7 +22,7 @@ from app.core.config import get_settings
 from app.services.source_metadata import ensure_compatible_metadata, metadata_payload
 from openaq.client import get_mumbai_station_measurements
 from openaq.cpcb_aqi import compute_station_cpcb_aqi
-from aqicn.derive_aqi_grid import get_zone_points, haversine_m
+from aqicn.derive_aqi_grid import haversine_m
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -122,9 +122,15 @@ def collect_station_aqi_points(
     return station_points, len(raw_stations), cpcb_failures
 
 
+
+def get_cell_points(db) -> list[dict]:
+    sql = text("SELECT id, ST_X(centroid) AS lon, ST_Y(centroid) AS lat FROM spatial_cells ORDER BY id;")
+    res = db.execute(sql)
+    return [{"id": row[0], "lon": float(row[1]), "lat": float(row[2])} for row in res]
+
 def upsert_openaq_aqi(
     db,
-    zone_id: int,
+    cell_id: int,
     observed_at: datetime,
     aqi: Optional[int],
     source_type: Optional[str],
@@ -132,17 +138,17 @@ def upsert_openaq_aqi(
     source_context: Optional[dict] = None,
 ):
     ensure_compatible_metadata(
-        db, zone_id=zone_id, observed_at=observed_at, key="aqi", context=source_context,
+        db, cell_id=cell_id, observed_at=observed_at, key="aqi", context=source_context,
     )
     db.execute(
         text(
             """
             INSERT INTO environment_data (
-                zone_id, observed_at, aqi, aqi_source_type,
+                cell_id, observed_at, aqi, aqi_source_type,
                 aqi_nearest_station_distance_m, source_metadata
             )
-            VALUES (:z, :obs, :aqi, :src, :dist, CAST(:metadata AS jsonb))
-            ON CONFLICT (zone_id, observed_at)
+            VALUES (:c, :obs, :aqi, :src, :dist, CAST(:metadata AS jsonb))
+            ON CONFLICT (cell_id, observed_at)
             DO UPDATE SET
                 aqi = EXCLUDED.aqi,
                 aqi_source_type = EXCLUDED.aqi_source_type,
@@ -151,7 +157,7 @@ def upsert_openaq_aqi(
             """
         ),
         {
-            "z": zone_id, "obs": observed_at,
+            "c": cell_id, "obs": observed_at,
             "aqi": int(round(aqi)) if aqi is not None else None,
             "src": source_type, "dist": nearest_dist_m,
             "metadata": metadata_payload("aqi", source_context),
@@ -204,15 +210,15 @@ def run_openaq_derivation(
     }
 
     with get_db() as db:
-        zone_points = get_zone_points(db)
+        cell_points = get_cell_points(db)
         observed_count = 0
         estimated_count = 0
         uncovered_count = 0
         aqi_vals = []
         sample_rows = []
 
-        for z in zone_points:
-            zid = int(z["id"])
+        for z in cell_points:
+            cid = int(z["id"])
             zlat = float(z["lat"])
             zlon = float(z["lon"])
 
@@ -246,7 +252,7 @@ def run_openaq_derivation(
                 aqi_vals.append(aqi_val)
 
             upsert_openaq_aqi(
-                db, zid, observed_at,
+                db, cid, observed_at,
                 int(round(aqi_val)) if aqi_val is not None else None,
                 source_type, nearest,
                 source_context=source_context if aqi_val is not None else None,
@@ -254,7 +260,7 @@ def run_openaq_derivation(
 
             if len(sample_rows) < 15:
                 sample_rows.append({
-                    "zone_id": zid,
+                    "cell_id": cid,
                     "aqi": int(round(aqi_val)) if aqi_val is not None else None,
                     "source_type": source_type,
                     "nearest_station_distance_m": round(nearest, 2) if nearest is not None else None,
@@ -262,7 +268,7 @@ def run_openaq_derivation(
 
         db.commit()
 
-    coverage = (observed_count + estimated_count) / len(zone_points) * 100.0 if zone_points else 0.0
+    coverage = (observed_count + estimated_count) / len(cell_points) * 100.0 if cell_points else 0.0
     return {
         "source": "OpenAQ",
         "aqi_method": "CPCB_National_AQI_2014",
@@ -271,7 +277,7 @@ def run_openaq_derivation(
         "stations_with_cpcb_aqi": len(station_points),
         "stations_cpcb_mpcb": sum(1 for p in station_points if p["is_cpcb_mpcb"]),
         "cpcb_aqi_failures": cpcb_aqi_failures,
-        "zones_total": len(zone_points),
+        "zones_total": len(cell_points),
         "zones_observed": observed_count,
         "zones_estimated": estimated_count,
         "zones_uncovered": uncovered_count,

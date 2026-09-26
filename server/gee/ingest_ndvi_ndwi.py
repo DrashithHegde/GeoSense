@@ -118,16 +118,16 @@ def calculate_water_health_score(
     return float(max(0.0, min(1.0, sum(health_components) / len(health_components))))
 
 
-def fetch_zones_as_feature_collection(db) -> ee.FeatureCollection:
+def fetch_cells_as_feature_collection(db) -> ee.FeatureCollection:
     # Pull zones as GeoJSON from PostGIS
-    sql = text("SELECT id, ST_AsGeoJSON(geometry) AS geojson FROM zones;")
+    sql = text("SELECT id, ST_AsGeoJSON(geometry) AS geojson FROM spatial_cells;")
     result = db.execute(sql)
     features = []
     for row in result:
-        zone_id = int(row[0])
+        cell_id = int(row[0])
         geojson_text = row[1]
         geom = json.loads(geojson_text)
-        props = {"zone_id": zone_id}
+        props = {"cell_id": cell_id}
         feat = ee.Feature(geom, props)
         features.append(feat)
     fc = ee.FeatureCollection(features)
@@ -188,13 +188,13 @@ def run_ingest(start_date: str, end_date: str, cloud_threshold: Optional[float] 
     observed_at = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
 
     with get_db() as db:
-        zones_fc = fetch_zones_as_feature_collection(db)
+        cells_fc = fetch_cells_as_feature_collection(db)
 
         # Filter S2 harmonized
         collection = (
             ee.ImageCollection(S2_DATASET)
             .filterDate(start_date, end_date)
-            .filterBounds(zones_fc.geometry())
+            .filterBounds(cells_fc.geometry())
         )
 
         n_images = int(collection.size().getInfo())
@@ -211,12 +211,12 @@ def run_ingest(start_date: str, end_date: str, cloud_threshold: Optional[float] 
 
         # Reduce over the feature collection (zones)
         reducer = ee.Reducer.mean()
-        reduced = composite.reduceRegions(collection=zones_fc, reducer=reducer, scale=10)
+        reduced = composite.reduceRegions(collection=cells_fc, reducer=reducer, scale=10)
 
         water_extent_reduced = (
             ee.Image.pixelArea()
             .updateMask(composite.select("MNDWI").gte(DEFAULT_MNDWI_THRESHOLD))
-            .reduceRegions(collection=zones_fc, reducer=ee.Reducer.sum(), scale=10)
+            .reduceRegions(collection=cells_fc, reducer=ee.Reducer.sum(), scale=10)
         )
 
         water_extent_lookup = {
@@ -289,32 +289,32 @@ def run_ingest(start_date: str, end_date: str, cloud_threshold: Optional[float] 
             metadata_context = context if any(value is not None for value in (ndvi_val, ndwi_val, mndwi_val, ndci_val, turbidity_val, water_extent_m2, water_score)) else None
             ensure_compatible_metadata(
                 db,
-                zone_id=zone_id,
+                cell_id=cell_id,
                 observed_at=observed_at,
                 key="ndvi_ndwi",
                 context=metadata_context,
             )
             ensure_compatible_metadata(
                 db,
-                zone_id=zone_id,
+                cell_id=cell_id,
                 observed_at=observed_at,
                 key="water_health",
                 context=metadata_context,
             )
 
-            # Atomic upsert: INSERT ... ON CONFLICT (zone_id, observed_at) DO UPDATE
+            # Atomic upsert: INSERT ... ON CONFLICT (cell_id, observed_at) DO UPDATE
             db.execute(
                 text(
                     """
                     INSERT INTO environment_data (
-                        zone_id, observed_at, ndvi, ndwi, mndwi, ndci, turbidity_proxy,
+                        cell_id, observed_at, ndvi, ndwi, mndwi, ndci, turbidity_proxy,
                         water_extent_m2, water_health_score, water_health_status, source_metadata
                     )
                     VALUES (
-                        :z, :obs, :ndvi, :ndwi, :mndwi, :ndci, :turbidity_proxy,
+                        :c, :obs, :ndvi, :ndwi, :mndwi, :ndci, :turbidity_proxy,
                         :water_extent_m2, :water_health_score, :water_health_status, CAST(:metadata AS jsonb)
                     )
-                    ON CONFLICT (zone_id, observed_at)
+                    ON CONFLICT (cell_id, observed_at)
                     DO UPDATE SET
                         ndvi = EXCLUDED.ndvi,
                         ndwi = EXCLUDED.ndwi,
@@ -328,7 +328,7 @@ def run_ingest(start_date: str, end_date: str, cloud_threshold: Optional[float] 
                     """
                 ),
                 {
-                    "z": zone_id,
+                    "c": cell_id,
                     "obs": observed_at,
                     "ndvi": ndvi_val,
                     "ndwi": ndwi_val,

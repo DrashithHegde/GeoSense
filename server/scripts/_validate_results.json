@@ -1,0 +1,9 @@
+{
+  "#1_ndvi_latest": true,
+  "#2_ndvi_pixel": true,
+  "#3_wh_latest": false,
+  "#4_wh_water_pixel": true,
+  "#5_wh_nonwater_pixel": false,
+  "#6_three_level": true,
+  "#7_png_assets": true
+}

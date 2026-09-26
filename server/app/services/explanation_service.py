@@ -15,7 +15,7 @@ from app.services.rag_knowledge import get_knowledge_context
 from app.services.llm_client import generate_llm_explanation, LLMUnavailable, InvalidLLMResponse
 
 
-def _validate_llm_explanation(llm_expl: dict[str, Any], evidence: dict[str, Any]) -> list[str]:
+def _validate_llm_explanation(llm_expl: dict[str, Any], evidence: dict[str, Any], pixel_lst: float | None = None) -> list[str]:
     """Validate LLM output to ensure it doesn't invent missing data or contradict evidence."""
     warnings = []
     
@@ -43,14 +43,19 @@ def _validate_llm_explanation(llm_expl: dict[str, Any], evidence: dict[str, Any]
     
     for metric, pattern in metrics.items():
         actual_val = measurements.get(metric)
+        actual_vals = []
         if actual_val is not None:
+            actual_vals.append(float(actual_val))
+        if metric == "lst" and pixel_lst is not None:
+            actual_vals.append(float(pixel_lst))
+            
+        if actual_vals:
             matches = re.findall(pattern, full_text)
             for match in matches:
                 try:
                     claimed_val = float(match)
-                    # allow a small epsilon for floating point rounding
-                    if abs(claimed_val - float(actual_val)) > 0.1:
-                        warnings.append(f"hallucination: LLM claimed {metric} is {claimed_val} but actual is {actual_val}")
+                    if not any(abs(claimed_val - val) <= 0.1 for val in actual_vals):
+                        warnings.append(f"hallucination: LLM claimed {metric} is {claimed_val} but valid values are {actual_vals}")
                 except ValueError:
                     pass
 
@@ -68,7 +73,7 @@ def _validate_llm_explanation(llm_expl: dict[str, Any], evidence: dict[str, Any]
     return warnings
 
 
-async def build_full_explanation(db, zone_id: int) -> Dict[str, Any]:
+async def build_full_explanation(db, zone_id: int, pixel_lst: float | None = None) -> Dict[str, Any]:
     """Assemble the complete explanation response including optional LLM insights."""
     # 1. Retrieve and validate evidence (Authoritative)
     evidence = build_zone_evidence(db, zone_id)
@@ -87,10 +92,10 @@ async def build_full_explanation(db, zone_id: int) -> Dict[str, Any]:
     
     # 4. Call LLM
     try:
-        llm_explanation = await generate_llm_explanation(evidence, knowledge_context, deterministic_text)
+        llm_explanation = await generate_llm_explanation(evidence, knowledge_context, deterministic_text, pixel_lst)
         
         # 5. Validate LLM output
-        llm_warnings = _validate_llm_explanation(llm_explanation, evidence)
+        llm_warnings = _validate_llm_explanation(llm_explanation, evidence, pixel_lst)
         if llm_warnings:
             warnings.extend(llm_warnings)
             if any("causal language" in w or "hallucination" in w for w in llm_warnings):

@@ -6,6 +6,8 @@ from shapely.geometry import shape, mapping
 from shapely.ops import unary_union
 
 from sqlalchemy import text, select, func
+import rasterio
+import numpy as np
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
 from pydantic import BaseModel
 
@@ -29,6 +31,7 @@ from app.services.water_bodies import get_water_bodies_with_health
 from app.services.surfaces.aqi_surface import load_latest_aqi_surface
 from app.services.surfaces.ndvi_surface import load_latest_ndvi_surface
 from app.services.surfaces.lst_surface import load_latest_lst_surface
+from app.services.surfaces.water_health_surface import load_latest_water_health_surface
 from datetime import datetime, timedelta
 
 
@@ -188,6 +191,13 @@ async def get_latest_aqi_surface():
     }
 
 
+def _safe_surface_asset(surface: dict, key: str) -> str | None:
+    filename = surface.get(key)
+    if not isinstance(filename, str) or not filename or ".." in filename.replace("\\", "/").split("/"):
+        return None
+    return filename
+
+
 @router.get("/surfaces/ndvi/latest")
 async def get_latest_ndvi_surface():
     """Return metadata for the latest real Sentinel-2 NDVI image surface."""
@@ -216,18 +226,29 @@ async def get_latest_ndvi_surface():
     
     print("[NDVI API] Building response object")
     sys.stdout.flush()
-    filename = surface.get("png_filename")
-    if not isinstance(filename, str) or not filename or ".." in filename.replace("\\", "/").split("/"):
+
+    sharp_rel = _safe_surface_asset(surface, "sharp_png_filename") or _safe_surface_asset(surface, "png_filename")
+    glow_rel  = _safe_surface_asset(surface, "glow_png_filename")
+    halo_rel  = _safe_surface_asset(surface, "halo_png_filename")
+    if not sharp_rel:
         raise HTTPException(status_code=503, detail="NDVI surface manifest contains an unsafe PNG path")
-    
+
     response = {
-        "metric": surface["metric"], "image_url": f"/surface-assets/{filename}",
+        "metric": surface["metric"],
+        "image_url": f"/surface-assets/{sharp_rel}",
+        "sharp_url": f"/surface-assets/{sharp_rel}",
+        "glow_url":  f"/surface-assets/{glow_rel}"  if glow_rel  else None,
+        "halo_url":  f"/surface-assets/{halo_rel}"  if halo_rel  else None,
         "coordinates": surface["mapbox_coordinates"], "generated_at": surface["generated_at"],
         "source_timestamp": surface["source_timestamp"], "source_period": surface["source_period"],
         "source": surface["source"], "dataset": surface["dataset"],
         "methodology": surface["methodology"], "interpretation": surface["interpretation"],
+        "semantic_label": surface.get("semantic_label"),
+        "visualization": surface.get("visualization"),
         "preprocessing": surface["preprocessing"], "source_scale_m": surface["source_scale_m"],
         "nodata": True, "nodata_semantics": surface["nodata_semantics"],
+        "valid_pixels": surface.get("valid_pixels"),
+        "ndvi_statistics": surface.get("ndvi_statistics"),
     }
     print("[NDVI API RETURN] Returning response")
     sys.stdout.flush()
@@ -272,6 +293,212 @@ async def get_latest_lst_surface():
     return response
 
 
+@router.get("/surfaces/water-health/latest")
+async def get_latest_water_health_surface():
+    """Return metadata for the latest real Sentinel-2 Water Health image surface."""
+    try:
+        surface = load_latest_water_health_surface()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Water Health surface manifest unavailable: {exc}") from exc
+    if surface is None:
+        raise HTTPException(status_code=404, detail="No generated Water Health surface is available")
+
+    sharp_rel = _safe_surface_asset(surface, "sharp_png_filename") or _safe_surface_asset(surface, "png_filename")
+    glow_rel  = _safe_surface_asset(surface, "glow_png_filename")
+    halo_rel  = _safe_surface_asset(surface, "halo_png_filename")
+    if not sharp_rel:
+        raise HTTPException(status_code=503, detail="Water Health surface manifest contains an unsafe PNG path")
+
+    response = {
+        "metric": surface["metric"],
+        "image_url": f"/surface-assets/{sharp_rel}",
+        "sharp_url": f"/surface-assets/{sharp_rel}",
+        "glow_url":  f"/surface-assets/{glow_rel}" if glow_rel else None,
+        "halo_url":  f"/surface-assets/{halo_rel}" if halo_rel else None,
+        "coordinates": surface["mapbox_coordinates"],
+        "generated_at": surface["generated_at"],
+        "source_timestamp": surface.get("source_timestamp"),
+        "source_period": surface.get("source_period"),
+        "source": surface.get("source"),
+        "dataset": surface.get("dataset"),
+        "methodology": surface["methodology"],
+        "interpretation": surface["interpretation"],
+        "semantic_label": surface.get("semantic_label"),
+        "visualization": surface.get("visualization"),
+        "display_percentiles": surface.get("display_percentiles"),
+        "preprocessing": surface.get("preprocessing"),
+        "source_scale_m": surface["source_scale_m"],
+        "scale_m": surface.get("scale_m"),
+        "unit": surface.get("unit"),
+        "wh_min": surface.get("wh_min"),
+        "wh_max": surface.get("wh_max"),
+        "wh_mean": surface.get("wh_mean"),
+        "wh_median": surface.get("wh_median"),
+        "water_health_statistics": surface.get("water_health_statistics"),
+        "valid_pixels": surface.get("valid_pixels"),
+        "nodata": True,
+        "nodata_semantics": surface["nodata_semantics"],
+    }
+    return response
+
+
+@router.get("/surfaces/lst/value")
+async def get_lst_pixel_value(lon: float, lat: float):
+    """Return pixel-level LST value from the underlying GeoTIFF."""
+    surface = load_latest_lst_surface()
+    if not surface:
+        raise HTTPException(status_code=404, detail="No LST surface available")
+        
+    tif_filename = surface["files"]["geotiff"]
+    from pathlib import Path
+    import os
+    import numpy as np
+    import rasterio
+    
+    SERVER_ROOT = Path(__file__).resolve().parents[2]
+    tif_path = SERVER_ROOT / "data" / "surfaces" / "lst" / tif_filename
+    
+    if not tif_path.exists():
+        raise HTTPException(status_code=404, detail="GeoTIFF not found")
+        
+    try:
+        with rasterio.open(tif_path) as dataset:
+            if not (dataset.bounds.left <= lon <= dataset.bounds.right and dataset.bounds.bottom <= lat <= dataset.bounds.top):
+                return {
+                    "metric": "lst", "longitude": lon, "latitude": lat,
+                    "value_c": None, "nodata": True, "source": surface["methodology"],
+                    "resolution_m": surface["scale_m"], "source_period": surface["source_period"]
+                }
+            
+            row, col = dataset.index(lon, lat)
+            from rasterio.windows import Window
+            val = dataset.read(1, window=Window(col, row, 1, 1))[0, 0]
+            is_nodata = bool(val == dataset.nodata or not np.isfinite(val))
+            
+            return {
+                "metric": "lst",
+                "longitude": lon,
+                "latitude": lat,
+                "value_c": None if is_nodata else round(float(val), 2),
+                "nodata": is_nodata,
+                "source": "Landsat 8/9 Collection 2 Level-2 Surface Temperature",
+                "resolution_m": surface["scale_m"],
+                "source_period": surface["source_period"]
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/surfaces/ndvi/value")
+async def get_ndvi_pixel_value(lon: float, lat: float):
+    """Return pixel-level NDVI value from the underlying GeoTIFF."""
+    surface = load_latest_ndvi_surface()
+    if not surface:
+        raise HTTPException(status_code=404, detail="No NDVI surface available")
+        
+    tif_filename = surface.get("geotiff_filename")
+    if not tif_filename:
+        raise HTTPException(status_code=404, detail="NDVI GeoTIFF not found in manifest")
+        
+    from pathlib import Path
+    import os
+    import numpy as np
+    import rasterio
+    
+    SERVER_ROOT = Path(__file__).resolve().parents[2]
+    # In NDVI, the filename is usually relative to output_root e.g. "ndvi/ndvi_2026...tif"
+    # But let's check if it already has 'ndvi/' prefix.
+    # We'll just join it to data/surfaces.
+    tif_path = SERVER_ROOT / "data" / "surfaces" / tif_filename
+    
+    if not tif_path.exists():
+        # Fallback if it just gives basename
+        tif_path = SERVER_ROOT / "data" / "surfaces" / "ndvi" / os.path.basename(tif_filename)
+        if not tif_path.exists():
+            raise HTTPException(status_code=404, detail="GeoTIFF not found on disk")
+        
+    try:
+        with rasterio.open(tif_path) as dataset:
+            if not (dataset.bounds.left <= lon <= dataset.bounds.right and dataset.bounds.bottom <= lat <= dataset.bounds.top):
+                return {
+                    "metric": "ndvi", "longitude": lon, "latitude": lat,
+                    "value": None, "nodata": True, "source": surface.get("methodology"),
+                    "resolution_m": surface.get("source_scale_m"), "source_period": surface.get("source_period")
+                }
+            
+            row, col = dataset.index(lon, lat)
+            from rasterio.windows import Window
+            val = dataset.read(1, window=Window(col, row, 1, 1))[0, 0]
+            is_nodata = bool(val == dataset.nodata or not np.isfinite(val))
+            
+            return {
+                "metric": "ndvi",
+                "longitude": lon,
+                "latitude": lat,
+                "value": None if is_nodata else round(float(val), 3),
+                "nodata": is_nodata,
+                "source": "Sentinel-2 NDVI",
+                "resolution_m": surface.get("source_scale_m"),
+                "source_period": surface.get("source_period")
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/surfaces/water-health/value")
+async def get_water_health_pixel_value(lon: float, lat: float):
+    """Return pixel-level Water Health value from the underlying scientific GeoTIFF."""
+    surface = load_latest_water_health_surface()
+    if not surface:
+        raise HTTPException(status_code=404, detail="No Water Health surface available")
+
+    tif_filename = surface.get("geotiff_filename")
+    if not tif_filename:
+        raise HTTPException(status_code=404, detail="Water Health GeoTIFF not found in manifest")
+
+    from pathlib import Path as _WhPath
+    import os as _WhOs
+    import numpy as _WhNp
+    import rasterio as _WhRasterio
+
+    _SERVER_ROOT = _WhPath(__file__).resolve().parents[2]
+    tif_path = _SERVER_ROOT / "data" / "surfaces" / tif_filename
+    if not tif_path.exists():
+        tif_path = _SERVER_ROOT / "data" / "surfaces" / "water-health" / _WhOs.path.basename(tif_filename)
+        if not tif_path.exists():
+            raise HTTPException(status_code=404, detail="GeoTIFF not found on disk")
+
+    try:
+        with _WhRasterio.open(tif_path) as dataset:
+            if not (dataset.bounds.left <= lon <= dataset.bounds.right and dataset.bounds.bottom <= lat <= dataset.bounds.top):
+                return {
+                    "metric": "water_health",
+                    "longitude": lon,
+                    "latitude": lat,
+                    "value": None,
+                    "nodata": True,
+                    "source": surface.get("methodology"),
+                    "resolution_m": surface.get("source_scale_m"),
+                    "source_period": surface.get("source_period"),
+                }
+            row, col = dataset.index(lon, lat)
+            from rasterio.windows import Window as _WhWindow
+            val = dataset.read(1, window=_WhWindow(col, row, 1, 1))[0, 0]
+            is_nodata = bool(val == dataset.nodata or not _WhNp.isfinite(val))
+            return {
+                "metric": "water_health",
+                "longitude": lon,
+                "latitude": lat,
+                "value": None if is_nodata else round(float(val), 3),
+                "nodata": is_nodata,
+                "source": "Sentinel-2 derived Water Health raster",
+                "resolution_m": surface.get("source_scale_m"),
+                "source_period": surface.get("source_period"),
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/zones/boundary")
 async def get_zone_boundary(db_cm=Depends(get_db)):
     """Return real Mumbai administrative polygons for map-side filtering."""
@@ -301,6 +528,238 @@ def _mumbai_boundary() -> dict:
         features.append(result[0])
     geometry = unary_union([shape(feature["geometry"]) for feature in features])
     return {"type": "Feature", "geometry": mapping(geometry)}
+
+
+@router.get("/analysis/point")
+async def get_point_analysis(lon: float, lat: float, db_cm=Depends(get_db)):
+    """Return 3-level analysis for a coordinate: Pixel, Cell (300m), Municipality.
+
+    Hierarchy:
+      1. PIXEL        — exact raster values from scientific GeoTIFFs (windowed reads)
+      2. DENSE CELL   — 300m analytical grid: aggregated metrics, anomalies, history
+      3. MUNICIPALITY — administrative boundary containment (Mumbai / Thane / Mira-Bhayandar)
+
+    These three levels are intentionally distinct: PIXEL ≠ CELL ≠ MUNICIPALITY.
+    """
+    from app.services.municipality_boundaries import load_municipality_boundaries, MunicipalityBoundaryError
+    from shapely.geometry import Point as ShapelyPoint
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 1. PIXEL LEVEL — exact scientific raster pixel reads (windowed, 1x1)
+    # ══════════════════════════════════════════════════════════════════════
+    pixel_ndvi = None
+    try:
+        ndvi_res = await get_ndvi_pixel_value(lon, lat)
+        if ndvi_res:
+            pixel_ndvi = {
+                "value": ndvi_res.get("value"),
+                "nodata": bool(ndvi_res.get("nodata", True)),
+                "source": ndvi_res.get("source"),
+                "resolution_m": ndvi_res.get("resolution_m"),
+                "source_period": ndvi_res.get("source_period"),
+            }
+    except HTTPException:
+        pass
+    except Exception:
+        pass
+
+    pixel_lst = None
+    try:
+        lst_res = await get_lst_pixel_value(lon, lat)
+        if lst_res:
+            pixel_lst = {
+                "value_c": lst_res.get("value_c"),
+                "nodata": bool(lst_res.get("nodata", True)),
+                "source": lst_res.get("source"),
+                "resolution_m": lst_res.get("resolution_m"),
+                "source_period": lst_res.get("source_period"),
+            }
+    except HTTPException:
+        pass
+    except Exception:
+        pass
+
+    pixel_aqi = None
+    try:
+        aqi_surface = load_latest_aqi_surface()
+        if aqi_surface:
+            from pathlib import Path as _Path
+            import rasterio as _rasterio
+            from rasterio.windows import Window as _Window
+            _SERVER_ROOT = _Path(__file__).resolve().parents[2]
+            _manifest_path = _SERVER_ROOT / "data" / "surfaces" / "manifest.json"
+            if _manifest_path.exists():
+                import json as _json
+                _manifest = _json.loads(_manifest_path.read_text(encoding="utf-8"))
+                _aqi_rec = _manifest.get("surfaces", {}).get("aqi")
+                if _aqi_rec and _aqi_rec.get("geotiff_filename"):
+                    _tif_path = _SERVER_ROOT / "data" / "surfaces" / _aqi_rec["geotiff_filename"]
+                    if _tif_path.exists():
+                        with _rasterio.open(_tif_path) as _ds:
+                            _in_bounds = (_ds.bounds.left <= lon <= _ds.bounds.right and
+                                          _ds.bounds.bottom <= lat <= _ds.bounds.top)
+                            if _in_bounds:
+                                _row, _col = _ds.index(lon, lat)
+                                _val = _ds.read(1, window=_Window(_col, _row, 1, 1))[0, 0]
+                                _is_nodata = bool(_val == _ds.nodata or not np.isfinite(_val))
+                                pixel_aqi = {
+                                    "value": None if _is_nodata else int(round(float(_val))),
+                                    "nodata": _is_nodata,
+                                    "source": aqi_surface.get("methodology"),
+                                    "resolution_m": None,
+                                    "note": "IDW interpolation from CPCB monitoring stations",
+                                }
+    except Exception:
+        pass
+
+    pixel_water_health = None
+    try:
+        wh_res = await get_water_health_pixel_value(lon, lat)
+        if wh_res:
+            pixel_water_health = {
+                "value": wh_res.get("value"),
+                "nodata": bool(wh_res.get("nodata", True)),
+                "source": wh_res.get("source"),
+                "resolution_m": wh_res.get("resolution_m"),
+                "source_period": wh_res.get("source_period"),
+            }
+    except HTTPException:
+        pass
+    except Exception:
+        pass
+
+    pixel_block = {
+        "longitude": lon,
+        "latitude": lat,
+        "ndvi": pixel_ndvi,
+        "lst": pixel_lst,
+        "aqi": pixel_aqi,
+        "water_health": pixel_water_health,
+    }
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 2. DENSE ANALYTICAL CELL — 300m grid (spatial_cells table)
+    # ══════════════════════════════════════════════════════════════════════
+    cell_block = None
+    with db_cm as db:
+        cell_stmt = text("""
+            WITH point AS (
+                SELECT ST_GeomFromEWKT('SRID=4326;POINT(' || :lon || ' ' || :lat || ')') AS geom
+            ),
+            matched_cell AS (
+                -- 1st priority: exact containment
+                SELECT sc.id, sc.cell_code, sc.resolution_m, sc.municipality_name,
+                       ST_X(sc.centroid) AS centroid_lon,
+                       ST_Y(sc.centroid) AS centroid_lat,
+                       ST_Distance(sc.centroid::geography, point.geom::geography) AS dist_m,
+                       1 AS match_rank
+                FROM spatial_cells sc, point
+                WHERE ST_Contains(sc.geometry, point.geom)
+                LIMIT 1
+            ),
+            fallback_cell AS (
+                -- 2nd priority: nearest cell within 1 km (for clicks on gaps / edges)
+                SELECT sc.id, sc.cell_code, sc.resolution_m, sc.municipality_name,
+                       ST_X(sc.centroid) AS centroid_lon,
+                       ST_Y(sc.centroid) AS centroid_lat,
+                       ST_Distance(sc.centroid::geography, point.geom::geography) AS dist_m,
+                       2 AS match_rank
+                FROM spatial_cells sc, point
+                WHERE NOT EXISTS (SELECT 1 FROM matched_cell)
+                  AND ST_DWithin(sc.centroid::geography, point.geom::geography, 1000)
+                ORDER BY sc.centroid <-> point.geom
+                LIMIT 1
+            ),
+            chosen AS (
+                SELECT * FROM matched_cell UNION ALL SELECT * FROM fallback_cell LIMIT 1
+            )
+            SELECT c.*,
+                   ed.aqi AS ed_aqi, ed.ndvi AS ed_ndvi, ed.lst AS ed_lst,
+                   ed.water_health_score AS ed_water_health, ed.observed_at AS ed_observed_at,
+                   ar.is_anomaly AS ar_is_anomaly, ar.anomaly_score AS ar_score,
+                   ar.anomaly_type AS ar_type, ar.root_cause AS ar_root_cause,
+                   ar.evidence AS ar_evidence, ar.detected_at AS ar_detected_at
+            FROM chosen c
+            LEFT JOIN (
+                SELECT DISTINCT ON (cell_id) *
+                FROM environment_data
+                WHERE cell_id IS NOT NULL
+                ORDER BY cell_id, observed_at DESC, id DESC
+            ) ed ON ed.cell_id = c.id
+            LEFT JOIN (
+                SELECT DISTINCT ON (cell_id) *
+                FROM anomaly_results
+                WHERE cell_id IS NOT NULL
+                ORDER BY cell_id, detected_at DESC, id DESC
+            ) ar ON ar.cell_id = c.id
+        """)
+        cell_row = db.execute(cell_stmt, {"lon": lon, "lat": lat}).mappings().one_or_none()
+
+        if cell_row:
+            anomaly_block = None
+            if cell_row["ar_is_anomaly"] is not None:
+                anomaly_block = {
+                    "flag": bool(cell_row["ar_is_anomaly"]),
+                    "score": cell_row["ar_score"],
+                    "anomaly_type": cell_row["ar_type"],
+                    "root_cause": cell_row["ar_root_cause"],
+                    "detected_at": cell_row["ar_detected_at"].isoformat() if cell_row["ar_detected_at"] else None,
+                }
+            cell_block = {
+                "id": cell_row["id"],
+                "cell_code": cell_row["cell_code"],
+                "resolution_m": cell_row["resolution_m"],
+                "match_type": "contains" if cell_row["match_rank"] == 1 else "nearest",
+                "distance_to_centroid_m": round(cell_row["dist_m"], 1),
+                "centroid": {
+                    "longitude": cell_row["centroid_lon"],
+                    "latitude": cell_row["centroid_lat"],
+                },
+                "metrics": {
+                    "aqi": cell_row["ed_aqi"],
+                    "ndvi": cell_row["ed_ndvi"],
+                    "lst": cell_row["ed_lst"],
+                    "water_health_score": cell_row["ed_water_health"],
+                    "observed_at": cell_row["ed_observed_at"].isoformat() if cell_row["ed_observed_at"] else None,
+                },
+                "anomaly": anomaly_block,
+                "municipality_name_from_cell": cell_row["municipality_name"],
+            }
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 3. MUNICIPALITY — administrative containment (local GeoJSON boundaries)
+    # ══════════════════════════════════════════════════════════════════════
+    municipality_block = None
+    try:
+        boundaries = load_municipality_boundaries()
+        click_point = ShapelyPoint(lon, lat)
+        for b in boundaries:
+            if b["shapely_geom"].contains(click_point):
+                municipality_block = {
+                    "id": b["id"],
+                    "name": b["name"],
+                    "source": "local GeoJSON boundary containment",
+                }
+                break
+    except (MunicipalityBoundaryError, Exception):
+        pass
+
+    if municipality_block is None and cell_block is not None and cell_block["municipality_name_from_cell"]:
+        municipality_block = {
+            "id": None,
+            "name": cell_block["municipality_name_from_cell"],
+            "source": "spatial_cells.municipality_name fallback",
+        }
+
+    return {
+        "location": {
+            "longitude": lon,
+            "latitude": lat,
+        },
+        "pixel": pixel_block,
+        "cell": cell_block,
+        "municipality": municipality_block,
+    }
 
 
 @router.get("/metrics/{locality_id}")
@@ -450,7 +909,7 @@ async def submit_feedback(feedback: FeedbackRequest):
 
 
 @router.get("/zones/{zone_id}/explanation")
-async def get_zone_explanation(zone_id: int, db_cm=Depends(get_db)):
+async def get_zone_explanation(zone_id: int, pixel_lst: Optional[float] = None, db_cm=Depends(get_db)):
     """Return a structured, evidence-grounded explanation for a zone.
 
     The endpoint retrieves the latest Isolation Forest result for the zone,
@@ -462,7 +921,7 @@ async def get_zone_explanation(zone_id: int, db_cm=Depends(get_db)):
     """
     try:
         with db_cm as db:
-            result = await build_full_explanation(db, zone_id)
+            result = await build_full_explanation(db, zone_id, pixel_lst)
             return result
     except ZoneNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

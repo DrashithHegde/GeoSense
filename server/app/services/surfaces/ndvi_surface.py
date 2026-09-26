@@ -21,17 +21,19 @@ import zipfile
 
 import ee
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 _RASTERIO_PROJ_DATA = Path(sys.prefix) / "Lib" / "site-packages" / "rasterio" / "proj_data"
 if _RASTERIO_PROJ_DATA.is_dir():
     os.environ["PROJ_LIB"] = str(_RASTERIO_PROJ_DATA)
     os.environ["PROJ_DATA"] = str(_RASTERIO_PROJ_DATA)
 import rasterio
+from rasterio.features import rasterize as rio_rasterize
 from sqlalchemy import text
 import requests
 
 from app.database import engine
+from app.services.municipality_boundaries import load_municipality_boundaries, MunicipalityBoundaryError
 from gee.gee_client import initialize_ee
 from gee.ingest_ndvi_ndwi import (
     COMPOSITE_WINDOW_DAYS,
@@ -53,6 +55,69 @@ MANIFEST_PATH = SURFACE_ROOT / "manifest.json"
 def mapbox_coordinates(bounds: tuple[float, float, float, float]) -> list[list[float]]:
     west, south, east, north = bounds
     return [[west, north], [east, north], [east, south], [west, south]]
+
+
+def get_study_region_mask(width: int, height: int, transform,
+                           bounds: tuple[float, float, float, float]) -> np.ndarray | None:
+    """Build a uint8 alpha mask (255=inside study region, 0=outside).
+
+    Union of Mumbai + Thane + Mira-Bhayandar local GeoJSON boundaries.
+    Rasterised to the same (width, height, transform) as the target raster so
+    it can be applied pixel-for-pixel to the visualised RGBA layers.
+    Returns None if the local boundary assets are unavailable so the caller
+    can fall back to the existing behaviour instead of failing a surface build.
+    """
+    from shapely.geometry import mapping
+    try:
+        boundaries = load_municipality_boundaries()
+    except (MunicipalityBoundaryError, Exception):
+        return None
+
+    west, south, east, north = bounds
+    out_shape = (height, width)
+    shapes = []
+    for b in boundaries:
+        try:
+            geom = b["shapely_geom"]
+            # Clip to raster bounds defensively
+            from shapely.geometry import box as shapely_box
+            raster_box = shapely_box(west, south, east, north)
+            clipped = geom.intersection(raster_box)
+            if clipped.is_empty:
+                continue
+            shapes.append((mapping(clipped), 255))
+        except Exception:
+            continue
+
+    if not shapes:
+        return None
+
+    try:
+        mask = rio_rasterize(
+            shapes,
+            out_shape=out_shape,
+            transform=transform,
+            fill=0,
+            all_touched=True,
+            dtype="uint8",
+        )
+    except Exception:
+        return None
+    return mask.astype(np.uint8)
+
+
+def apply_study_region_mask(rgba_img: np.ndarray, mask: np.ndarray | None) -> np.ndarray:
+    """Multiply alpha channel of an HxWx4 RGBA array by the study region mask.
+
+    If mask is None, return the image unchanged (backward-compatible).
+    """
+    if mask is None:
+        return rgba_img
+    if rgba_img.shape[:2] != mask.shape:
+        return rgba_img
+    out = rgba_img.copy()
+    out[:, :, 3] = (out[:, :, 3].astype(np.uint16) * mask.astype(np.uint16) // 255).astype(np.uint8)
+    return out
 
 
 def _sha256(path: Path) -> str:
@@ -82,7 +147,7 @@ def get_ndvi_export_bounds() -> tuple[float, float, float, float]:
     statement = text("""
         SELECT ST_XMin(extent) AS west, ST_YMin(extent) AS south,
                ST_XMax(extent) AS east, ST_YMax(extent) AS north
-        FROM (SELECT ST_Extent(geometry)::box3d AS extent FROM zones) zone_extent
+        FROM (SELECT ST_Extent(geometry)::box3d AS extent FROM spatial_cells) cell_extent
     """)
     with engine.connect() as connection:
         row = connection.execute(statement).mappings().one()
@@ -134,50 +199,45 @@ def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
 
 
 def _ndvi_rgba(value: float) -> tuple[int, int, int, int]:
-    """RGBA for one valid NDVI pixel.
+    """RGBA for one valid NDVI pixel — vibrant multi-color heatmap (visualization only).
 
-    Design goals (visualization only — scientific GeoTIFF is unchanged):
-    - Water / negative NDVI (< 0.05): fully transparent.
-      Urban hard surfaces, roads, buildings are typically NDVI 0.0-0.15 —
-      keep those transparent so the dark basemap shows through cleanly and
-      the raster does not look like a brown rectangle pasted over the city.
-    - Sparse / stressed vegetation (0.05 – 0.20): rapidly fading from 0 to
-      partial alpha. Low-vegetation pixels fade in quickly but remain subtle.
-    - Moderate vegetation (0.20 – 0.40): semi-opaque warm green signal.
-    - Healthy vegetation (0.40 – 0.65): clearly visible saturated green.
-    - Dense / peak vegetation (0.65+): vivid opaque green.
+    Scientific GeoTIFF values are unchanged; this only controls display colouring.
 
-    The key change from the previous ramp: transparency is pushed much deeper
-    (zero below 0.05, plateau not reached until 0.35) so that the dominant
-    urban fabric of Mumbai stays dark/basemap rather than olive-brown.
+    Alpha ramp:
+    - NDVI < 0.05 (water, deep urban concrete, bare rock) → fully transparent,
+      so the dark Mapbox basemap shows through cleanly and no rectangular footprint.
+    - 0.05 → 0.30: fade in (t^1.4) so sparse vegetation stays subtle until ~0.15.
+    - ≥ 0.30: plateau at alpha 215.
+
+    Colour progression (visualization only, does not change pixel values):
+      0.05  → deep red / magenta   (very low)
+      0.10  → orange               (low)
+      0.20  → yellow               (moderate)
+      0.35  → lime                 (moderate-high)
+      0.55  → green                (high)
+      0.80  → emerald / teal       (very high)
     """
-    # ── Alpha ramp ────────────────────────────────────────────────────────────
-    ALPHA_ZERO_BELOW = 0.05    # fully transparent — water, deep urban, bare rock
-    ALPHA_FULL_ABOVE = 0.35    # full alpha reached here — solid vegetation signal
-    ALPHA_PLATEAU    = 210     # max alpha (not 255 — preserves basemap context)
+    ALPHA_ZERO_BELOW = np.float32(0.05)
+    ALPHA_FULL_ABOVE = np.float32(0.30)
+    ALPHA_PLATEAU    = np.uint8(215)
 
+    if not np.isfinite(value) or value == NODATA_VALUE:
+        return (0, 0, 0, 0)
     if value < ALPHA_ZERO_BELOW:
-        alpha = 0
-    elif value < ALPHA_FULL_ABOVE:
+        return (0, 0, 0, 0)
+    if value < ALPHA_FULL_ABOVE:
         t = (value - ALPHA_ZERO_BELOW) / (ALPHA_FULL_ABOVE - ALPHA_ZERO_BELOW)
-        # Use a mild power curve so sparse vegetation (0.05-0.15) stays very
-        # faint and the signal only becomes visible above 0.20.
-        alpha = round((t ** 1.6) * ALPHA_PLATEAU)
+        alpha = int(round((t ** 1.4) * ALPHA_PLATEAU))
     else:
-        alpha = ALPHA_PLATEAU
+        alpha = int(ALPHA_PLATEAU)
 
-    # ── RGB colour ramp ───────────────────────────────────────────────────────
-    # Scientific green ramp — reads as vegetation index, not satellite photo.
-    # Values below the alpha threshold are invisible so their colour is moot.
     colour_stops: tuple[tuple[float, tuple[int, int, int]], ...] = (
-        ( 0.00, ( 40,  48,  30)),  # deep olive-dark — bare/sparse
-        ( 0.10, ( 58,  72,  28)),  # dark olive-green — very sparse
-        ( 0.20, ( 72, 100,  32)),  # olive-green — sparse shrub
-        ( 0.30, ( 65, 130,  35)),  # muted green — open scrub
-        ( 0.42, ( 48, 158,  42)),  # natural green — moderate canopy
-        ( 0.55, ( 30, 175,  50)),  # bright green — healthy vegetation
-        ( 0.68, ( 16, 190,  58)),  # vivid green — dense canopy
-        ( 0.80, (  5, 205,  65)),  # peak green — maximum vegetation signal
+        ( 0.05, (214,  39, 129)),
+        ( 0.10, (255,  94,  40)),
+        ( 0.20, (255, 205,  50)),
+        ( 0.35, (168, 230,  53)),
+        ( 0.55, ( 41, 217, 103)),
+        ( 0.80, ( 20, 200, 180)),
     )
     lo_val, lo_rgb = colour_stops[0]
     hi_val, hi_rgb = colour_stops[-1]
@@ -185,52 +245,49 @@ def _ndvi_rgba(value: float) -> tuple[int, int, int, int]:
     r, g, b = lo_rgb
     for (left, c0), (right, c1) in zip(colour_stops, colour_stops[1:]):
         if clamped <= right:
-            t = (clamped - left) / (right - left) if right > left else 0.0
-            r = round(c0[0] + (c1[0] - c0[0]) * t)
-            g = round(c0[1] + (c1[1] - c0[1]) * t)
-            b = round(c0[2] + (c1[2] - c0[2]) * t)
+            t_seg = (clamped - left) / (right - left) if right > left else 0.0
+            r = int(round(c0[0] + (c1[0] - c0[0]) * t_seg))
+            g = int(round(c0[1] + (c1[1] - c0[1]) * t_seg))
+            b = int(round(c0[2] + (c1[2] - c0[2]) * t_seg))
             break
-
     return (r, g, b, alpha)
 
 
 def ndvi_to_rgba(values: np.ndarray) -> np.ndarray:
-    """Convert float32 NDVI grid to RGBA uint8 image — fully vectorised.
+    """Vectorised NDVI → vibrant multi-colour heatmap RGBA (visualization only).
 
-    Colour stops and alpha ramp match _ndvi_rgba().
-    NoData (-9999) and non-finite → alpha 0 (fully transparent).
+    Scientific pixel values in the GeoTIFF remain untouched; this function
+    only controls the display raster that is shipped to Mapbox.
     """
-    STOP_V = np.array([ 0.00,  0.10,  0.20,  0.30,  0.42,  0.55,  0.68,  0.80], dtype=np.float32)
-    STOP_R = np.array([ 40,    58,    72,    65,    48,    30,    16,     5  ], dtype=np.float32)
-    STOP_G = np.array([ 48,    72,   100,   130,   158,   175,   190,   205  ], dtype=np.float32)
-    STOP_B = np.array([ 30,    28,    32,    35,    42,    50,    58,    65  ], dtype=np.float32)
-    ALPHA_ZERO = np.float32( 0.05)
-    ALPHA_FULL = np.float32( 0.35)
-    ALPHA_MAX  = np.float32( 210.0)
+    STOP_V = np.array([ 0.05,  0.10,  0.20,  0.35,  0.55,  0.80], dtype=np.float32)
+    STOP_R = np.array([  214,   255,   255,   168,    41,    20  ], dtype=np.float32)
+    STOP_G = np.array([   39,    94,   205,   230,   217,   200  ], dtype=np.float32)
+    STOP_B = np.array([  129,    40,    50,    53,   103,   180  ], dtype=np.float32)
+    ALPHA_ZERO = np.float32(0.05)
+    ALPHA_FULL = np.float32(0.30)
+    ALPHA_MAX  = np.float32(215.0)
 
     valid   = np.isfinite(values) & (values != NODATA_VALUE)
-    clamped = np.where(valid, np.clip(values, STOP_V[0], STOP_V[-1]),
-                       STOP_V[0]).ravel()
+    clamped = np.where(valid, np.clip(values, STOP_V[0], STOP_V[-1]), STOP_V[0]).ravel()
     h, w = values.shape
 
     r_acc = np.zeros(h * w, np.float32)
     g_acc = np.zeros(h * w, np.float32)
     b_acc = np.zeros(h * w, np.float32)
-
     for i in range(len(STOP_V) - 1):
         lo, hi = STOP_V[i], STOP_V[i + 1]
         seg = (clamped >= lo) & (clamped <= hi)
-        t   = np.where(seg, (clamped - lo) / (hi - lo), 0.0)
-        r_acc += seg * (STOP_R[i] + (STOP_R[i + 1] - STOP_R[i]) * t)
-        g_acc += seg * (STOP_G[i] + (STOP_G[i + 1] - STOP_G[i]) * t)
-        b_acc += seg * (STOP_B[i] + (STOP_B[i + 1] - STOP_B[i]) * t)
+        t_seg = np.where(seg, (clamped - lo) / (hi - lo), 0.0)
+        r_acc += seg * (STOP_R[i] + (STOP_R[i + 1] - STOP_R[i]) * t_seg)
+        g_acc += seg * (STOP_G[i] + (STOP_G[i + 1] - STOP_G[i]) * t_seg)
+        b_acc += seg * (STOP_B[i] + (STOP_B[i + 1] - STOP_B[i]) * t_seg)
 
     v_flat = values.ravel()
     alpha_f = np.where(
         v_flat < ALPHA_ZERO, 0.0,
         np.where(
             v_flat < ALPHA_FULL,
-            (((v_flat - ALPHA_ZERO) / (ALPHA_FULL - ALPHA_ZERO)).clip(0.0, 1.0) ** 1.6) * ALPHA_MAX,
+            (((v_flat - ALPHA_ZERO) / (ALPHA_FULL - ALPHA_ZERO)).clip(0.0, 1.0) ** 1.4) * ALPHA_MAX,
             ALPHA_MAX,
         ),
     )
@@ -244,6 +301,56 @@ def ndvi_to_rgba(values: np.ndarray) -> np.ndarray:
     return rgba
 
 
+def _blur_rgba(rgba: np.ndarray, radius: float) -> np.ndarray:
+    """Gaussian-blur an HxWx4 RGBA array using PIL, preserving alpha shape."""
+    img = Image.fromarray(rgba, mode="RGBA")
+    r, g, b, a = img.split()
+    r2 = r.filter(ImageFilter.GaussianBlur(radius=radius))
+    g2 = g.filter(ImageFilter.GaussianBlur(radius=radius))
+    b2 = b.filter(ImageFilter.GaussianBlur(radius=radius))
+    a2 = a.filter(ImageFilter.GaussianBlur(radius=radius))
+    return np.array(Image.merge("RGBA", (r2, g2, b2, a2))).astype(np.uint8)
+
+
+def generate_ndvi_three_layer(
+    values: np.ndarray,
+    sharp_path: Path,
+    glow_path: Path,
+    halo_path: Path,
+    study_mask: np.ndarray | None,
+) -> None:
+    """Generate three NDVI visualization layers and write them as PNG.
+
+    PROCESSING ORDER (to avoid halo bleeding outside the municipality boundary):
+        1. scientific values → vibrant RGBA colouring
+        2. blur → glow / halo
+        3. apply study-region mask (multiplies alpha)
+        4. save final PNG
+
+    Parameters
+    ----------
+    values : 2D float32 array with NODATA_VALUE for NoData.
+    study_mask : HxW uint8 or None — 255 inside Mumbai+Thane+Mira-Bhayandar, else 0.
+    """
+    sharp_rgba = ndvi_to_rgba(values)
+
+    glow_rgba = _blur_rgba(sharp_rgba, radius=2.5)
+    halo_rgba = _blur_rgba(sharp_rgba, radius=7.0)
+
+    # Boost halo brightness slightly so it reads as a wide soft glow
+    halo_rgba = halo_rgba.copy()
+    halo_rgba[:, :, 3] = np.clip(halo_rgba[:, :, 3].astype(np.uint16) * 210 // 255, 0, 255).astype(np.uint8)
+
+    # --- 3. Apply study-region mask LAST so blur cannot bleed outside boundary ---
+    sharp_rgba = apply_study_region_mask(sharp_rgba, study_mask)
+    glow_rgba  = apply_study_region_mask(glow_rgba,  study_mask)
+    halo_rgba  = apply_study_region_mask(halo_rgba,  study_mask)
+
+    Image.fromarray(sharp_rgba, mode="RGBA").save(sharp_path, "PNG", compress_level=6)
+    Image.fromarray(glow_rgba,  mode="RGBA").save(glow_path,  "PNG", compress_level=6)
+    Image.fromarray(halo_rgba,  mode="RGBA").save(halo_path,  "PNG", compress_level=6)
+
+
 def publish_ndvi_geotiff(
     source_path: Path,
     *,
@@ -252,7 +359,17 @@ def publish_ndvi_geotiff(
     image_count: int,
     output_root: Path = SURFACE_ROOT,
 ) -> dict[str, Any]:
-    """Validate a real GEE export and publish canonical TIFF, PNG and manifest."""
+    """Validate a real GEE export and publish canonical TIFF + 3 heatmap PNG layers.
+
+    Visualisation layers:
+        HALO  (wide soft glow, r=7)
+        GLOW  (medium blur, r=2.5)
+        SHARP (pixel-exact coloured raster)
+
+    All three layers are clipped/masked to the study-region union (Mumbai +
+    Thane + Mira-Bhayandar) AFTER blurring, so the glow/halo cannot bleed
+    outside the municipal boundaries. Scientific GeoTIFF values are unchanged.
+    """
     context = source_context(start_date, end_date)
     with rasterio.open(source_path) as source:
         if source.count != 1:
@@ -265,7 +382,6 @@ def publish_ndvi_geotiff(
         if nodata is not None:
             mask &= values != nodata
         valid = mask & np.isfinite(values)
-        # Valid normalized differences must remain physically bounded.
         if np.any(values[valid] < -1.0) or np.any(values[valid] > 1.0):
             raise ValueError("NDVI export contains values outside the valid normalized-difference range")
         if not valid.any():
@@ -275,12 +391,18 @@ def publish_ndvi_geotiff(
         transform = source.transform
         width, height = source.width, source.height
 
+    # --- Study-region mask: rasterize union of MMB boundaries to this grid ---
+    study_mask = get_study_region_mask(width, height, transform, bounds)
+
     output_dir = output_root / "ndvi"
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
     stamp = timestamp.strftime("%Y%m%dT%H%M%SZ")
     geotiff_path = output_dir / f"ndvi_{stamp}.tif"
-    png_path = output_dir / f"ndvi_{stamp}.png"
+    sharp_path = output_dir / f"ndvi_{stamp}.png"
+    glow_path  = output_dir / f"ndvi_{stamp}_glow.png"
+    halo_path  = output_dir / f"ndvi_{stamp}_halo.png"
+
     with rasterio.open(
         geotiff_path, "w", driver="GTiff", height=height, width=width, count=1,
         dtype="float32", crs=CRS, transform=transform, nodata=NODATA_VALUE, compress="deflate",
@@ -293,32 +415,88 @@ def publish_ndvi_geotiff(
             cloud_mask=context["cloud_mask"], ndvi_formula=context["indices"]["ndvi"],
             nodata_semantics="No valid cloud-masked satellite NDVI pixel; not low vegetation",
         )
-    Image.fromarray(ndvi_to_rgba(output_values), mode="RGBA").save(png_path)
+
+    # --- 3 visualisation layers: colour → blur → mask → save ---
+    generate_ndvi_three_layer(output_values, sharp_path, glow_path, halo_path, study_mask)
 
     valid_values = output_values[output_values != NODATA_VALUE]
     west, south, east, north = (float(value) for value in bounds)
+    ndvi_min = float(valid_values.min()) if len(valid_values) else 0.0
+    ndvi_max = float(valid_values.max()) if len(valid_values) else 0.0
+    ndvi_mean = float(valid_values.mean()) if len(valid_values) else 0.0
+    ndvi_median = float(np.median(valid_values)) if len(valid_values) else 0.0
+    p5  = float(np.percentile(valid_values, 5))  if len(valid_values) else 0.0
+    p25 = float(np.percentile(valid_values, 25)) if len(valid_values) else 0.0
+    p75 = float(np.percentile(valid_values, 75)) if len(valid_values) else 0.0
+    p95 = float(np.percentile(valid_values, 95)) if len(valid_values) else 0.0
+
+    geotiff_rel = str(geotiff_path.relative_to(output_root)).replace("\\", "/")
+    sharp_rel   = str(sharp_path.relative_to(output_root)).replace("\\", "/")
+    glow_rel    = str(glow_path.relative_to(output_root)).replace("\\", "/")
+    halo_rel    = str(halo_path.relative_to(output_root)).replace("\\", "/")
+
     record: dict[str, Any] = {
         "metric": "ndvi", "generation_status": "generated",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source_timestamp": timestamp.isoformat(),
+        "timestamp": stamp,
         "source_period": {"start": start_date, "end": end_date},
         "source": "Google Earth Engine / Sentinel-2", "dataset": S2_DATASET,
         "methodology": METHODOLOGY,
-        "interpretation": "Satellite-derived vegetation index; higher NDVI generally indicates a stronger green-vegetation signal.",
+        "interpretation": "NDVI · Vegetation Signal — satellite-derived normalised difference vegetation index; higher NDVI indicates a stronger green-vegetation signal. Visualisation only uses multi-colour heatmap display; scientific pixel values in the GeoTIFF are unchanged.",
+        "semantic_label": "NDVI · Vegetation Signal",
         "preprocessing": {"composite": context["composite"], "window_days": context["window_days"],
                           "cloud_mask": context["cloud_mask"], "ndvi_formula": context["indices"]["ndvi"]},
-        "images_found": image_count, "crs": CRS,
+        "images_found": image_count, "image_count": image_count, "crs": CRS,
+        "scale_m": SCALE_METERS,
         "bounds": {"west": west, "south": south, "east": east, "north": north},
         "mapbox_coordinates": mapbox_coordinates((west, south, east, north)),
+        "coordinates": mapbox_coordinates((west, south, east, north)),
         "width": width, "height": height, "pixel_size_degrees": {"longitude": (east - west) / width, "latitude": (north - south) / height},
-        "source_scale_m": SCALE_METERS, "nodata_value": NODATA_VALUE,
-        "nodata_semantics": "transparent; no valid cloud-masked satellite NDVI pixel",
+        "source_scale_m": SCALE_METERS, "nodata_value": NODATA_VALUE, "nodata": True,
+        "nodata_semantics": "transparent; no valid cloud-masked satellite NDVI pixel; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries (visualisation layers only)",
         "valid_pixels": int(valid.sum()), "nodata_pixels": int((~valid).sum()),
         "valid_pixel_percent": round(float(valid.mean() * 100), 3),
-        "ndvi_statistics": {"min": float(valid_values.min()), "max": float(valid_values.max()), "mean": float(valid_values.mean())},
-        "geotiff_filename": str(geotiff_path.relative_to(output_root)).replace("\\", "/"),
-        "png_filename": str(png_path.relative_to(output_root)).replace("\\", "/"),
-        "checksums": {"geotiff_sha256": _sha256(geotiff_path), "png_sha256": _sha256(png_path)},
+        "ndvi_statistics": {
+            "min": ndvi_min, "max": ndvi_max, "mean": ndvi_mean, "median": ndvi_median,
+            "p05": p5, "p25": p25, "p50": ndvi_median, "p75": p75, "p95": p95,
+        },
+        "visualization": {
+            "stops": [
+                {"value": 0.05, "label": "very low",  "rgb": [214, 39, 129]},
+                {"value": 0.10, "label": "low",       "rgb": [255, 94, 40]},
+                {"value": 0.20, "label": "moderate",  "rgb": [255, 205, 50]},
+                {"value": 0.35, "label": "moderate-high", "rgb": [168, 230, 53]},
+                {"value": 0.55, "label": "high",      "rgb": [41, 217, 103]},
+                {"value": 0.80, "label": "very high", "rgb": [20, 200, 180]},
+            ],
+            "legend": {
+                "left_label": "LOW",
+                "right_label": "HIGH",
+                "gradient": "red → orange → yellow → lime → green → teal",
+            },
+            "study_region_clipped": study_mask is not None,
+            "layers": ["halo", "glow", "sharp"],
+        },
+        "geotiff_filename": geotiff_rel,
+        "png_filename": sharp_rel,
+        "sharp_png_filename": sharp_rel,
+        "glow_png_filename": glow_rel,
+        "halo_png_filename": halo_rel,
+        "files": {
+            "geotiff": geotiff_path.name,
+            "png": sharp_path.name,
+            "sharp_png": sharp_path.name,
+            "glow_png": glow_path.name,
+            "halo_png": halo_path.name,
+        },
+        "checksums": {
+            "geotiff_sha256": _sha256(geotiff_path),
+            "png_sha256": _sha256(sharp_path),
+            "sharp_png_sha256": _sha256(sharp_path),
+            "glow_png_sha256": _sha256(glow_path),
+            "halo_png_sha256": _sha256(halo_path),
+        },
     }
     _write_manifest(record, output_root / "manifest.json")
     return record

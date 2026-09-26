@@ -12,6 +12,49 @@ class Base(DeclarativeBase):
     pass
 
 
+class SpatialCell(Base):
+    """Dense 300m analytical grid cell covering Mumbai + Thane + Mira-Bhayandar.
+
+    This is the new primary spatial abstraction for environmental analytics.
+    The 300m resolution was chosen because:
+    - ~10 Landsat pixels per cell (30m × 10) → robust LST zonal mean
+    - ~900 Sentinel-2 pixels per cell (10m × 30) → excellent NDVI statistics
+    - Matches neighbourhood-scale AQI spatial variation
+    """
+
+    __tablename__ = "spatial_cells"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cell_code: Mapped[str] = mapped_column(String(32), nullable=False, unique=True, index=True)
+    geometry: Mapped[object] = mapped_column(
+        Geometry(geometry_type="MULTIPOLYGON", srid=4326, spatial_index=True),
+        nullable=False,
+    )
+    centroid: Mapped[object] = mapped_column(
+        Geometry(geometry_type="POINT", srid=4326, spatial_index=True),
+        nullable=False,
+    )
+    resolution_m: Mapped[int] = mapped_column(Integer, nullable=False, server_default="300")
+    municipality_name: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    # Reverse relationships — populated by GEE/AQI ingest pipelines
+    environment_data: Mapped[list["EnvironmentData"]] = relationship(
+        back_populates="spatial_cell",
+        foreign_keys="EnvironmentData.cell_id",
+    )
+    engineered_features: Mapped[list["EngineeredFeature"]] = relationship(
+        back_populates="spatial_cell",
+        foreign_keys="EngineeredFeature.cell_id",
+    )
+    anomaly_results: Mapped[list["AnomalyResult"]] = relationship(
+        back_populates="spatial_cell",
+        foreign_keys="AnomalyResult.cell_id",
+    )
+
+
 class Zone(Base):
     __tablename__ = "zones"
 
@@ -80,8 +123,18 @@ class EnvironmentData(Base):
     aqi_nearest_station_distance_m: Mapped[float | None] = mapped_column(Float, nullable=True)
     source_metadata: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    # New: dense grid cell reference (nullable — old zone-keyed rows have NULL here)
+    cell_id: Mapped[int | None] = mapped_column(
+        ForeignKey("spatial_cells.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     zone: Mapped[Zone] = relationship(back_populates="environment_data")
+    spatial_cell: Mapped["SpatialCell | None"] = relationship(
+        back_populates="environment_data",
+        foreign_keys=[cell_id],
+    )
     engineered_features: Mapped[list[EngineeredFeature]] = relationship(
         back_populates="environment_data",
         cascade="all, delete-orphan",
@@ -128,8 +181,18 @@ class EngineeredFeature(Base):
     vegetation_stress_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     feature_values: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    # New: dense grid cell reference
+    cell_id: Mapped[int | None] = mapped_column(
+        ForeignKey("spatial_cells.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     zone: Mapped[Zone] = relationship(back_populates="engineered_features")
+    spatial_cell: Mapped["SpatialCell | None"] = relationship(
+        back_populates="engineered_features",
+        foreign_keys=[cell_id],
+    )
     environment_data: Mapped[EnvironmentData | None] = relationship(back_populates="engineered_features")
     anomaly_results: Mapped[list[AnomalyResult]] = relationship(
         back_populates="engineered_feature",
@@ -169,7 +232,18 @@ class AnomalyResult(Base):
     mitigation_suggestion: Mapped[str | None] = mapped_column(Text, nullable=True)
     evidence: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    # New: dense grid cell reference
+    cell_id: Mapped[int | None] = mapped_column(
+        ForeignKey("spatial_cells.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     zone: Mapped[Zone] = relationship(back_populates="anomaly_results")
+    spatial_cell: Mapped["SpatialCell | None"] = relationship(
+        back_populates="anomaly_results",
+        foreign_keys=[cell_id],
+    )
     environment_data: Mapped[EnvironmentData | None] = relationship(back_populates="anomaly_results")
     engineered_feature: Mapped[EngineeredFeature | None] = relationship(back_populates="anomaly_results")
+

@@ -170,7 +170,7 @@ def calculate_metric_context(
     return output
 
 
-def _metric_context_from_raw(db, *, zone_id: int, metric: str, current: dict[str, Any]) -> dict[str, Any]:
+def _metric_context_from_raw(db, *, loc_id: int, metric: str, current: dict[str, Any], is_legacy_zone: bool = False) -> dict[str, Any]:
     metadata_key = METRIC_METADATA_KEYS[metric]
     current_metadata = current.get("source_metadata") or {}
     source_configuration = current_metadata.get(metadata_key)
@@ -203,7 +203,7 @@ def _metric_context_from_raw(db, *, zone_id: int, metric: str, current: dict[str
             EnvironmentData.aqi_source_type,
         )
         .where(
-            EnvironmentData.zone_id == zone_id,
+            (EnvironmentData.zone_id == loc_id if is_legacy_zone else EnvironmentData.cell_id == loc_id),
             EnvironmentData.observed_at < current["observed_at"],
             metric_column.is_not(None),
         )
@@ -235,12 +235,12 @@ def _metric_context_from_raw(db, *, zone_id: int, metric: str, current: dict[str
     )
 
 
-def prior_anomaly_persistence(db, *, zone_id: int, snapshot_at: datetime, model_name: str) -> dict[str, Any]:
+def prior_anomaly_persistence(db, *, loc_id: int, snapshot_at: datetime, model_name: str, is_legacy_zone: bool = False) -> dict[str, Any]:
     """Read only earlier spatial classifications; current/future results are excluded."""
     rows = db.execute(
         select(AnomalyResult.observed_at, AnomalyResult.is_anomaly)
         .where(
-            AnomalyResult.zone_id == zone_id,
+            (AnomalyResult.zone_id == loc_id if is_legacy_zone else AnomalyResult.cell_id == loc_id),
             AnomalyResult.model_name == model_name,
             AnomalyResult.observed_at < snapshot_at,
         )
@@ -292,16 +292,16 @@ def finalize_anomaly_persistence(prior_context: dict[str, Any], current_is_anoma
     return result
 
 
-def build_temporal_contexts(db, snapshot_rows: list[dict[str, Any]], snapshot_at: datetime, model_name: str) -> dict[int, dict[str, Any]]:
+def build_temporal_contexts(db, snapshot_rows: list[dict[str, Any]], snapshot_at: datetime, model_name: str, is_legacy_zone: bool = False) -> dict[int, dict[str, Any]]:
     """Build temporal evidence for all source values in an analytical snapshot."""
     contexts: dict[int, dict[str, Any]] = {}
     for row in snapshot_rows:
         metrics = {
-            metric: _metric_context_from_raw(db, zone_id=row["zone_id"], metric=metric, current=row["sources"][metric])
+            metric: _metric_context_from_raw(db, loc_id=row["loc_id"], is_legacy_zone=is_legacy_zone, metric=metric, current=row["sources"][metric])
             for metric in CORE_METRICS
             if metric in row["sources"]
         }
-        contexts[row["zone_id"]] = {
+        contexts[row["loc_id"]] = {
             "schema_version": "1.0",
             "calculation_policy": {
                 "raw_history_only": True,
@@ -314,7 +314,7 @@ def build_temporal_contexts(db, snapshot_rows: list[dict[str, Any]], snapshot_at
             "metrics": metrics,
             "spatial_anomaly_persistence": prior_anomaly_persistence(
                 db,
-                zone_id=row["zone_id"],
+                loc_id=row["loc_id"], is_legacy_zone=is_legacy_zone,
                 snapshot_at=snapshot_at,
                 model_name=model_name,
             ),

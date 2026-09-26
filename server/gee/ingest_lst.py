@@ -36,7 +36,7 @@ LST_DATASETS = ("LANDSAT/LC08/C02/T1_L2", "LANDSAT/LC09/C02/T1_L2")
 COMPOSITE_WINDOW_DAYS = 45
 
 
-def fetch_zones_as_fc(db) -> ee.FeatureCollection:
+def fetch_cells_as_fc(db) -> ee.FeatureCollection:
     rows = db.execute(text("SELECT id, ST_AsGeoJSON(geometry) AS geojson FROM zones"))
     features = []
     for row in rows:
@@ -93,17 +93,17 @@ def run_ingest(start_date: str, end_date: str) -> Dict:
     observed_at = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
 
     with get_db() as db:
-        zones_fc = fetch_zones_as_fc(db)
+        cells_fc = fetch_cells_as_fc(db)
 
         l8 = (
             ee.ImageCollection(LST_DATASETS[0])
             .filterDate(start_date, end_date)
-            .filterBounds(zones_fc.geometry())
+            .filterBounds(cells_fc.geometry())
         )
         l9 = (
             ee.ImageCollection(LST_DATASETS[1])
             .filterDate(start_date, end_date)
-            .filterBounds(zones_fc.geometry())
+            .filterBounds(cells_fc.geometry())
         )
 
         merged = l8.merge(l9)
@@ -117,7 +117,7 @@ def run_ingest(start_date: str, end_date: str) -> Dict:
             band_count = int(composite.bandNames().size().getInfo())
             if band_count > 0:
                 reduced = composite.select(["LST"]).reduceRegions(
-                    collection=zones_fc,
+                    collection=cells_fc,
                     reducer=ee.Reducer.mean(),
                     scale=30,
                 )
@@ -152,9 +152,9 @@ def run_ingest(start_date: str, end_date: str) -> Dict:
             db.execute(
                 text(
                     """
-                    INSERT INTO environment_data (zone_id, observed_at, lst, source_metadata)
-                    VALUES (:z, :obs, :lst, CAST(:metadata AS jsonb))
-                    ON CONFLICT (zone_id, observed_at)
+                    INSERT INTO environment_data (cell_id, observed_at, lst, source_metadata)
+                    VALUES (:c, :obs, :lst, CAST(:metadata AS jsonb))
+                    ON CONFLICT (cell_id, observed_at)
                     DO UPDATE SET
                         lst = EXCLUDED.lst,
                         source_metadata = environment_data.source_metadata || EXCLUDED.source_metadata

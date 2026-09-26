@@ -93,6 +93,7 @@ const LAYER_REFERENCE = {
 
 export default function DeepAnalysisOverlay({
     zone,
+    pointAnalysis,
     cityLabel,
     explanationData,
     activeLayers,
@@ -112,6 +113,25 @@ export default function DeepAnalysisOverlay({
     }, [isOpen, analysisMode]);
 
     if (!zone || !metrics) return null;
+
+    // Extract point analysis hierarchy — prefer explicit prop, fall back to attached data
+    const pixel = pointAnalysis?.pixel || zone?.pointAnalysis?.pixel || null;
+    const cell = pointAnalysis?.cell || zone?.pointAnalysis?.cell || null;
+    const municipality = pointAnalysis?.municipality || zone?.pointAnalysis?.municipality || null;
+
+    // Convenience: pixel-level values (exact satellite pixel)
+    const pixelNdvi = pixel?.ndvi && !pixel.ndvi.nodata ? pixel.ndvi.value : null;
+    const pixelLst = pixel?.lst && !pixel.lst.nodata ? pixel.lst.value_c : null;
+    const pixelAqi = pixel?.aqi && !pixel.aqi.nodata ? pixel.aqi.value : null;
+    const pixelWaterHealth = pixel?.water_health && !pixel.water_health.nodata ? pixel.water_health.value : null;
+
+    // Convenience: cell-level aggregated values (300m grid)
+    const cellMetrics = cell?.metrics || {};
+    const cellNdvi = cellMetrics.ndvi ?? null;
+    const cellLst = cellMetrics.lst ?? null;
+    const cellAqi = cellMetrics.aqi ?? null;
+    const cellWater = cellMetrics.water_health_score ?? null;
+    const cellAnomaly = cell?.anomaly || null;
 
     const layerMeta = LAYER_REFERENCE[activeTab];
     const isCompositeView = activeTab === "composite";
@@ -136,19 +156,19 @@ export default function DeepAnalysisOverlay({
     // We keep MUMBAI_LOCATIONS_DATA as static context
     const locationData = MUMBAI_LOCATIONS_DATA[zone?.name];
 
-    // Build metric cards
+    // Build metric cards — these are ALWAYS CELL aggregates, never pixel
     const metricCards = [
         {
             id: "aqi",
-            label: "AQI (CPCB)",
-            value: metrics.aqi,
+            label: "AQI · Cell Mean",
+            value: metrics.aqi != null ? metrics.aqi : "N/A",
             norm: zone.composite?.contributions?.aqi == null ? null : zone.composite.contributions.aqi * 100,
             color: LAYER_META.aqi.color,
             unit: "",
         },
         {
             id: "lst",
-            label: "Land Surface Temp",
+            label: "LST · Cell Mean",
             value: metrics.lst !== null && metrics.lst !== undefined ? metrics.lst.toFixed(1) : "N/A",
             norm: zone.composite?.contributions?.lst == null ? null : zone.composite.contributions.lst * 100,
             color: LAYER_META.lst.color,
@@ -156,15 +176,15 @@ export default function DeepAnalysisOverlay({
         },
         {
             id: "ndvi",
-            label: "NDVI (Vegetation)",
-            value: metrics.ndvi.toFixed(2),
+            label: "NDVI · Cell Mean",
+            value: metrics.ndvi != null ? metrics.ndvi.toFixed(2) : "N/A",
             norm: zone.composite?.contributions?.ndvi == null ? null : zone.composite.contributions.ndvi * 100,
             color: LAYER_META.ndvi.color,
             unit: "",
         },
         {
             id: "water_health",
-            label: "Water Health",
+            label: "Water · Cell Mean",
             value: metrics.water_health_score == null ? "N/A" : `${(metrics.water_health_score * 100).toFixed(0)}%`,
             norm: zone.composite?.contributions?.water_health == null ? null : zone.composite.contributions.water_health * 100,
             color: LAYER_META.water_health.color,
@@ -175,9 +195,11 @@ export default function DeepAnalysisOverlay({
     // Classification
     const classification = explanationData?.classification
         ? explanationData.classification.toUpperCase()
-        : zone?.is_anomaly
+        : cellAnomaly?.flag
             ? "ANOMALY"
-            : "INLIER";
+            : zone?.is_anomaly
+                ? "ANOMALY"
+                : "INLIER";
 
     return (
         <div
@@ -237,6 +259,7 @@ export default function DeepAnalysisOverlay({
                                 alignItems: "center",
                                 gap: 12,
                                 marginBottom: 8,
+                                flexWrap: "wrap",
                             }}
                         >
                             <div
@@ -257,11 +280,31 @@ export default function DeepAnalysisOverlay({
                                 style={{
                                     fontSize: "0.6rem",
                                     letterSpacing: "0.2em",
-                                    color: "var(--text-dim)",
+                                    color: "#1dd1a1",
+                                    padding: "3px 8px",
+                                    background: "rgba(29,209,161,0.08)",
+                                    border: "1px solid rgba(29,209,161,0.22)",
+                                    borderRadius: 3,
+                                    fontFamily: "'DM Mono', monospace",
                                 }}
                             >
-                                ZONE ID: {zone.id}
+                                CELL ID: {cell?.id != null ? cell.id : zone.id}
                             </div>
+                            {municipality?.name && (
+                                <div
+                                    style={{
+                                        fontSize: "0.6rem",
+                                        letterSpacing: "0.15em",
+                                        color: "#00b4d8",
+                                        padding: "3px 8px",
+                                        background: "rgba(0,180,216,0.08)",
+                                        border: "1px solid rgba(0,180,216,0.22)",
+                                        borderRadius: 3,
+                                    }}
+                                >
+                                    ADMIN · {municipality.name.toUpperCase()}
+                                </div>
+                            )}
                         </div>
 
                         <div
@@ -286,7 +329,12 @@ export default function DeepAnalysisOverlay({
                                 fontFamily: "'DM Mono', monospace",
                             }}
                         >
-                            COORDINATES: {zone.coords ? `${zone.coords[1].toFixed(5)}°N, ${zone.coords[0].toFixed(5)}°E` : "—"}
+                            CLICKED COORDINATES: {
+                                (pixel?.latitude ?? zone?.coords?.[1]) != null
+                                    ? `${(pixel?.latitude ?? zone?.coords?.[1]).toFixed(5)}°N, ${(pixel?.longitude ?? zone?.coords?.[0]).toFixed(5)}°E`
+                                    : "—"
+                            }
+                            {cell?.resolution_m ? `  ·  CELL GRID: ${cell.resolution_m}m ANALYTICAL` : ""}
                         </div>
                     </div>
 
@@ -325,6 +373,139 @@ export default function DeepAnalysisOverlay({
                         </button>
                     </div>
                 </div>
+
+                {/* ── Spatial Hierarchy Banner (3 Distinct Levels) ──────── */}
+                {(pixel || cell || municipality) && (
+                    <div
+                        style={{
+                            padding: "16px 32px",
+                            borderBottom: "1px solid rgba(0,229,255,0.1)",
+                            background: "rgba(0,0,0,0.15)",
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1.4fr 1fr",
+                            gap: 16,
+                            flexShrink: 0,
+                        }}
+                    >
+                        {/* 1. PIXEL */}
+                        <div
+                            style={{
+                                padding: "12px 14px",
+                                background: "rgba(255, 95, 87, 0.04)",
+                                border: "1px solid rgba(255, 95, 87, 0.18)",
+                                borderLeft: "3px solid #ff5f57",
+                                borderRadius: 6,
+                            }}
+                        >
+                            <SpatialLevelHeader
+                                level="1"
+                                label="PIXEL"
+                                sublabel="Exact satellite value"
+                                accent="#ff5f57"
+                            />
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 10px" }}>
+                                <MetricRow
+                                    label="NDVI"
+                                    value={pixelNdvi != null ? pixelNdvi.toFixed(3) : (pixel?.ndvi?.nodata ? "NoData" : "N/A")}
+                                    color="#1dd1a1"
+                                    nodata={pixel?.ndvi?.nodata}
+                                />
+                                <MetricRow
+                                    label="LST"
+                                    value={pixelLst != null ? pixelLst.toFixed(1) : (pixel?.lst?.nodata ? "NoData" : "N/A")}
+                                    unit="°C"
+                                    color="#ff5f57"
+                                    nodata={pixel?.lst?.nodata}
+                                />
+                                <MetricRow
+                                    label="AQI"
+                                    value={pixelAqi != null ? String(pixelAqi) : (pixel?.aqi?.nodata ? "NoData" : "N/A")}
+                                    color="#ff8c00"
+                                    nodata={pixel?.aqi?.nodata}
+                                />
+                                <MetricRow
+                                    label="Water Health"
+                                    value={pixelWaterHealth != null ? `${(pixelWaterHealth * 100).toFixed(0)}%` : (pixel?.water_health?.nodata ? "NoData" : "N/A")}
+                                    color="#00b4d8"
+                                    nodata={pixel?.water_health?.nodata}
+                                />
+                            </div>
+                        </div>
+
+                        {/* 2. CELL */}
+                        <div
+                            style={{
+                                padding: "12px 14px",
+                                background: "rgba(29, 209, 161, 0.04)",
+                                border: "1px solid rgba(29, 209, 161, 0.18)",
+                                borderLeft: "3px solid #1dd1a1",
+                                borderRadius: 6,
+                            }}
+                        >
+                            <SpatialLevelHeader
+                                level="2"
+                                label="LOCAL ANALYTICAL CELL"
+                                sublabel={`${cell?.resolution_m || 300}m grid · zonal aggregates${cellAnomaly?.flag ? " · ANOMALY" : ""}`}
+                                accent="#1dd1a1"
+                            />
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "6px 10px" }}>
+                                <MetricRow label="AQI" value={cellAqi != null ? String(cellAqi) : "N/A"} color="#ff8c00" />
+                                <MetricRow label="NDVI" value={cellNdvi != null ? cellNdvi.toFixed(2) : "N/A"} color="#1dd1a1" />
+                                <MetricRow label="LST" value={cellLst != null ? cellLst.toFixed(1) : "N/A"} unit="°C" color="#ff5f57" />
+                                <MetricRow label="Water" value={cellWater != null ? `${(cellWater * 100).toFixed(0)}%` : "N/A"} color="#00b4d8" />
+                            </div>
+                            {cellAnomaly?.flag && cellAnomaly.score != null && (
+                                <div style={{ fontSize: "0.55rem", color: "#ff3b3b", marginTop: 6, letterSpacing: "0.12em", fontFamily: "'DM Mono', monospace" }}>
+                                    ⚠ ANOMALY SCORE: {cellAnomaly.score.toFixed(2)}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 3. MUNICIPALITY */}
+                        <div
+                            style={{
+                                padding: "12px 14px",
+                                background: "rgba(0, 180, 216, 0.04)",
+                                border: "1px solid rgba(0, 180, 216, 0.18)",
+                                borderLeft: "3px solid #00b4d8",
+                                borderRadius: 6,
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "space-between",
+                            }}
+                        >
+                            <SpatialLevelHeader
+                                level="3"
+                                label="MUNICIPALITY"
+                                sublabel="Administrative context only"
+                                accent="#00b4d8"
+                            />
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                                <div>
+                                    <div style={{ fontFamily: "'Syne', sans-serif", fontSize: "1.1rem", fontWeight: 600, color: "rgba(255,255,255,0.92)" }}>
+                                        {municipality?.name || "—"}
+                                    </div>
+                                    <div style={{ fontSize: "0.55rem", color: "var(--text-dim)", marginTop: 2, letterSpacing: "0.08em" }}>
+                                        {municipality?.source || cell?.municipality_name_from_cell || "Administrative boundary"}
+                                    </div>
+                                </div>
+                                <div
+                                    style={{
+                                        padding: "3px 8px",
+                                        fontSize: "0.55rem",
+                                        letterSpacing: "0.15em",
+                                        color: "#00b4d8",
+                                        background: "rgba(0,180,216,0.12)",
+                                        border: "1px solid rgba(0,180,216,0.25)",
+                                        borderRadius: 3,
+                                    }}
+                                >
+                                    ADMIN
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* ── Tabs ──────────────────────────────────────────────── */}
                 <div
@@ -417,7 +598,7 @@ export default function DeepAnalysisOverlay({
                                         marginBottom: 12,
                                     }}
                                 >
-                                    {isCompositeView ? "Composite Risk Score" : `${layerMeta.metric} Severity`}
+                                    {isCompositeView ? "Composite Risk Score · Cell-Level" : `${layerMeta.metric} · Cell-Level Severity`}
                                 </div>
                                 <div
                                     style={{
@@ -682,6 +863,113 @@ export default function DeepAnalysisOverlay({
                         )}
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Spatial Hierarchy Helpers ──────────────────────────────────────────────
+
+function SpatialLevelHeader({ level, label, sublabel, accent }) {
+    return (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div
+                style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    border: `1.5px solid ${accent}`,
+                    background: `${accent}15`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    color: accent,
+                    textShadow: `0 0 8px ${accent}66`,
+                    flexShrink: 0,
+                }}
+            >
+                {level}
+            </div>
+            <div style={{ flex: 1 }}>
+                <div
+                    style={{
+                        fontFamily: "'Syne', sans-serif",
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                        letterSpacing: "0.12em",
+                        color: "rgba(255,255,255,0.88)",
+                        textTransform: "uppercase",
+                    }}
+                >
+                    {label}
+                </div>
+                {sublabel && (
+                    <div
+                        style={{
+                            fontSize: "0.5rem",
+                            letterSpacing: "0.08em",
+                            color: "var(--text-dim)",
+                            marginTop: 1,
+                        }}
+                    >
+                        {sublabel}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function MetricRow({ label, value, unit = "", color = "rgba(255,255,255,0.88)", nodata = false }) {
+    const displayColor = nodata ? "rgba(255,255,255,0.32)" : color;
+    return (
+        <div>
+            <div
+                style={{
+                    fontSize: "0.48rem",
+                    letterSpacing: "0.14em",
+                    color: "var(--text-dim)",
+                    textTransform: "uppercase",
+                    marginBottom: 2,
+                }}
+            >
+                {label}
+            </div>
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 3,
+                }}
+            >
+                <span
+                    style={{
+                        fontFamily: "'DM Mono', monospace",
+                        fontSize: "0.82rem",
+                        fontWeight: 500,
+                        color: displayColor,
+                        textShadow: nodata ? "none" : `0 0 8px ${color}44`,
+                        opacity: nodata ? 0.6 : 1,
+                    }}
+                >
+                    {value}
+                </span>
+                {unit && (
+                    <span
+                        style={{
+                            fontFamily: "'DM Mono', monospace",
+                            fontSize: "0.56rem",
+                            fontWeight: 400,
+                            color: displayColor,
+                            opacity: nodata ? 0.5 : 0.7,
+                        }}
+                    >
+                        {unit}
+                    </span>
+                )}
             </div>
         </div>
     );

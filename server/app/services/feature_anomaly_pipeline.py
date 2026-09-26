@@ -55,19 +55,26 @@ def _relative_score(value: float | None, values: list[float], inverse: bool = Fa
     return float(1.0 - score if inverse else score)
 
 
-def _load_snapshot(db, snapshot_date: date) -> tuple[list[dict[str, Any]], dict[int, dict[str, dict[str, Any]]]]:
+def _load_snapshot(db, snapshot_date: date, is_legacy_zone: bool = False) -> tuple[list[dict[str, Any]], dict[int, dict[str, dict[str, Any]]]]:
     """Load current-day, per-metric source values without cross-day imputation."""
     start, end = _utc_day_bounds(snapshot_date)
-    zones = {
-        row.id: {"zone_id": row.id, "zone_name": row.name}
-        for row in db.execute(select(Zone.id, Zone.name).order_by(Zone.id))
-    }
+    if is_legacy_zone:
+        locations = {
+            row.id: {"loc_id": row.id, "location_name": row.name}
+            for row in db.execute(select(Zone.id, Zone.name).order_by(Zone.id))
+        }
+    else:
+        from app.models import SpatialCell
+        locations = {
+            row.id: {"loc_id": row.id, "location_name": row.municipality_name}
+            for row in db.execute(select(SpatialCell.id, SpatialCell.municipality_name).order_by(SpatialCell.id))
+        }
     selected: dict[int, dict[str, dict[str, Any]]] = defaultdict(dict)
     fields = (*MODEL_FEATURES, "mndwi", "water_extent_m2", "water_health_score", "pm25", "pm10", "no2")
     rows = db.execute(
         select(
             EnvironmentData.id,
-            EnvironmentData.zone_id,
+            EnvironmentData.zone_id if is_legacy_zone else EnvironmentData.cell_id,
             EnvironmentData.observed_at,
             EnvironmentData.aqi,
             EnvironmentData.lst,
@@ -84,13 +91,14 @@ def _load_snapshot(db, snapshot_date: date) -> tuple[list[dict[str, Any]], dict[
             EnvironmentData.source_metadata,
         )
         .where(EnvironmentData.observed_at >= start, EnvironmentData.observed_at < end)
+        .where((EnvironmentData.zone_id.isnot(None)) if is_legacy_zone else (EnvironmentData.cell_id.isnot(None)))
         .order_by(EnvironmentData.observed_at.asc(), EnvironmentData.id.asc())
     ).mappings()
     for row in rows:
         for field in fields:
             value = row[field]
             if value is not None:
-                selected[row["zone_id"]][field] = {
+                selected[row[1]][field] = {
                     "value": float(value),
                     "environment_data_id": int(row["id"]),
                     "observed_at": row["observed_at"],
@@ -100,8 +108,8 @@ def _load_snapshot(db, snapshot_date: date) -> tuple[list[dict[str, Any]], dict[
                 }
 
     snapshot_rows: list[dict[str, Any]] = []
-    for zone_id, zone in zones.items():
-        metric_sources = selected.get(zone_id, {})
+    for loc_id, loc in locations.items():
+        metric_sources = selected.get(loc_id, {})
         values = {field: metric_sources.get(field, {}).get("value") for field in fields}
         # Prefer the satellite record as the relational anchor: it shares the canonical
         # midnight snapshot timestamp and normally carries NDVI, NDWI, and LST together.
@@ -113,7 +121,7 @@ def _load_snapshot(db, snapshot_date: date) -> tuple[list[dict[str, Any]], dict[
         ]
         snapshot_rows.append(
             {
-                **zone,
+                **loc,
                 "values": values,
                 "sources": metric_sources,
                 "environment_data_id": next(iter(source_ids), None),
@@ -141,10 +149,10 @@ def _validated_model_matrix(eligible_rows: list[dict[str, Any]]) -> np.ndarray:
     matrix = np.asarray([[row["values"][field] for field in MODEL_FEATURES] for row in eligible_rows], dtype=float)
     invalid = ~np.isfinite(matrix)
     if invalid.any():
-        affected_zones = sorted({eligible_rows[index]["zone_id"] for index in np.where(invalid)[0]})
+        affected_locs = sorted({eligible_rows[index]["loc_id"] for index in np.where(invalid)[0]})
         raise ValueError(
             "Non-finite core feature values detected for zone IDs "
-            f"{affected_zones}; Isolation Forest was not run and no derived rows were written"
+            f"{affected_locs}; Isolation Forest was not run and no derived rows were written"
         )
     return matrix
 
@@ -159,11 +167,11 @@ def _select_varying_model_features(matrix: np.ndarray) -> tuple[tuple[str, ...],
     return active_features, matrix[:, active_positions], excluded_features
 
 
-def _find_snapshot_date(db) -> date:
+def _find_snapshot_date(db, is_legacy_zone: bool = False) -> date:
     timestamps = db.execute(select(EnvironmentData.observed_at).order_by(EnvironmentData.observed_at.desc())).scalars()
     candidate_dates = sorted({timestamp.astimezone(timezone.utc).date() for timestamp in timestamps}, reverse=True)
     for candidate in candidate_dates:
-        rows, _ = _load_snapshot(db, candidate)
+        rows, _ = _load_snapshot(db, candidate, is_legacy_zone=is_legacy_zone)
         if _modelable_count(rows) >= MIN_MODEL_ROWS:
             return candidate
     raise ValueError("No UTC date has enough complete AQI, NDVI, NDWI, and LST measurements for Isolation Forest")
@@ -186,12 +194,12 @@ def _dominant_deviations(
     ]
 
 
-def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str, Any]:
+def run_feature_anomaly_pipeline(snapshot_date: date | None = None, is_legacy_zone: bool = False) -> dict[str, Any]:
     """Upsert feature rows and one Isolation Forest classification per eligible zone."""
     with get_db() as db:
-        selected_date = snapshot_date or _find_snapshot_date(db)
+        selected_date = snapshot_date or _find_snapshot_date(db, is_legacy_zone=is_legacy_zone)
         snapshot_at, _ = _utc_day_bounds(selected_date)
-        snapshot_rows, _ = _load_snapshot(db, selected_date)
+        snapshot_rows, _ = _load_snapshot(db, selected_date, is_legacy_zone=is_legacy_zone)
         for row in snapshot_rows:
             row["missing_core_metrics"] = _missing_core_metrics(row)
         eligible_rows = [row for row in snapshot_rows if not row["missing_core_metrics"]]
@@ -213,7 +221,7 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str,
         predictions = model.fit_predict(scaled_matrix)
         raw_anomaly_scores = -model.score_samples(scaled_matrix)  # Higher means more isolated/anomalous.
 
-        model_index = {row["zone_id"]: index for index, row in enumerate(eligible_rows)}
+        model_index = {row["loc_id"]: index for index, row in enumerate(eligible_rows)}
         engineered_feature_ids: dict[int, int] = {}
         feature_value_records: dict[int, dict[str, Any]] = {}
         for row in snapshot_rows:
@@ -243,37 +251,38 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str,
                     "source_type": aqi_source.get("aqi_source_type"),
                     "nearest_station_distance_m": _as_json_value(aqi_source.get("aqi_nearest_station_distance_m")),
                 },
-                "temporal_context": temporal_contexts[row["zone_id"]],
-                "model_eligible": row["zone_id"] in model_index,
+                "temporal_context": temporal_contexts[row["loc_id"]],
+                "model_eligible": row["loc_id"] in model_index,
                 "model_input_features": list(active_model_features),
                 "model_excluded_constant_features": list(excluded_constant_features),
                 "model_ineligible_reason": (
                     None
-                    if row["zone_id"] in model_index
+                    if row["loc_id"] in model_index
                     else {
                         "reason": "missing_core_measurements",
                         "missing_core_metrics": row["missing_core_metrics"],
                     }
                 ),
             }
-            if row["zone_id"] in model_index:
-                index = model_index[row["zone_id"]]
+            if row["loc_id"] in model_index:
+                index = model_index[row["loc_id"]]
                 feature_values["model_z_scores"] = {
                     field: float(scaled_matrix[index, position]) for position, field in enumerate(active_model_features)
                 }
 
+            conflict_target = "(zone_id, observed_at)" if is_legacy_zone else "(cell_id, observed_at)"
             feature_id = db.execute(
                 text(
-                    """
+                    f"""
                     INSERT INTO engineered_features (
-                        zone_id, environment_data_id, observed_at,
+                        zone_id, cell_id, environment_data_id, observed_at,
                         pollution_risk_score, heat_stress_score, water_stress_score, vegetation_stress_score,
                         feature_values
                     ) VALUES (
-                        :zone_id, :environment_data_id, :observed_at,
+                        :zone_id, :cell_id, :environment_data_id, :observed_at,
                         :pollution, :heat, :moisture, :vegetation, CAST(:feature_values AS jsonb)
                     )
-                    ON CONFLICT (zone_id, observed_at) DO UPDATE SET
+                    ON CONFLICT {conflict_target} DO UPDATE SET
                         environment_data_id = EXCLUDED.environment_data_id,
                         pollution_risk_score = EXCLUDED.pollution_risk_score,
                         heat_stress_score = EXCLUDED.heat_stress_score,
@@ -284,7 +293,7 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str,
                     """
                 ),
                 {
-                    "zone_id": row["zone_id"],
+                    "zone_id": row["loc_id"],
                     "environment_data_id": row["environment_data_id"],
                     "observed_at": snapshot_at,
                     "pollution": relative_stress["pollution"],
@@ -294,8 +303,8 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str,
                     "feature_values": json.dumps(feature_values, default=_as_json_value),
                 },
             ).scalar_one()
-            engineered_feature_ids[row["zone_id"]] = int(feature_id)
-            feature_value_records[row["zone_id"]] = feature_values
+            engineered_feature_ids[row["loc_id"]] = int(feature_id)
+            feature_value_records[row["loc_id"]] = feature_values
 
         anomaly_count = 0
         score_values = [float(value) for value in raw_anomaly_scores]
@@ -307,12 +316,12 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str,
             }
             dominant = _dominant_deviations(zscores, row["values"], active_model_features)
             aqi_source = row["sources"]["aqi"]
-            temporal_context = temporal_contexts[row["zone_id"]]
+            temporal_context = temporal_contexts[row["loc_id"]]
             temporal_context["spatial_anomaly_persistence"] = finalize_anomaly_persistence(
                 temporal_context["spatial_anomaly_persistence"],
                 is_anomaly,
             )
-            feature_value_records[row["zone_id"]]["temporal_context"] = temporal_context
+            feature_value_records[row["loc_id"]]["temporal_context"] = temporal_context
             db.execute(
                 text(
                     """
@@ -322,8 +331,8 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str,
                     """
                 ),
                 {
-                    "feature_id": engineered_feature_ids[row["zone_id"]],
-                    "feature_values": json.dumps(feature_value_records[row["zone_id"]], default=_as_json_value),
+                    "feature_id": engineered_feature_ids[row["loc_id"]],
+                    "feature_values": json.dumps(feature_value_records[row["loc_id"]], default=_as_json_value),
                 },
             )
             evidence = {
@@ -371,7 +380,7 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str,
                         :zone_id, :environment_data_id, :engineered_feature_id, :observed_at, :detected_at,
                         :anomaly_score, :is_anomaly, :model_name, :anomaly_type, :root_cause, NULL, CAST(:evidence AS jsonb)
                     )
-                    ON CONFLICT (zone_id, observed_at, model_name) DO UPDATE SET
+                    ON CONFLICT (zone_id, observed_at, model_name, is_legacy_zone=is_legacy_zone) DO UPDATE SET
                         environment_data_id = EXCLUDED.environment_data_id,
                         engineered_feature_id = EXCLUDED.engineered_feature_id,
                         detected_at = EXCLUDED.detected_at,
@@ -384,9 +393,9 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None) -> dict[str,
                     """
                 ),
                 {
-                    "zone_id": row["zone_id"],
+                    "zone_id": row["loc_id"],
                     "environment_data_id": row["environment_data_id"],
-                    "engineered_feature_id": engineered_feature_ids[row["zone_id"]],
+                    "engineered_feature_id": engineered_feature_ids[row["loc_id"]],
                     "observed_at": snapshot_at,
                     "detected_at": datetime.now(timezone.utc),
                     "anomaly_score": score_values[index],

@@ -26,22 +26,23 @@ export const LAYER_CONFIG = {
 
   ndvi: {
     id: "ndvi",
-    label: "NDVI",
+    label: "NDVI · Vegetation Signal",
     icon: "◇",
-    desc: "Vegetation health index",
+    desc: "Satellite normalised difference vegetation index",
     gradient: {
-      0.0: "#5C4033", // Dark Brown
-      0.2: "#8B4513", // Brown
-      0.45: "#D2B48C", // Light Brown
-      0.6: "#FFFF00", // Yellow
-      0.8: "#32CD32", // Light Green
-      0.9: "#008000", // Green
-      1.0: "#006400", // Dark Green
+      0.0: "rgba(0,0,0,0)",  // transparent (urban/water/bare)
+      0.05: "#d62781",  // magenta  — very low
+      0.15: "#ff5e28",  // orange   — low
+      0.30: "#ffcd32",  // yellow   — moderate
+      0.50: "#a8e635",  // lime     — moderate-high
+      0.70: "#29d967",  // green    — high
+      0.90: "#14c8b4",  // teal     — very high
+      1.0: "#14c8b4",
     },
     blobColors: [
-      "rgba(0,180,216,0.28)",
-      "rgba(72,202,228,0.20)",
-      "rgba(0,119,182,0.14)",
+      "rgba(41,217,103,0.28)",
+      "rgba(168,230,53,0.20)",
+      "rgba(255,205,50,0.14)",
     ],
   },
 
@@ -49,18 +50,20 @@ export const LAYER_CONFIG = {
     id: "water_health",
     label: "Water Health",
     icon: "◈",
-    desc: "Water condition indicator",
+    desc: "Water condition index 0..1 (MNDWI water pixels)",
     gradient: {
       0.0: "rgba(0,0,0,0)",
-      0.2: "#1dd1a1",
-      0.45: "#ffd32a",
-      0.7: "#ff8c00",
-      1.0: "#ff3b3b",
+      0.05: "#dd269a",  // magenta  — degraded
+      0.18: "#ff3b3b",  // red
+      0.38: "#ff8c00",  // orange   — fair
+      0.58: "#ffd23c",  // yellow   — good
+      0.78: "#5cd648",  // lime/green very good
+      1.0: "#12c8d4",  // teal/cyan healthy
     },
     blobColors: [
-      "rgba(196,18,31,0.25)",
-      "rgba(116,198,157,0.18)",
-      "rgba(45,106,79,0.12)",
+      "rgba(18,200,212,0.25)",
+      "rgba(92,214,72,0.18)",
+      "rgba(255,61,61,0.12)",
     ],
   },
 
@@ -70,18 +73,18 @@ export const LAYER_CONFIG = {
     icon: "▣",
     desc: "Land surface temperature",
     gradient: {
-      0.0: "#00008B", // Dark Blue
-      0.25: "#00BFFF", // Light Blue
-      0.5: "#008000", // Green
-      0.6: "#FFFF00", // Yellow
-      0.75: "#FF7E00", // Orange
-      0.9: "#FF0000", // Red
-      1.0: "#8B0000", // Dark Red
+      0.0: "rgba(0,0,0,0)", // 20C (Black/Transparent)
+      0.1: "#12081c", // 23C (Very deep purple)
+      0.3: "#581c76", // 29C (Purple)
+      0.46: "#bc2a6c", // 34C (Hot magenta)
+      0.6: "#ff6230", // 38C (Red-orange)
+      0.76: "#ffebc3", // 43C (Near-white)
+      1.0: "#ffffff", // 50C (White)
     },
     blobColors: [
-      "rgba(255,59,59,0.28)",
-      "rgba(255,120,0,0.22)",
-      "rgba(255,211,42,0.14)",
+      "rgba(255,98,48,0.28)",
+      "rgba(188,42,108,0.22)",
+      "rgba(88,28,118,0.14)",
     ],
   },
 

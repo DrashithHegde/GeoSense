@@ -57,6 +57,7 @@ export default function App() {
 
   // ── Insight panel state ──────────────────────────────────────────────────
   const [selectedZone, setSelectedZone] = useState(null);
+  const [pointAnalysis, setPointAnalysis] = useState(null);
   const [insightOpen, setInsightOpen] = useState(false);
   const [deepAnalysisOpen, setDeepAnalysisOpen] = useState(false);
   const [layerControlsVisible, setLayerControlsVisible] = useState(false);
@@ -64,7 +65,7 @@ export default function App() {
   const activeCityLabel = activeCity ? CITY_CONFIG[activeCity]?.label : null;
 
   // ── Data Fetching ────────────────────────────────────────────────────────
-  const { zones: liveZones, liveMunicipalities, waterBodies, aqiSurface, ndviSurface, lstSurface, boundary: liveBoundary, loading: zonesLoading, error: zonesError } = useGeoSenseData(activeCity);
+  const { zones: liveZones, liveMunicipalities, waterBodies, aqiSurface, ndviSurface, lstSurface, waterHealthSurface, boundary: liveBoundary, loading: zonesLoading, error: zonesError } = useGeoSenseData(activeCity);
   const { explanationData, explanationLoading, fetchExplanation, clearExplanation } = useZoneExplanation();
 
   // ── Mapbox container ref (used in production) ────────────────────────────
@@ -76,11 +77,13 @@ export default function App() {
     activeCity,
     activeLayers,
     onZoneClick: handleZoneClick,
+    onPointAnalysis: (zone, analysis) => handleZoneClick(zone, analysis),
     liveMunicipalities,
     waterBodies,
     aqiSurface,
     ndviSurface,
     lstSurface,
+    waterHealthSurface,
     boundary: liveBoundary,
   });
 
@@ -90,6 +93,7 @@ export default function App() {
     if (cityId === "india") {
       // Start zoom-out and fade-out simultaneously
       setSelectedZone(null);
+      setPointAnalysis(null);
       clearExplanation();
       setInsightOpen(false);
       setDeepAnalysisOpen(false);
@@ -111,6 +115,7 @@ export default function App() {
     if (activeCity === cityId) return;
 
     setSelectedZone(null);
+    setPointAnalysis(null);
     clearExplanation();
     setInsightOpen(false);
     setDeepAnalysisOpen(false);
@@ -132,18 +137,31 @@ export default function App() {
     }, 700);
   }
 
-  function handleZoneClick(zone) {
+  function handleZoneClick(zone, analysisData) {
     setSelectedZone(zone);
-    if (zone.id && !String(zone.id).startsWith("mum-") && !String(zone.id).startsWith("blr-") && !String(zone.id).startsWith("del-")) {
-      // Real backend zone ID
-      fetchExplanation(zone.id);
+    if (analysisData) {
+      setPointAnalysis(analysisData);
+    } else {
+      setPointAnalysis(zone?.pointAnalysis || null);
+    }
+    // Use cell-level ID (from spatial_cells) for explanation when available
+    const resolvedId = analysisData?.cell?.id || zone?.pointAnalysis?.cell?.id || zone.id;
+    if (resolvedId && !String(resolvedId).startsWith("mum-") && !String(resolvedId).startsWith("blr-") && !String(resolvedId).startsWith("del-")) {
+      // Real backend zone / cell ID
+      const pixelLst = analysisData?.pixel?.lst?.value_c
+        ?? zone?.pointAnalysis?.pixel?.lst?.value_c
+        ?? (zone.pixelLST && !zone.pixelLST.nodata ? zone.pixelLST.value_c : null);
+      fetchExplanation(resolvedId, pixelLst);
     } else {
       // Placeholder UI zone - no real backend data
       clearExplanation();
     }
     setInsightOpen(true);
     setDeepAnalysisOpen(false);
-    showToast(`ANOMALY DETECTED // ${zone.name.toUpperCase()}`);
+    const muniName = analysisData?.municipality?.name
+      || zone?.pointAnalysis?.municipality?.name
+      || zone.name;
+    showToast(`LOCATION SCANNED // ${muniName.toUpperCase()}`);
   }
 
   function handleInsightClose() {
@@ -151,6 +169,7 @@ export default function App() {
     setDeepAnalysisOpen(false);
     setTimeout(() => {
       setSelectedZone(null);
+      setPointAnalysis(null);
       clearExplanation();
     }, 420); // wait for slide-out
   }
@@ -295,6 +314,7 @@ export default function App() {
           {/* Insight panel on right */}
           <InsightPanel
             zone={selectedZone}
+            pointAnalysis={pointAnalysis}
             cityLabel={activeCityLabel}
             explanationData={explanationData}
             activeLayers={activeLayers}
@@ -305,6 +325,7 @@ export default function App() {
 
           <DeepAnalysisOverlay
             zone={selectedZone}
+            pointAnalysis={pointAnalysis}
             cityLabel={activeCityLabel}
             explanationData={explanationData}
             activeLayers={activeLayers}

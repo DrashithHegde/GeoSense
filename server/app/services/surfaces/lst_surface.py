@@ -88,16 +88,16 @@ def get_lst_export_bounds() -> tuple[float, float, float, float]:
     statement = text("""
         SELECT ST_XMin(extent) AS west, ST_YMin(extent) AS south,
                ST_XMax(extent) AS east, ST_YMax(extent) AS north
-        FROM (SELECT ST_Extent(geometry)::box3d AS extent FROM zones) zone_extent
+        FROM (SELECT ST_Extent(geometry)::box3d AS extent FROM spatial_cells) cell_extent
     """)
     with engine.connect() as connection:
         row = connection.execute(statement).mappings().one()
     
-    # Expand bounds to include Sanjay Gandhi National Park and surrounding natural areas
-    west = float(row["west"]) - 0.08   # ~8km west expansion
-    south = float(row["south"]) - 0.05  # ~5km south expansion
-    east = float(row["east"]) + 0.03    # ~3km east expansion
-    north = float(row["north"]) + 0.12  # ~12km north expansion (captures national park)
+    # Expand bounds to include Sanjay Gandhi National Park and surrounding municipalities (Mira-Bhayandar, Thane)
+    west = float(row["west"])
+    south = float(row["south"])
+    east = float(row["east"])
+    north = float(row["north"])
     
     if west >= east or south >= north:
         raise ValueError("GeoSense analysis extent is invalid")
@@ -280,6 +280,7 @@ def publish_lst_geotiff(
         transform = source.transform
         bounds = source.bounds
         profile = source.profile.copy()
+        profile["nodata"] = NODATA_VALUE
 
     valid_mask = np.isfinite(values) & (values != NODATA_VALUE)
     valid_count = int(np.sum(valid_mask))

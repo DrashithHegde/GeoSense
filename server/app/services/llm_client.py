@@ -26,12 +26,18 @@ def _build_prompt(
     evidence: dict[str, Any],
     knowledge_context: List[Dict[str, Any]],
     deterministic_text: str,
+    pixel_lst: float | None = None,
 ) -> str:
     """Build the strict prompt constraining the LLM to facts and evidence."""
     evidence_json = json.dumps(evidence, indent=2, default=str)
     knowledge_json = json.dumps(knowledge_context, indent=2, default=str)
     
     city = evidence.get("zone", {}).get("city", "Mumbai") # Default fallback
+
+    pixel_instruction = ""
+    if pixel_lst is not None:
+        pixel_instruction = f"\nPIXEL CONTEXT:\nThe user clicked on a specific pixel. Pixel-level LST: {pixel_lst} °C. Analytical-zone Mean LST: {evidence.get('measurements', {}).get('lst')} °C.\nRule 6: Distinguish between the Pixel-level measurement ({pixel_lst} °C) and the Analytical-zone context when discussing LST. Use language such as: 'The selected location shows elevated land-surface temperature relative to the surrounding analytical context.'"
+
 
     prompt = f"""You are an environmental data analyst assistant for GeoSense, monitoring {city}.
 You will be given verified sensor measurements, model outputs, and curated scientific context.
@@ -49,6 +55,7 @@ EVIDENCE OBJECT (JSON):
 
 KNOWLEDGE CONTEXT (JSON):
 {knowledge_json}
+{pixel_instruction}
 
 DETERMINISTIC FALLBACK (For Reference):
 {deterministic_text}
@@ -71,6 +78,7 @@ async def call_gemini(
     evidence: dict[str, Any],
     knowledge_context: List[Dict[str, Any]],
     deterministic_text: str,
+    pixel_lst: float | None = None,
 ) -> Dict[str, Any]:
     """Call the Gemini REST API using httpx."""
     settings = get_settings()
@@ -79,7 +87,7 @@ async def call_gemini(
     if not api_key:
         raise LLMUnavailable("GEMINI_API_KEY is not configured.")
 
-    prompt = _build_prompt(evidence, knowledge_context, deterministic_text)
+    prompt = _build_prompt(evidence, knowledge_context, deterministic_text, pixel_lst)
     
     # Use gemini-2.0-flash-lite or gemini-1.5-flash as default fast models
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
@@ -130,6 +138,7 @@ async def generate_llm_explanation(
     evidence: dict[str, Any],
     knowledge_context: List[Dict[str, Any]],
     deterministic_text: str,
+    pixel_lst: float | None = None,
 ) -> Dict[str, Any]:
     """Provider interface for generating LLM explanation."""
-    return await call_gemini(evidence, knowledge_context, deterministic_text)
+    return await call_gemini(evidence, knowledge_context, deterministic_text, pixel_lst)
