@@ -30,13 +30,13 @@ export const LAYER_CONFIG = {
     icon: "◇",
     desc: "Satellite normalised difference vegetation index",
     gradient: {
-      0.0: "rgba(0,0,0,0)",  // transparent (urban/water/bare)
-      0.05: "#d62781",  // magenta  — very low
-      0.15: "#ff5e28",  // orange   — low
-      0.30: "#ffcd32",  // yellow   — moderate
-      0.50: "#a8e635",  // lime     — moderate-high
-      0.70: "#29d967",  // green    — high
-      0.90: "#14c8b4",  // teal     — very high
+      0.0: "rgba(0,0,0,0)", // transparent (urban/water/bare)
+      0.05: "#d62781", // magenta  — very low
+      0.15: "#ff5e28", // orange   — low
+      0.3: "#ffcd32", // yellow   — moderate
+      0.5: "#a8e635", // lime     — moderate-high
+      0.7: "#29d967", // green    — high
+      0.9: "#14c8b4", // teal     — very high
       1.0: "#14c8b4",
     },
     blobColors: [
@@ -53,12 +53,12 @@ export const LAYER_CONFIG = {
     desc: "Water condition index 0..1 (MNDWI water pixels)",
     gradient: {
       0.0: "rgba(0,0,0,0)",
-      0.05: "#dd269a",  // magenta  — degraded
-      0.18: "#ff3b3b",  // red
-      0.38: "#ff8c00",  // orange   — fair
-      0.58: "#ffd23c",  // yellow   — good
-      0.78: "#5cd648",  // lime/green very good
-      1.0: "#12c8d4",  // teal/cyan healthy
+      0.05: "#dd269a", // magenta  — degraded
+      0.18: "#ff3b3b", // red
+      0.38: "#ff8c00", // orange   — fair
+      0.58: "#ffd23c", // yellow   — good
+      0.78: "#5cd648", // lime/green very good
+      1.0: "#12c8d4", // teal/cyan healthy
     },
     blobColors: [
       "rgba(18,200,212,0.25)",
@@ -69,9 +69,9 @@ export const LAYER_CONFIG = {
 
   lst: {
     id: "lst",
-    label: "LST",
+    label: "LST — Land Surface Temperature",
     icon: "▣",
-    desc: "Land surface temperature",
+    desc: "Resolution: 30 m · Unit: °C",
     gradient: {
       0.0: "rgba(0,0,0,0)", // 20C (Black/Transparent)
       0.1: "#12081c", // 23C (Very deep purple)

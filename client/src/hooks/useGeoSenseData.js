@@ -12,6 +12,7 @@ export function useGeoSenseData(activeCity) {
   const [liveMunicipalities, setLiveMunicipalities] = useState([]);
   const [waterBodies, setWaterBodies] = useState([]);
   const [aqiSurface, setAqiSurface] = useState(null);
+  const [aqiSurfaceStatus, setAqiSurfaceStatus] = useState("idle");
   const [ndviSurface, setNdviSurface] = useState(null);
   const [lstSurface, setLstSurface] = useState(null);
   const [waterHealthSurface, setWaterHealthSurface] = useState(null);
@@ -34,6 +35,7 @@ export function useGeoSenseData(activeCity) {
       setLiveMunicipalities([]);
       setWaterBodies([]);
       setAqiSurface(null);
+      setAqiSurfaceStatus("unavailable");
       setNdviSurface(null);
       setLstSurface(null);
       setWaterHealthSurface(null);
@@ -45,6 +47,7 @@ export function useGeoSenseData(activeCity) {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setAqiSurfaceStatus("loading");
 
     async function fetchData() {
       // ═══════════════════════════════════════════════════════════════════════════
@@ -68,6 +71,29 @@ export function useGeoSenseData(activeCity) {
         return data;
       };
 
+      const fetchAqiSurface = async () => {
+        try {
+          const response = await fetch(getApiUrl("/api/surfaces/aqi/latest"));
+          if (response.status === 404) {
+            return { surface: null, status: "unavailable" };
+          }
+          if (!response.ok) {
+            return { surface: null, status: "error" };
+          }
+          const surface = await response.json();
+          if (!surface?.image_url || !Array.isArray(surface.coordinates)) {
+            return { surface: null, status: "error" };
+          }
+          return { surface, status: "available" };
+        } catch (surfaceError) {
+          console.warn(
+            "[useGeoSenseData] AQI surface unavailable:",
+            surfaceError,
+          );
+          return { surface: null, status: "error" };
+        }
+      };
+
       try {
         // ═══════════════════════════════════════════════════════════════════════════
         // NDVI FETCH DIAGNOSTICS
@@ -87,13 +113,23 @@ export function useGeoSenseData(activeCity) {
         console.log("  Timestamp:", new Date().toISOString());
         // ═══════════════════════════════════════════════════════════════════════════
 
-        const [metricsRes, anomalyRes, boundaryRes, muniRes, waterRes, aqiSurfaceRes, ndviSurfaceRes, lstSurfaceRes, waterHealthSurfaceData] = await Promise.all([
+        const [
+          metricsRes,
+          anomalyRes,
+          boundaryRes,
+          muniRes,
+          waterRes,
+          aqiSurfaceResult,
+          ndviSurfaceRes,
+          lstSurfaceRes,
+          waterHealthSurfaceData,
+        ] = await Promise.all([
           fetch(getApiUrl("/api/metrics/latest")),
           fetch(getApiUrl("/api/anomalies?days=30&limit=200")),
           fetch(getApiUrl("/api/zones/boundary")),
           fetch(getApiUrl("/api/municipalities/latest")),
           fetch(getApiUrl("/api/water-bodies/latest")),
-          fetch(getApiUrl("/api/surfaces/aqi/latest")),
+          fetchAqiSurface(),
           fetch(ndviUrl),
           fetch(getApiUrl("/api/surfaces/lst/latest")),
           fetchWaterHealthSurface(),
@@ -105,7 +141,10 @@ export function useGeoSenseData(activeCity) {
         console.log("📡 [NDVI FETCH RESPONSE]");
         console.log("  HTTP Status:", ndviSurfaceRes.status);
         console.log("  response.ok:", ndviSurfaceRes.ok);
-        console.log("  Content-Type:", ndviSurfaceRes.headers.get('Content-Type'));
+        console.log(
+          "  Content-Type:",
+          ndviSurfaceRes.headers.get("Content-Type"),
+        );
         console.log("  Status Text:", ndviSurfaceRes.statusText);
         // ═══════════════════════════════════════════════════════════════════════════
 
@@ -113,30 +152,39 @@ export function useGeoSenseData(activeCity) {
         // WATER HEALTH FETCH RESPONSE DIAGNOSTICS
         // ═══════════════════════════════════════════════════════════════════════════
         console.log("📡 [WATER HEALTH FETCH RESPONSE]");
-        console.log("  waterHealthSurfaceData is null?", waterHealthSurfaceData === null);
-        console.log("  waterHealthSurfaceData is undefined?", waterHealthSurfaceData === undefined);
+        console.log(
+          "  waterHealthSurfaceData is null?",
+          waterHealthSurfaceData === null,
+        );
+        console.log(
+          "  waterHealthSurfaceData is undefined?",
+          waterHealthSurfaceData === undefined,
+        );
         console.log("  Has data:", !!waterHealthSurfaceData);
         if (waterHealthSurfaceData) {
           console.log("  Has image_url:", !!waterHealthSurfaceData?.image_url);
-          console.log("  Has coordinates:", !!waterHealthSurfaceData?.coordinates);
+          console.log(
+            "  Has coordinates:",
+            !!waterHealthSurfaceData?.coordinates,
+          );
           console.log("  Has metric:", !!waterHealthSurfaceData?.metric);
         }
         // ═══════════════════════════════════════════════════════════════════════════
 
-        if (!metricsRes.ok) throw new Error(`Metrics API error: ${metricsRes.status}`);
-        if (!anomalyRes.ok) throw new Error(`Anomalies API error: ${anomalyRes.status}`);
-        if (!muniRes.ok) throw new Error(`Municipalities API error: ${muniRes.status}`);
-        if (!waterRes.ok) throw new Error(`Water Bodies API error: ${waterRes.status}`);
+        if (!metricsRes.ok)
+          throw new Error(`Metrics API error: ${metricsRes.status}`);
+        if (!anomalyRes.ok)
+          throw new Error(`Anomalies API error: ${anomalyRes.status}`);
+        if (!muniRes.ok)
+          throw new Error(`Municipalities API error: ${muniRes.status}`);
+        if (!waterRes.ok)
+          throw new Error(`Water Bodies API error: ${waterRes.status}`);
 
         const metrics = await metricsRes.json();
         const anomalyData = await anomalyRes.json();
         const boundaryData = boundaryRes.ok ? await boundaryRes.json() : null;
         const muniData = await muniRes.json();
         const waterData = await waterRes.json();
-        // A surface is optional until the first successful scheduler-era AQI
-        // cycle has generated one.  A missing artifact must not break metrics.
-        const aqiSurfaceData = aqiSurfaceRes.ok ? await aqiSurfaceRes.json() : null;
-
         // ═══════════════════════════════════════════════════════════════════════════
         // NDVI DATA PARSING DIAGNOSTICS
         // ═══════════════════════════════════════════════════════════════════════════
@@ -148,7 +196,10 @@ export function useGeoSenseData(activeCity) {
           try {
             ndviSurfaceData = await ndviSurfaceRes.json();
             console.log("  ✅ JSON parse successful");
-            console.log("  [NDVI FETCH DATA] Complete response:", ndviSurfaceData);
+            console.log(
+              "  [NDVI FETCH DATA] Complete response:",
+              ndviSurfaceData,
+            );
             console.log("  Has image_url:", !!ndviSurfaceData?.image_url);
             console.log("  Has coordinates:", !!ndviSurfaceData?.coordinates);
             console.log("  Has metric:", !!ndviSurfaceData?.metric);
@@ -157,7 +208,9 @@ export function useGeoSenseData(activeCity) {
             console.error("  Response text:", await ndviSurfaceRes.text());
           }
         } else {
-          console.warn("  ⚠️ ndviSurfaceRes.ok is false - no data will be parsed");
+          console.warn(
+            "  ⚠️ ndviSurfaceRes.ok is false - no data will be parsed",
+          );
           console.warn("  Status:", ndviSurfaceRes.status);
           console.warn("  Trying to read response body anyway...");
           try {
@@ -169,28 +222,47 @@ export function useGeoSenseData(activeCity) {
         }
         // ═══════════════════════════════════════════════════════════════════════════
 
-        const lstSurfaceData = lstSurfaceRes.ok ? await lstSurfaceRes.json() : null;
+        const lstSurfaceData = lstSurfaceRes.ok
+          ? await lstSurfaceRes.json()
+          : null;
 
         console.log("📡 [LST FETCH RESPONSE]");
         console.log("  HTTP Status:", lstSurfaceRes.status);
         console.log("  response.ok:", lstSurfaceRes.ok);
-        console.log("  Content-Type:", lstSurfaceRes.headers.get('Content-Type'));
+        console.log(
+          "  Content-Type:",
+          lstSurfaceRes.headers.get("Content-Type"),
+        );
         console.log("  lstSurfaceData:", lstSurfaceData);
 
         // ═══════════════════════════════════════════════════════════════════════════
         // WATER HEALTH DATA PARSING DIAGNOSTICS
         // ═══════════════════════════════════════════════════════════════════════════
         console.log("📦 [WATER HEALTH FETCH DATA PARSING]");
-        console.log("  waterHealthSurfaceData is null:", waterHealthSurfaceData === null);
-        console.log("  waterHealthSurfaceData is undefined:", waterHealthSurfaceData === undefined);
+        console.log(
+          "  waterHealthSurfaceData is null:",
+          waterHealthSurfaceData === null,
+        );
+        console.log(
+          "  waterHealthSurfaceData is undefined:",
+          waterHealthSurfaceData === undefined,
+        );
 
         if (waterHealthSurfaceData === null) {
-          console.warn("  ⚠️ Water Health surface is null (404 or no data available) - silently proceeding");
+          console.warn(
+            "  ⚠️ Water Health surface is null (404 or no data available) - silently proceeding",
+          );
         } else if (waterHealthSurfaceData) {
           console.log("  ✅ Data received from fetchWaterHealthSurface");
-          console.log("  [WATER HEALTH FETCH DATA] Complete response:", waterHealthSurfaceData);
+          console.log(
+            "  [WATER HEALTH FETCH DATA] Complete response:",
+            waterHealthSurfaceData,
+          );
           console.log("  Has image_url:", !!waterHealthSurfaceData?.image_url);
-          console.log("  Has coordinates:", !!waterHealthSurfaceData?.coordinates);
+          console.log(
+            "  Has coordinates:",
+            !!waterHealthSurfaceData?.coordinates,
+          );
           console.log("  Has metric:", !!waterHealthSurfaceData?.metric);
         }
         // ═══════════════════════════════════════════════════════════════════════════
@@ -214,7 +286,7 @@ export function useGeoSenseData(activeCity) {
 
           return {
             // Identifiers
-            id: m.id,               // backend integer zone_id
+            id: m.id, // backend integer zone_id
             name: m.name,
             ward: m.ward,
             // Polygon geometry from PostGIS (ST_AsGeoJSON)
@@ -249,14 +321,19 @@ export function useGeoSenseData(activeCity) {
             // Visual severity comes from the backend Composite; NULL stays NULL.
             severity,
             // Type for color lookup
-            type: isAnomaly ? "critical" : (m.aqi ?? 0) > 200 ? "high" : "moderate",
+            type: isAnomaly
+              ? "critical"
+              : (m.aqi ?? 0) > 200
+                ? "high"
+                : "moderate",
           };
         });
 
         setZones(zoneObjects);
         setLiveMunicipalities(muniData);
         setWaterBodies(waterData);
-        setAqiSurface(aqiSurfaceData);
+        setAqiSurface(aqiSurfaceResult.surface);
+        setAqiSurfaceStatus(aqiSurfaceResult.status);
 
         // ═══════════════════════════════════════════════════════════════════════════
         // NDVI STATE ASSIGNMENT DIAGNOSTICS
@@ -275,7 +352,10 @@ export function useGeoSenseData(activeCity) {
         // WATER HEALTH STATE ASSIGNMENT DIAGNOSTICS
         // ═══════════════════════════════════════════════════════════════════════════
         console.log("💾 [WATER HEALTH STATE ASSIGNMENT]");
-        console.log("  About to call setWaterHealthSurface with:", waterHealthSurfaceData);
+        console.log(
+          "  About to call setWaterHealthSurface with:",
+          waterHealthSurfaceData,
+        );
         console.log("  Is null?", waterHealthSurfaceData === null);
         console.log("  Is undefined?", waterHealthSurfaceData === undefined);
         console.log("  Truthy?", !!waterHealthSurfaceData);
@@ -297,25 +377,41 @@ export function useGeoSenseData(activeCity) {
 
           console.error("[useGeoSenseData] fetch error:", err);
           setError(err.message || "Backend unavailable");
+          setAqiSurfaceStatus("error");
           setLoading(false);
         }
       }
     }
 
     fetchData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [activeCity]);
 
   console.log("📦 [useGeoSenseData RETURN]", {
     hasZones: zones.length,
     aqiSurface: !!aqiSurface,
+    aqiSurfaceStatus,
     ndviSurface: !!ndviSurface,
     lstSurface: !!lstSurface,
     waterHealthSurface: !!waterHealthSurface,
-    lstSurfaceValue: lstSurface
+    lstSurfaceValue: lstSurface,
   });
 
-  return { zones, liveMunicipalities, waterBodies, aqiSurface, ndviSurface, lstSurface, waterHealthSurface, boundary, loading, error };
+  return {
+    zones,
+    liveMunicipalities,
+    waterBodies,
+    aqiSurface,
+    aqiSurfaceStatus,
+    ndviSurface,
+    lstSurface,
+    waterHealthSurface,
+    boundary,
+    loading,
+    error,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

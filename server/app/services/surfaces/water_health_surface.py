@@ -29,14 +29,17 @@ if _RASTERIO_PROJ_DATA.is_dir():
     os.environ["PROJ_DATA"] = str(_RASTERIO_PROJ_DATA)
 import rasterio
 from rasterio.features import rasterize as rio_rasterize
-from sqlalchemy import text
 import requests
 
-from app.database import engine
-from app.services.municipality_boundaries import load_municipality_boundaries, MunicipalityBoundaryError
+from app.services.municipality_boundaries import (
+    MunicipalityBoundaryError,
+    get_study_region_bounds,
+    load_study_region_geometry,
+)
 from gee.gee_client import initialize_ee
 from gee.ingest_ndvi_ndwi import (
     COMPOSITE_WINDOW_DAYS,
+    DEFAULT_MNDWI_THRESHOLD,
     S2_DATASET,
     add_indices,
     mask_s2_sr,
@@ -48,6 +51,10 @@ NODATA_VALUE = -9999.0
 SCALE_METERS = 10
 METHODOLOGY = "Sentinel-2 median composite Water Health"
 WH_GLOW_THRESHOLD = 0.60
+WATER_MASK_MIN_COMPONENT_PIXELS = 5
+WATER_MASK_EIGHT_CONNECTED = True
+LAND_OVERLAY_RGB = (105, 76, 51)
+LAND_OVERLAY_ALPHA = 64
 SERVER_ROOT = Path(__file__).resolve().parents[3]
 SURFACE_ROOT = SERVER_ROOT / "data" / "surfaces"
 MANIFEST_PATH = SURFACE_ROOT / "manifest.json"
@@ -68,24 +75,21 @@ def get_study_region_mask(width: int, height: int, transform,
     """
     from shapely.geometry import mapping
     try:
-        boundaries = load_municipality_boundaries()
-    except (MunicipalityBoundaryError, Exception):
+        study_region = load_study_region_geometry()
+    except MunicipalityBoundaryError:
         return None
 
     west, south, east, north = bounds
     out_shape = (height, width)
     shapes = []
-    for b in boundaries:
-        try:
-            geom = b["shapely_geom"]
-            from shapely.geometry import box as shapely_box
-            raster_box = shapely_box(west, south, east, north)
-            clipped = geom.intersection(raster_box)
-            if clipped.is_empty:
-                continue
+    try:
+        from shapely.geometry import box as shapely_box
+        raster_box = shapely_box(west, south, east, north)
+        clipped = study_region.intersection(raster_box)
+        if not clipped.is_empty:
             shapes.append((mapping(clipped), 255))
-        except Exception:
-            continue
+    except Exception:
+        return None
 
     if not shapes:
         return None
@@ -138,18 +142,20 @@ def _write_manifest(record: dict[str, Any], manifest_path: Path) -> None:
 
 
 def get_water_health_export_bounds() -> tuple[float, float, float, float]:
-    """Read the established GeoSense analysis extent without changing zones."""
-    statement = text("""
-        SELECT ST_XMin(extent) AS west, ST_YMin(extent) AS south,
-               ST_XMax(extent) AS east, ST_YMax(extent) AS north
-        FROM (SELECT ST_Extent(geometry)::box3d AS extent FROM spatial_cells) cell_extent
-    """)
-    with engine.connect() as connection:
-        row = connection.execute(statement).mappings().one()
-    bounds = tuple(float(row[key]) for key in ("west", "south", "east", "north"))
-    if bounds[0] >= bounds[2] or bounds[1] >= bounds[3]:
-        raise ValueError("GeoSense analysis extent is invalid")
-    return bounds
+    """Return the municipality union extent used for the Sentinel-2 AOI."""
+    return get_study_region_bounds()
+
+
+def build_water_mask(composite: Any) -> Any:
+    """Build the validated MNDWI water mask with an 8-connected size filter."""
+    threshold_mask = composite.select("MNDWI").gte(DEFAULT_MNDWI_THRESHOLD)
+    component_sizes = threshold_mask.selfMask().connectedPixelCount(
+        maxSize=WATER_MASK_MIN_COMPONENT_PIXELS,
+        eightConnected=WATER_MASK_EIGHT_CONNECTED,
+    )
+    return threshold_mask.updateMask(
+        component_sizes.gte(WATER_MASK_MIN_COMPONENT_PIXELS)
+    ).rename("water_mask")
 
 
 def build_water_health_composite(*, start_date: str, end_date: str, bounds: tuple[float, float, float, float]):
@@ -169,7 +175,7 @@ def build_water_health_composite(*, start_date: str, end_date: str, bounds: tupl
         raise ValueError("No Sentinel-2 images found for the configured Water Health composite window")
     composite = collection.median().select(["NDVI", "NDWI", "MNDWI", "NDCI_PROXY", "TURBIDITY_PROXY"]).clip(region)
 
-    water_mask = composite.select("MNDWI").gte(0.0)
+    water_mask = build_water_mask(composite)
 
     algal_stress = composite.select("NDCI_PROXY").add(1.0).divide(2.0).clamp(0.0, 1.0)
     algal_health = ee.Image(1.0).subtract(algal_stress)
@@ -180,7 +186,14 @@ def build_water_health_composite(*, start_date: str, end_date: str, bounds: tupl
     water_health = algal_health.add(suspended_health).divide(2.0).clamp(0.0, 1.0).rename("WATER_HEALTH")
     water_health = water_health.updateMask(water_mask)
 
-    return water_health.clip(region), region, image_count
+    valid_observation = composite.select("MNDWI").mask().unmask(0).gt(0)
+    land_visual_mask = valid_observation.And(water_mask.unmask(0).Not()).rename("LAND_VISUAL_MASK")
+    return (
+        water_health.clip(region).unmask(NODATA_VALUE),
+        land_visual_mask.clip(region).unmask(0).toFloat(),
+        region,
+        image_count,
+    )
 
 
 def _extract_tiff_from_zip(archive_path: Path) -> Path:
@@ -411,10 +424,10 @@ def water_health_to_rgba(values: np.ndarray, pct: dict[str, float] | None = None
     breakpoints so the tightly-clustered 0.41–0.49 water body values span
     the full magenta→teal heatmap visibly.
     """
-    STOP_DISP_T = np.array([0.00, 0.18, 0.38, 0.58, 0.78, 1.00], dtype=np.float32)
-    STOP_R = np.array([221, 255, 255, 255,  92,  18], dtype=np.float32)
-    STOP_G = np.array([ 38,  59, 140, 210, 214, 200], dtype=np.float32)
-    STOP_B = np.array([154,  59,   0,  60,  72, 212], dtype=np.float32)
+    STOP_DISP_T = np.array([0.00, 0.25, 0.50, 0.75, 1.00], dtype=np.float32)
+    STOP_R = np.array([5, 4, 0, 0, 30], dtype=np.float32)
+    STOP_G = np.array([42, 82, 138, 192, 232], dtype=np.float32)
+    STOP_B = np.array([58, 126, 184, 220, 238], dtype=np.float32)
     ALPHA_ZERO = np.float32(0.05)
     ALPHA_FULL = np.float32(0.50)
     ALPHA_MAX  = np.float32(220.0)
@@ -493,6 +506,32 @@ def _blur_rgba(rgba: np.ndarray, radius: float) -> np.ndarray:
     return np.array(Image.merge("RGBA", (r2, g2, b2, a2))).astype(np.uint8)
 
 
+def _mask_aware_blur_rgba(rgba: np.ndarray, water_mask: np.ndarray, radius: float) -> np.ndarray:
+    """Blur visualization channels using only valid water pixels as support."""
+    support = water_mask.astype(np.uint8)
+    support_blurred = np.asarray(
+        Image.fromarray(support * 255, mode="L").filter(ImageFilter.GaussianBlur(radius=radius)),
+        dtype=np.float32,
+    ) / 255.0
+    output = np.zeros_like(rgba)
+    for channel in range(4):
+        weighted = (rgba[:, :, channel].astype(np.float32) * support).astype(np.uint8)
+        blurred = np.asarray(
+            Image.fromarray(weighted, mode="L").filter(ImageFilter.GaussianBlur(radius=radius)),
+            dtype=np.float32,
+        )
+        normalized = np.divide(
+            blurred,
+            support_blurred,
+            out=np.zeros_like(blurred),
+            where=support_blurred > 1e-6,
+        )
+        output[:, :, channel] = np.clip(normalized, 0.0, 255.0).astype(np.uint8)
+
+    output[~water_mask, 3] = 0
+    return output
+
+
 def generate_water_health_three_layer(
     values: np.ndarray,
     sharp_path: Path,
@@ -500,25 +539,45 @@ def generate_water_health_three_layer(
     halo_path: Path,
     study_mask: np.ndarray | None,
     pct: dict[str, float] | None,
+    land_visual_mask: np.ndarray | None = None,
 ) -> None:
     """Generate three Water Health visualization layers.
 
     ORDER (critical — prevents halo bleed outside study-region boundary):
         1. scientific values → colour (via percentile-display mapping)
-        2. blur → glow / halo
-        3. apply study-region mask to ALL three layers (multiply alpha)
+        2. mask-aware blur using only water pixels → glow / halo
+        3. compose observed land tint under the water image; reapply masks
         4. save PNGs
     """
     sharp_rgba = water_health_to_rgba(values, pct=pct)
+    water_mask = np.isfinite(values) & (values != NODATA_VALUE)
+    valid_land = np.zeros(values.shape, dtype=bool)
+    if land_visual_mask is not None:
+        if land_visual_mask.shape != values.shape:
+            raise ValueError("Water Health land visualization mask must match the scientific raster grid")
+        valid_land = land_visual_mask.astype(bool) & ~water_mask
+        if study_mask is not None and study_mask.shape == valid_land.shape:
+            valid_land &= study_mask > 0
 
-    glow_rgba = _blur_rgba(sharp_rgba, radius=3.0)
-    halo_rgba = _blur_rgba(sharp_rgba, radius=8.0)
+    sharp_rgba = _mask_aware_blur_rgba(sharp_rgba, water_mask, radius=2.0)
+    glow_rgba = _mask_aware_blur_rgba(sharp_rgba, water_mask, radius=3.0)
+    halo_rgba = _mask_aware_blur_rgba(sharp_rgba, water_mask, radius=8.0)
 
     # Widen halo alpha — broader soft heatmap blob
     halo_rgba = halo_rgba.copy()
     halo_rgba[:, :, 3] = np.clip(halo_rgba[:, :, 3].astype(np.uint16) * 205 // 255, 0, 255).astype(np.uint8)
 
-    # --- 3. Apply study-region mask LAST so no blur bleeds outside ---
+    # Land tint is presentation-only and uses clear Sentinel-2 observations only.
+    sharp_rgba[valid_land, 0] = LAND_OVERLAY_RGB[0]
+    sharp_rgba[valid_land, 1] = LAND_OVERLAY_RGB[1]
+    sharp_rgba[valid_land, 2] = LAND_OVERLAY_RGB[2]
+    sharp_rgba[valid_land, 3] = LAND_OVERLAY_ALPHA
+
+    # --- Reapply water mask and study-region mask LAST so blur cannot leak ---
+    sharp_rgba[~water_mask, 3] = 0
+    sharp_rgba[valid_land, 3] = LAND_OVERLAY_ALPHA
+    glow_rgba[~water_mask, 3] = 0
+    halo_rgba[~water_mask, 3] = 0
     sharp_rgba = apply_study_region_mask(sharp_rgba, study_mask)
     glow_rgba  = apply_study_region_mask(glow_rgba,  study_mask)
     halo_rgba  = apply_study_region_mask(halo_rgba,  study_mask)
@@ -535,6 +594,8 @@ def publish_water_health_geotiff(
     end_date: str,
     image_count: int,
     output_root: Path = SURFACE_ROOT,
+    land_visualization_mask_path: Path | None = None,
+    write_scientific_geotiff: bool = True,
 ) -> dict[str, Any]:
     """Validate a real GEE export and publish canonical TIFF + 3 heatmap PNG layers.
 
@@ -577,13 +638,27 @@ def publish_water_health_geotiff(
             clamped_valid = np.clip(values[valid], 0.0, 1.0)
             values = values.copy()
             values[valid] = clamped_valid
-        output_values = np.where(valid, values, NODATA_VALUE).astype(np.float32)
         bounds = (source.bounds.left, source.bounds.bottom, source.bounds.right, source.bounds.top)
         transform = source.transform
         width, height = source.width, source.height
 
+    land_visual_mask = None
+    if land_visualization_mask_path is not None:
+        with rasterio.open(land_visualization_mask_path) as visual_mask_source:
+            if (
+                visual_mask_source.crs is None
+                or visual_mask_source.crs.to_string() != CRS
+                or (visual_mask_source.width, visual_mask_source.height) != (width, height)
+                or visual_mask_source.transform != transform
+            ):
+                raise ValueError("Water Health land visualization mask must align with the scientific raster")
+            land_visual_mask = visual_mask_source.read(1) == 1
+
     # --- Study-region mask: rasterize union of MMB boundaries to this grid ---
     study_mask = get_study_region_mask(width, height, transform, bounds)
+    if study_mask is not None:
+        valid &= study_mask > 0
+    output_values = np.where(valid, values, NODATA_VALUE).astype(np.float32)
 
     # --- Percentile breakpoints for visualisation-only spread ---
     valid_values = output_values[output_values != NODATA_VALUE]
@@ -598,24 +673,30 @@ def publish_water_health_geotiff(
     glow_path   = output_dir / f"wh_{stamp}_glow.png"
     halo_path   = output_dir / f"wh_{stamp}_halo.png"
 
-    with rasterio.open(
-        geotiff_path, "w", driver="GTiff", height=height, width=width, count=1,
-        dtype="float32", crs=CRS, transform=transform, nodata=NODATA_VALUE, compress="deflate",
-    ) as output:
-        output.write(output_values, 1)
-        output.update_tags(
-            metric="water_health", source="Google Earth Engine / Sentinel-2",
-            dataset=S2_DATASET, methodology=METHODOLOGY,
-            window_start=start_date, window_end=end_date,
-            cloud_mask=context["cloud_mask"],
-            mndwi_threshold=str(context["mndwi_threshold"]),
-            ndci_proxy_formula=context["indices"]["ndci_proxy"],
-            turbidity_proxy_formula=context["indices"]["turbidity_proxy"],
-            nodata_semantics="transparent; non-water pixel / no valid Sentinel-2 observation",
-        )
+    if write_scientific_geotiff:
+        with rasterio.open(
+            geotiff_path, "w", driver="GTiff", height=height, width=width, count=1,
+            dtype="float32", crs=CRS, transform=transform, nodata=NODATA_VALUE, compress="deflate",
+        ) as output:
+            output.write(output_values, 1)
+            output.update_tags(
+                metric="water_health", source="Google Earth Engine / Sentinel-2",
+                dataset=S2_DATASET, methodology=METHODOLOGY,
+                window_start=start_date, window_end=end_date,
+                cloud_mask=context["cloud_mask"],
+                mndwi_threshold=str(context["mndwi_threshold"]),
+                ndci_proxy_formula=context["indices"]["ndci_proxy"],
+                turbidity_proxy_formula=context["indices"]["turbidity_proxy"],
+                nodata_semantics="transparent; non-water pixel / no valid Sentinel-2 observation",
+            )
+    elif not geotiff_path.is_file():
+        raise FileNotFoundError(f"Canonical Water Health GeoTIFF is missing: {geotiff_path}")
 
     # --- 3 visualisation layers: colour (pct spread) → blur → mask → save ---
-    generate_water_health_three_layer(output_values, sharp_path, glow_path, halo_path, study_mask, pct)
+    generate_water_health_three_layer(
+        output_values, sharp_path, glow_path, halo_path, study_mask, pct,
+        land_visual_mask=land_visual_mask,
+    )
 
     wh_min   = float(valid_values.min())   if len(valid_values) else 0.0
     wh_max   = float(valid_values.max())   if len(valid_values) else 0.0
@@ -641,11 +722,13 @@ def publish_water_health_geotiff(
         "source_period": {"start": start_date, "end": end_date, "days": context.get("window_days", COMPOSITE_WINDOW_DAYS)},
         "source": "Google Earth Engine / Sentinel-2", "dataset": S2_DATASET,
         "methodology": METHODOLOGY,
-        "interpretation": "Water body condition index 0..1; higher means healthier (less algal stress + less suspended-material stress averaged), computed only for pixels detected as water via MNDWI >= 0. Visualisation uses percentile-based colour spread so that tightly-clustered values show distinct saturated heatmap colours; scientific pixel values in the GeoTIFF are unchanged.",
+        "interpretation": f"Water body condition index 0..1; higher means healthier (less algal stress + less suspended-material stress averaged), computed only for pixels detected as water via MNDWI >= {context['mndwi_threshold']} and a {WATER_MASK_MIN_COMPONENT_PIXELS}-pixel 8-connected component filter. Visualisation uses percentile-based colour spread so that tightly-clustered values show distinct saturated heatmap colours; scientific pixel values in the GeoTIFF are unchanged.",
         "semantic_label": "Water Health · Aquatic Condition Index",
         "preprocessing": {"composite": context["composite"], "window_days": context["window_days"],
                           "cloud_mask": context["cloud_mask"],
                           "mndwi_threshold": context["mndwi_threshold"],
+                          "water_mask_min_component_pixels": WATER_MASK_MIN_COMPONENT_PIXELS,
+                          "water_mask_connectivity": "8-connected",
                           "mndwi_formula": context["indices"]["mndwi"],
                           "ndci_proxy_formula": context["indices"]["ndci_proxy"],
                           "turbidity_proxy_formula": context["indices"]["turbidity_proxy"]},
@@ -675,20 +758,27 @@ def publish_water_health_geotiff(
         },
         "visualization": {
             "stops": [
-                {"value": 0.00, "label": "degraded", "rgb": [221, 38, 154],  "raw_bound": p05, "quantile": "p05"},
-                {"value": 0.18, "label": "poor",     "rgb": [255, 59, 59],   "raw_bound": None, "quantile": None},
-                {"value": 0.38, "label": "fair",     "rgb": [255, 140, 0],   "raw_bound": p25, "quantile": "p25"},
-                {"value": 0.58, "label": "good",     "rgb": [255, 210, 60],  "raw_bound": p50, "quantile": "p50"},
-                {"value": 0.78, "label": "very good","rgb": [92, 214, 72],   "raw_bound": p75, "quantile": "p75"},
-                {"value": 1.00, "label": "healthy",  "rgb": [18, 200, 212],  "raw_bound": p95, "quantile": "p95"},
+                {"value": wh_min, "display_value": 0.00, "label": "low",    "rgb": [5, 42, 58]},
+                {"value": p25, "display_value": 0.25, "label": "medium-low", "rgb": [4, 82, 126], "quantile": "p25"},
+                {"value": p50, "display_value": 0.50, "label": "medium", "rgb": [0, 138, 184], "quantile": "p50"},
+                {"value": p75, "display_value": 0.75, "label": "medium-high", "rgb": [0, 192, 220], "quantile": "p75"},
+                {"value": wh_max, "display_value": 1.00, "label": "high", "rgb": [30, 232, 238]},
             ],
             "legend": {
-                "left_label": "DEGRADED",
-                "right_label": "HEALTHY",
-                "gradient": "magenta → red → orange → yellow → lime → teal/cyan",
+                "left_label": f"LOW · {wh_min:.3f}",
+                "right_label": f"HIGH · {wh_max:.3f}",
+                "gradient": "dark blue/teal → blue → cyan → turquoise",
+                "range": {"min": wh_min, "max": wh_max},
+                "unit": "index_0_to_1",
             },
+            "land_overlay": {"rgb": list(LAND_OVERLAY_RGB), "opacity": LAND_OVERLAY_ALPHA / 255.0},
+            "land_overlay_semantics": "brown tint for clear Sentinel-2 observations not classified as water; cloud/no-data pixels remain transparent",
             "study_region_clipped": study_mask is not None,
             "percentile_normalized": True,
+            "component_filter": {
+                "minimum_pixels": WATER_MASK_MIN_COMPONENT_PIXELS,
+                "connectivity": "8-connected",
+            },
             "layers": ["halo", "glow", "sharp"],
         },
         "geotiff_filename": geotiff_rel,
@@ -719,11 +809,48 @@ def generate_water_health_surface(*, start_date: str, end_date: str) -> dict[str
     """Generate a real current-window Water Health surface; no database writes occur."""
     initialize_ee()
     bounds = get_water_health_export_bounds()
-    image, region, image_count = build_water_health_composite(start_date=start_date, end_date=end_date, bounds=bounds)
+    image, land_visual_mask, region, image_count = build_water_health_composite(
+        start_date=start_date, end_date=end_date, bounds=bounds
+    )
     with tempfile.TemporaryDirectory(prefix="geosense-wh-") as temp:
-        downloaded = Path(temp) / "wh_download.tif"
+        temp_root = Path(temp)
+        downloaded = temp_root / "wh_download.tif"
+        land_mask_path = temp_root / "wh_land_visual_mask.tif"
         _download_geotiff(image, region, downloaded)
-        return publish_water_health_geotiff(downloaded, start_date=start_date, end_date=end_date, image_count=image_count)
+        _download_geotiff(land_visual_mask, region, land_mask_path)
+        return publish_water_health_geotiff(
+            downloaded,
+            start_date=start_date,
+            end_date=end_date,
+            image_count=image_count,
+            land_visualization_mask_path=land_mask_path,
+        )
+
+
+def regenerate_water_health_visualization(*, start_date: str, end_date: str) -> dict[str, Any]:
+    """Regenerate only Water Health PNGs; leave the canonical TIFF untouched."""
+    initialize_ee()
+    bounds = get_water_health_export_bounds()
+    _unused_image, land_visual_mask, region, image_count = build_water_health_composite(
+        start_date=start_date, end_date=end_date, bounds=bounds
+    )
+    geotiff_path = SURFACE_ROOT / "water-health" / f"wh_{end_date.replace('-', '')}T000000Z.tif"
+    if not geotiff_path.is_file():
+        raise FileNotFoundError(f"Canonical Water Health GeoTIFF is missing: {geotiff_path}")
+    previous = load_latest_water_health_surface()
+    if previous is None:
+        raise FileNotFoundError("Water Health manifest is unavailable for visualization-only regeneration")
+    with tempfile.TemporaryDirectory(prefix="geosense-wh-visual-") as temp:
+        land_mask_path = Path(temp) / "wh_land_visual_mask.tif"
+        _download_geotiff(land_visual_mask, region, land_mask_path)
+        return publish_water_health_geotiff(
+            geotiff_path,
+            start_date=start_date,
+            end_date=end_date,
+            image_count=int(previous.get("image_count", image_count)),
+            land_visualization_mask_path=land_mask_path,
+            write_scientific_geotiff=False,
+        )
 
 
 def load_latest_water_health_surface(manifest_path: Path = MANIFEST_PATH) -> dict[str, Any] | None:

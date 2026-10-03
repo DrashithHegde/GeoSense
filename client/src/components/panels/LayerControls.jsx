@@ -13,21 +13,38 @@ function LayerChip({ config, active, onClick }) {
         textAlign: "left",
         padding: "8px 10px",
         background: active ? "rgba(0,229,255,0.1)" : "rgba(11,15,20,0.72)",
-        border: active ? "1px solid rgba(0,229,255,0.42)" : "1px solid rgba(0,229,255,0.12)",
+        border: active
+          ? "1px solid rgba(0,229,255,0.42)"
+          : "1px solid rgba(0,229,255,0.12)",
         borderRadius: 6,
         color: active ? "rgba(0,229,255,0.9)" : "rgba(200,214,229,0.55)",
         fontFamily: "'DM Mono', monospace",
         cursor: "pointer",
-        boxShadow: active ? "0 0 14px rgba(0,229,255,0.14), inset 0 0 8px rgba(0,229,255,0.05)" : "none",
+        boxShadow: active
+          ? "0 0 14px rgba(0,229,255,0.14), inset 0 0 8px rgba(0,229,255,0.05)"
+          : "none",
         transition: "all 0.22s ease",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: "11px", width: 24, textAlign: "center", color: active ? "rgba(0,229,255,0.9)" : "var(--text-dim)" }}>
+        <span
+          style={{
+            fontSize: "11px",
+            width: 24,
+            textAlign: "center",
+            color: active ? "rgba(0,229,255,0.9)" : "var(--text-dim)",
+          }}
+        >
           {config.icon}
         </span>
         <div>
-          <div style={{ fontSize: "0.62rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <div
+            style={{
+              fontSize: "0.62rem",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
             {config.label}
           </div>
           <div
@@ -65,8 +82,11 @@ function LayerChip({ config, active, onClick }) {
 // Floating left-side panel: data layer chips
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function LayerControls({ activeLayers, onToggleLayer }) {
-
+export default function LayerControls({
+  activeLayers,
+  onToggleLayer,
+  aqiSurfaceStatus,
+}) {
   return (
     <div
       className="slide-in-left"
@@ -118,8 +138,32 @@ export default function LayerControls({ activeLayers, onToggleLayer }) {
             />
           ))}
         </div>
+        {activeLayers.aqi &&
+          !activeLayers.all &&
+          ["unavailable", "error"].includes(aqiSurfaceStatus) && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                marginTop: 8,
+                padding: "8px 2px 2px",
+                borderTop: "1px solid rgba(255,140,0,0.3)",
+                color: "rgba(255,211,170,0.9)",
+                fontSize: "0.55rem",
+                lineHeight: 1.5,
+              }}
+            >
+              <strong
+                style={{ display: "block", color: "#ffd3aa", fontWeight: 500 }}
+              >
+                AQI surface unavailable
+              </strong>
+              {aqiSurfaceStatus === "unavailable"
+                ? "No current real-data raster is published."
+                : "The AQI surface source could not be read."}
+            </div>
+          )}
       </div>
-
     </div>
   );
 }

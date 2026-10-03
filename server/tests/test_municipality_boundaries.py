@@ -21,9 +21,11 @@ from app.services import municipality_boundaries as boundaries
 class MunicipalityBoundaryTests(unittest.TestCase):
     def setUp(self) -> None:
         boundaries.load_municipality_boundaries.cache_clear()
+        boundaries.load_study_region_geometry.cache_clear()
 
     def tearDown(self) -> None:
         boundaries.load_municipality_boundaries.cache_clear()
+        boundaries.load_study_region_geometry.cache_clear()
 
     def test_project_assets_load_as_valid_expected_municipalities(self) -> None:
         loaded = boundaries.load_municipality_boundaries()
@@ -31,6 +33,15 @@ class MunicipalityBoundaryTests(unittest.TestCase):
         for item in loaded:
             self.assertTrue(item["shapely_geom"].is_valid)
             self.assertIn(item["geojson"]["type"], ("Polygon", "MultiPolygon"))
+
+    def test_study_region_is_the_union_of_municipality_assets(self) -> None:
+        loaded = boundaries.load_municipality_boundaries()
+        expected = loaded[0]["shapely_geom"].union(loaded[1]["shapely_geom"]).union(loaded[2]["shapely_geom"])
+        study_region = boundaries.load_study_region_geometry()
+
+        self.assertTrue(study_region.is_valid)
+        self.assertTrue(study_region.equals(expected))
+        self.assertEqual(boundaries.get_study_region_bounds(), tuple(float(value) for value in expected.bounds))
 
     def test_missing_asset_has_clear_error(self) -> None:
         with tempfile.TemporaryDirectory() as directory, patch.object(boundaries, "BOUNDARY_DIRECTORY", Path(directory)):

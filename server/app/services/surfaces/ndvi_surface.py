@@ -29,11 +29,13 @@ if _RASTERIO_PROJ_DATA.is_dir():
     os.environ["PROJ_DATA"] = str(_RASTERIO_PROJ_DATA)
 import rasterio
 from rasterio.features import rasterize as rio_rasterize
-from sqlalchemy import text
 import requests
 
-from app.database import engine
-from app.services.municipality_boundaries import load_municipality_boundaries, MunicipalityBoundaryError
+from app.services.municipality_boundaries import (
+    MunicipalityBoundaryError,
+    get_study_region_bounds,
+    load_study_region_geometry,
+)
 from gee.gee_client import initialize_ee
 from gee.ingest_ndvi_ndwi import (
     COMPOSITE_WINDOW_DAYS,
@@ -69,25 +71,21 @@ def get_study_region_mask(width: int, height: int, transform,
     """
     from shapely.geometry import mapping
     try:
-        boundaries = load_municipality_boundaries()
-    except (MunicipalityBoundaryError, Exception):
+        study_region = load_study_region_geometry()
+    except MunicipalityBoundaryError:
         return None
 
     west, south, east, north = bounds
     out_shape = (height, width)
     shapes = []
-    for b in boundaries:
-        try:
-            geom = b["shapely_geom"]
-            # Clip to raster bounds defensively
-            from shapely.geometry import box as shapely_box
-            raster_box = shapely_box(west, south, east, north)
-            clipped = geom.intersection(raster_box)
-            if clipped.is_empty:
-                continue
+    try:
+        from shapely.geometry import box as shapely_box
+        raster_box = shapely_box(west, south, east, north)
+        clipped = study_region.intersection(raster_box)
+        if not clipped.is_empty:
             shapes.append((mapping(clipped), 255))
-        except Exception:
-            continue
+    except Exception:
+        return None
 
     if not shapes:
         return None
@@ -143,18 +141,8 @@ def _write_manifest(record: dict[str, Any], manifest_path: Path) -> None:
 
 
 def get_ndvi_export_bounds() -> tuple[float, float, float, float]:
-    """Read the established GeoSense analysis extent without changing zones."""
-    statement = text("""
-        SELECT ST_XMin(extent) AS west, ST_YMin(extent) AS south,
-               ST_XMax(extent) AS east, ST_YMax(extent) AS north
-        FROM (SELECT ST_Extent(geometry)::box3d AS extent FROM spatial_cells) cell_extent
-    """)
-    with engine.connect() as connection:
-        row = connection.execute(statement).mappings().one()
-    bounds = tuple(float(row[key]) for key in ("west", "south", "east", "north"))
-    if bounds[0] >= bounds[2] or bounds[1] >= bounds[3]:
-        raise ValueError("GeoSense analysis extent is invalid")
-    return bounds
+    """Return the municipality union extent used for the Sentinel-2 AOI."""
+    return get_study_region_bounds()
 
 
 def build_ndvi_composite(*, start_date: str, end_date: str, bounds: tuple[float, float, float, float]):
@@ -174,28 +162,94 @@ def build_ndvi_composite(*, start_date: str, end_date: str, bounds: tuple[float,
     return collection.median().select("NDVI").clip(region), region, image_count
 
 
-def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
+def _extract_tiff_from_zip(archive_path: Path) -> Path:
+    if not zipfile.is_zipfile(archive_path):
+        return archive_path
+    with zipfile.ZipFile(archive_path) as archive:
+        tiffs = [member for member in archive.namelist() if member.lower().endswith((".tif", ".tiff"))]
+        if len(tiffs) != 1:
+            raise ValueError("Earth Engine download did not contain exactly one NDVI GeoTIFF")
+        extracted = archive_path.parent / Path(tiffs[0]).name
+        with archive.open(tiffs[0]) as source, extracted.open("wb") as target:
+            shutil.copyfileobj(source, target)
+    archive_path.unlink()
+    return extracted
+
+
+def _tile_download(image: Any, tile_region: Any, destination: Path) -> Path:
+    """Download one NDVI tile with retry for transient Earth Engine failures."""
+    import time
+
     url = image.getDownloadURL({
         "scale": SCALE_METERS,
         "crs": CRS,
-        "region": region,
+        "region": tile_region,
         "format": "GEO_TIFF",
         "filePerBand": False,
     })
-    response = requests.get(url, timeout=240)
-    response.raise_for_status()
-    destination.write_bytes(response.content)
-    # Earth Engine can return a zipped TIFF depending on service behaviour.
-    if zipfile.is_zipfile(destination):
-        with zipfile.ZipFile(destination) as archive:
-            tiffs = [member for member in archive.namelist() if member.lower().endswith((".tif", ".tiff"))]
-            if len(tiffs) != 1:
-                raise ValueError("Earth Engine download did not contain exactly one NDVI GeoTIFF")
-            extracted = destination.parent / Path(tiffs[0]).name
-            with archive.open(tiffs[0]) as source, extracted.open("wb") as target:
-                shutil.copyfileobj(source, target)
-        destination.unlink()
-        extracted.replace(destination)
+    last_error = None
+    for attempt in range(5):
+        try:
+            response = requests.get(url, timeout=240)
+            response.raise_for_status()
+            destination.write_bytes(response.content)
+            return _extract_tiff_from_zip(destination)
+        except requests.HTTPError as exc:
+            last_error = exc
+            status = exc.response.status_code if exc.response is not None else 0
+            if status >= 500 and attempt < 4:
+                wait_seconds = 2 ** attempt + attempt
+                print(f"  GEE NDVI tile download returned {status}; retrying in {wait_seconds}s")
+                time.sleep(wait_seconds)
+                if destination.exists():
+                    destination.unlink()
+                continue
+            raise
+    raise last_error  # pragma: no cover
+
+
+def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
+    """Download and mosaic NDVI tiles at native 10 m resolution.
+
+    The horizontal split keeps each Earth Engine request below its download
+    limit while preserving the source image values and CRS in the mosaic.
+    """
+    from rasterio.merge import merge as rio_merge
+
+    coords = region.coordinates().getInfo()[0]
+    xs = [coordinate[0] for coordinate in coords]
+    ys = [coordinate[1] for coordinate in coords]
+    west, east = min(xs), max(xs)
+    south, north = min(ys), max(ys)
+    midpoint = (west + east) / 2.0
+    tile_defs = [
+        ("tile_w", ee.Geometry.Rectangle([west, south, midpoint, north], proj=CRS, geodesic=False)),
+        ("tile_e", ee.Geometry.Rectangle([midpoint, south, east, north], proj=CRS, geodesic=False)),
+    ]
+
+    with tempfile.TemporaryDirectory(prefix="ndvi_tiles_") as temp_dir:
+        temp_root = Path(temp_dir)
+        tile_paths = [
+            _tile_download(image, tile_region, temp_root / f"{label}.raw")
+            for label, tile_region in tile_defs
+        ]
+        datasets = [rasterio.open(path) for path in tile_paths]
+        try:
+            merged_values, merged_transform = rio_merge(datasets, nodata=NODATA_VALUE)
+            output_metadata = datasets[0].meta.copy()
+            output_metadata.update({
+                "height": merged_values.shape[1],
+                "width": merged_values.shape[2],
+                "count": merged_values.shape[0],
+                "transform": merged_transform,
+                "crs": CRS,
+                "nodata": NODATA_VALUE,
+            })
+            with rasterio.open(destination, "w", **output_metadata) as output:
+                output.write(merged_values)
+        finally:
+            for dataset in datasets:
+                dataset.close()
 
 
 def _ndvi_rgba(value: float) -> tuple[int, int, int, int]:

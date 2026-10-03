@@ -2,151 +2,202 @@
   "surfaces": {
     "lst": {
       "bounds": {
-        "east": 73.10013675064083,
-        "north": 19.37019280841242,
-        "south": 18.839827464668254,
-        "west": 72.68996599191186
+        "east": 73.07722971089579,
+        "north": 19.328421147700862,
+        "south": 18.89210941420401,
+        "west": 72.7729703241645
       },
       "checksums": {
-        "geotiff_sha256": "cdd4a675c2dd09f523f642df56f135e79452c49ddebaf57d3f01e6233c84fa9b",
-        "glow_png_sha256": "168efbd7ca242fdea15c66ab737631075c01ec7cfa8fc4fad391380a0ae8578d",
-        "png_sha256": "9066cdfd954a42c1fa72db8d57ee8348bb6e3ae668cd7505a33f447386987f94"
+        "geotiff_sha256": "678457338dc8faf6c1bd8165efe987e2417ec0bcc3a1a613ddaf306042695c2d",
+        "glow_png_sha256": "fabce8bfe102598559d8c12569a1ec9e586a2380c81ca4a81511600d759c887d",
+        "png_sha256": "74bbe3aca5d11af2d5270ffbfc99166b26619220834e8dfddcdab9ccc6b56ead"
       },
       "coordinates": [
         [
-          72.68996599191186,
-          19.37019280841242
+          72.7729703241645,
+          19.328421147700862
         ],
         [
-          73.10013675064083,
-          19.37019280841242
+          73.07722971089579,
+          19.328421147700862
         ],
         [
-          73.10013675064083,
-          18.839827464668254
+          73.07722971089579,
+          18.89210941420401
         ],
         [
-          72.68996599191186,
-          18.839827464668254
+          72.7729703241645,
+          18.89210941420401
         ]
       ],
       "dataset": "LANDSAT/LC08/C02/T1_L2 + LANDSAT/LC09/C02/T1_L2",
       "files": {
-        "geotiff": "lst_20260816T000000Z.tif",
-        "glow_png": "lst_20260816T000000Z_glow.png",
-        "png": "lst_20260816T000000Z.png"
+        "geotiff": "lst_20260930T000000Z.tif",
+        "glow_png": "lst_20260930T000000Z_glow.png",
+        "png": "lst_20260930T000000Z.png"
       },
-      "generated_at": "2026-09-22T18:48:43.886517+00:00",
-      "glow_threshold_c": 35.0,
-      "image_count": 0,
-      "lst_max_c": 31.79,
-      "lst_mean_c": 23.74,
-      "lst_median_c": 24.19,
-      "lst_min_c": 8.22,
+      "generated_at": "2026-09-30T09:19:29.532879+00:00",
+      "glow_threshold_c": 40.58,
+      "image_count": 4,
+      "lst_max_c": 51.03,
+      "lst_mean_c": 35.08,
+      "lst_median_c": 35.23,
+      "lst_min_c": -1.23,
       "methodology": "Landsat 8/9 Collection 2 Level-2 median composite LST",
       "metric": "lst",
       "nodata": true,
+      "nodata_pixels": 1262155,
       "nodata_value": -9999.0,
       "scale_m": 30,
       "source_period": {
         "days": 45,
-        "end": "2026-08-16",
-        "start": "2026-07-02"
+        "end": "2026-09-30",
+        "start": "2026-08-16"
       },
-      "timestamp": "20260816T000000Z",
+      "timestamp": "20260930T000000Z",
+      "total_pixels": 1827851,
       "unit": "celsius",
-      "valid_pixels": 15516
+      "valid_pixels": 565696,
+      "valid_pixels_by_municipality": {
+        "Mira-Bhayandar": 86978,
+        "Mumbai": 385561,
+        "Thane": 94291
+      },
+      "visualization": {
+        "color_stops": [
+          {
+            "color": "#2563eb",
+            "label": "Cool",
+            "position": 0.0,
+            "temperature_c": -1.2
+          },
+          {
+            "color": "#06b6d4",
+            "label": "Cool",
+            "position": 0.2,
+            "temperature_c": 9.2
+          },
+          {
+            "color": "#facc15",
+            "label": "Moderate",
+            "position": 0.45,
+            "temperature_c": 22.3
+          },
+          {
+            "color": "#f97316",
+            "label": "Hot",
+            "position": 0.7,
+            "temperature_c": 35.4
+          },
+          {
+            "color": "#ef4444",
+            "label": "Very hot",
+            "position": 0.88,
+            "temperature_c": 44.8
+          },
+          {
+            "color": "#7f1d1d",
+            "label": "Very hot",
+            "position": 1.0,
+            "temperature_c": 51.0
+          }
+        ],
+        "glow_smoothing_sigma_pixels": 1.4,
+        "nodata_semantics": "transparent; output alpha is masked to valid pixels in the municipality union",
+        "smoothing": "normalized Gaussian; visualization only",
+        "smoothing_sigma_pixels": 0.8
+      }
     },
     "ndvi": {
       "bounds": {
-        "east": 72.95002826666445,
-        "north": 19.220084324436044,
-        "south": 18.88995345752212,
-        "west": 72.76991605219848
+        "east": 73.07713987936737,
+        "north": 19.328421147700862,
+        "south": 18.89210941420401,
+        "west": 72.77314998722132
       },
       "checksums": {
-        "geotiff_sha256": "9ce4257f0f28f1beabe1ba559a2ee4eda695c279157d2d790ec1abeddbc44a92",
-        "glow_png_sha256": "83edb9d27ab694d6a92908e134e30e3dfb501d749eeb279729594ed1f3893d77",
-        "halo_png_sha256": "56faaca51e8db6f682de4db0443feb935913b22add2600be8d2edd3f38eb5898",
-        "png_sha256": "3f8db6d3653c5486effdee579fb66cac124089b7ce63537b99bc22b13cdc3182",
-        "sharp_png_sha256": "3f8db6d3653c5486effdee579fb66cac124089b7ce63537b99bc22b13cdc3182"
+        "geotiff_sha256": "8449ddd1d3c1d1fa69b16d5b59c0551da1d96b65728090539289f526f66e67ab",
+        "glow_png_sha256": "e456c34373891b0916c0cf880f0823ef33eb2b8a64cec0b41cda02435c62d572",
+        "halo_png_sha256": "6a1c5477bfe89d852abbb7d0eff3950bf6abe2064907b6c9c1d7ef339516fa21",
+        "png_sha256": "40ebeb3daac6016961956c83c6cdc3642f4f7492199c1f33297f43c7f0eb05d1",
+        "sharp_png_sha256": "40ebeb3daac6016961956c83c6cdc3642f4f7492199c1f33297f43c7f0eb05d1"
       },
       "coordinates": [
         [
-          72.76991605219848,
-          19.220084324436044
+          72.77314998722132,
+          19.328421147700862
         ],
         [
-          72.95002826666445,
-          19.220084324436044
+          73.07713987936737,
+          19.328421147700862
         ],
         [
-          72.95002826666445,
-          18.88995345752212
+          73.07713987936737,
+          18.89210941420401
         ],
         [
-          72.76991605219848,
-          18.88995345752212
+          72.77314998722132,
+          18.89210941420401
         ]
       ],
       "crs": "EPSG:4326",
       "dataset": "COPERNICUS/S2_SR_HARMONIZED",
       "files": {
-        "geotiff": "ndvi_20260913T000000Z.tif",
-        "glow_png": "ndvi_20260913T000000Z_glow.png",
-        "halo_png": "ndvi_20260913T000000Z_halo.png",
-        "png": "ndvi_20260913T000000Z.png",
-        "sharp_png": "ndvi_20260913T000000Z.png"
+        "geotiff": "ndvi_20260929T000000Z.tif",
+        "glow_png": "ndvi_20260929T000000Z_glow.png",
+        "halo_png": "ndvi_20260929T000000Z_halo.png",
+        "png": "ndvi_20260929T000000Z.png",
+        "sharp_png": "ndvi_20260929T000000Z.png"
       },
-      "generated_at": "2026-09-26T12:12:26.720792+00:00",
+      "generated_at": "2026-09-29T17:44:43.000283+00:00",
       "generation_status": "generated",
-      "geotiff_filename": "ndvi/ndvi_20260913T000000Z.tif",
-      "glow_png_filename": "ndvi/ndvi_20260913T000000Z_glow.png",
-      "halo_png_filename": "ndvi/ndvi_20260913T000000Z_halo.png",
-      "height": 3675,
-      "image_count": 1,
-      "images_found": 1,
+      "geotiff_filename": "ndvi/ndvi_20260929T000000Z.tif",
+      "glow_png_filename": "ndvi/ndvi_20260929T000000Z_glow.png",
+      "halo_png_filename": "ndvi/ndvi_20260929T000000Z_halo.png",
+      "height": 4857,
+      "image_count": 19,
+      "images_found": 19,
       "interpretation": "NDVI \u00b7 Vegetation Signal \u2014 satellite-derived normalised difference vegetation index; higher NDVI indicates a stronger green-vegetation signal. Visualisation only uses multi-colour heatmap display; scientific pixel values in the GeoTIFF are unchanged.",
       "mapbox_coordinates": [
         [
-          72.76991605219848,
-          19.220084324436044
+          72.77314998722132,
+          19.328421147700862
         ],
         [
-          72.95002826666445,
-          19.220084324436044
+          73.07713987936737,
+          19.328421147700862
         ],
         [
-          72.95002826666445,
-          18.88995345752212
+          73.07713987936737,
+          18.89210941420401
         ],
         [
-          72.76991605219848,
-          18.88995345752212
+          72.77314998722132,
+          18.89210941420401
         ]
       ],
       "methodology": "Sentinel-2 median composite NDVI",
       "metric": "ndvi",
       "ndvi_statistics": {
-        "max": 1.0,
-        "mean": 0.1428738534450531,
-        "median": 0.05706760287284851,
-        "min": -0.6599525809288025,
-        "p05": -0.23049470782279968,
-        "p25": -0.14058959484100342,
-        "p50": 0.05706760287284851,
-        "p75": 0.3620559573173523,
-        "p95": 0.7961165308952332
+        "max": 0.967581033706665,
+        "mean": 0.20398461818695068,
+        "median": 0.17000208795070648,
+        "min": -0.6165209412574768,
+        "p05": -0.26593896746635437,
+        "p25": -0.023213429376482964,
+        "p50": 0.17000208795070648,
+        "p75": 0.47611355781555176,
+        "p95": 0.7465165853500366
       },
       "nodata": true,
       "nodata_pixels": 0,
       "nodata_semantics": "transparent; no valid cloud-masked satellite NDVI pixel; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries (visualisation layers only)",
       "nodata_value": -9999.0,
       "pixel_size_degrees": {
-        "latitude": 8.983152841195169e-05,
-        "longitude": 8.983152841195231e-05
+        "latitude": 8.983152841195197e-05,
+        "longitude": 8.983152841195304e-05
       },
-      "png_filename": "ndvi/ndvi_20260913T000000Z.png",
+      "png_filename": "ndvi/ndvi_20260929T000000Z.png",
       "preprocessing": {
         "cloud_mask": "project-established QA60-cloud filtering with cirrus exclusion",
         "composite": "median",
@@ -155,17 +206,17 @@
       },
       "scale_m": 10,
       "semantic_label": "NDVI \u00b7 Vegetation Signal",
-      "sharp_png_filename": "ndvi/ndvi_20260913T000000Z.png",
+      "sharp_png_filename": "ndvi/ndvi_20260929T000000Z.png",
       "source": "Google Earth Engine / Sentinel-2",
       "source_period": {
-        "end": "2026-09-13",
-        "start": "2026-08-30"
+        "end": "2026-09-29",
+        "start": "2026-09-15"
       },
       "source_scale_m": 10,
-      "source_timestamp": "2026-09-13T00:00:00+00:00",
-      "timestamp": "20260913T000000Z",
+      "source_timestamp": "2026-09-29T00:00:00+00:00",
+      "timestamp": "20260929T000000Z",
       "valid_pixel_percent": 100.0,
-      "valid_pixels": 7368375,
+      "valid_pixels": 16436088,
       "visualization": {
         "layers": [
           "halo",
@@ -235,7 +286,7 @@
         ],
         "study_region_clipped": true
       },
-      "width": 2005
+      "width": 3384
     },
     "water_health": {
       "bounds": {
@@ -245,11 +296,11 @@
         "west": 72.77314998722132
       },
       "checksums": {
-        "geotiff_sha256": "ff9697d052c72ae58ffa8c96c2517c67f2a6b262cdf50dbf526bd897541df8cf",
-        "glow_png_sha256": "0765bb99988075923a73638c2aac68bdffae11e077bb4be77a913b8173f26ed6",
-        "halo_png_sha256": "d1fef03b6786d57d0acbcf299f175e14342c1432624e6580f36e1d7f7919df70",
-        "png_sha256": "a447f48149e96521bb6bd90e7363dc3a29738c30bb1ebbbb111c8688a7fb79d4",
-        "sharp_png_sha256": "a447f48149e96521bb6bd90e7363dc3a29738c30bb1ebbbb111c8688a7fb79d4"
+        "geotiff_sha256": "e28ef79f7aabccc65a7f27cae458789371323f74707fa011fd4b242071c784e3",
+        "glow_png_sha256": "9ae996334c3c128e30c3c2d372ada04fcd556d430eabaa3f945990c50391ff67",
+        "halo_png_sha256": "b6aa994b9102de45caf9e380b7bc6ac6302d2fae1421fbb292a66ccb6b951e28",
+        "png_sha256": "7e6d7a2383e2abe67bd8912e635ebd9a5b08f550bdc2eaf7e69356b91dd2d755",
+        "sharp_png_sha256": "7e6d7a2383e2abe67bd8912e635ebd9a5b08f550bdc2eaf7e69356b91dd2d755"
       },
       "coordinates": [
         [
@@ -272,13 +323,13 @@
       "crs": "EPSG:4326",
       "dataset": "COPERNICUS/S2_SR_HARMONIZED",
       "display_percentiles": {
-        "p05_raw": 0.4108462631702423,
-        "p25_raw": 0.4538944363594055,
-        "p50_raw": 0.46847930550575256,
-        "p75_raw": 0.4784276485443115,
-        "p95_raw": 0.4905346632003784,
-        "raw_max": 0.7337239980697632,
-        "raw_min": 0.1105065643787384
+        "p05_raw": 0.407408207654953,
+        "p25_raw": 0.44103583693504333,
+        "p50_raw": 0.45877814292907715,
+        "p75_raw": 0.47173547744750977,
+        "p95_raw": 0.48678749799728394,
+        "raw_max": 0.6002172827720642,
+        "raw_min": 0.14557279646396637
       },
       "files": {
         "geotiff": "wh_20260925T000000Z.tif",
@@ -287,15 +338,15 @@
         "png": "wh_20260925T000000Z.png",
         "sharp_png": "wh_20260925T000000Z.png"
       },
-      "generated_at": "2026-09-26T12:12:41.009138+00:00",
+      "generated_at": "2026-09-30T05:22:56.800862+00:00",
       "generation_status": "generated",
       "geotiff_filename": "water-health/wh_20260925T000000Z.tif",
       "glow_png_filename": "water-health/wh_20260925T000000Z_glow.png",
       "halo_png_filename": "water-health/wh_20260925T000000Z_halo.png",
       "height": 4857,
-      "image_count": 1,
-      "images_found": 1,
-      "interpretation": "Water body condition index 0..1; higher means healthier (less algal stress + less suspended-material stress averaged), computed only for pixels detected as water via MNDWI >= 0. Visualisation uses percentile-based colour spread so that tightly-clustered values show distinct saturated heatmap colours; scientific pixel values in the GeoTIFF are unchanged.",
+      "image_count": 15,
+      "images_found": 15,
+      "interpretation": "Water body condition index 0..1; higher means healthier (less algal stress + less suspended-material stress averaged), computed only for pixels detected as water via MNDWI >= 0.15 and a 5-pixel 8-connected component filter. Visualisation uses percentile-based colour spread so that tightly-clustered values show distinct saturated heatmap colours; scientific pixel values in the GeoTIFF are unchanged.",
       "mapbox_coordinates": [
         [
           72.77314998722132,
@@ -317,7 +368,7 @@
       "methodology": "Sentinel-2 median composite Water Health",
       "metric": "water_health",
       "nodata": true,
-      "nodata_pixels": 9413736,
+      "nodata_pixels": 15673598,
       "nodata_semantics": "transparent; non-water pixel / no valid Sentinel-2 observation; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries (visualisation layers only)",
       "nodata_value": -9999.0,
       "pixel_size_degrees": {
@@ -329,9 +380,11 @@
         "cloud_mask": "project-established QA60-cloud filtering with cirrus exclusion",
         "composite": "median",
         "mndwi_formula": "normalizedDifference(B3,B11)",
-        "mndwi_threshold": 0.0,
+        "mndwi_threshold": 0.15,
         "ndci_proxy_formula": "normalizedDifference(B5,B4)",
         "turbidity_proxy_formula": "normalizedDifference(B3,B4)",
+        "water_mask_connectivity": "8-connected",
+        "water_mask_min_component_pixels": 5,
         "window_days": 14
       },
       "scale_m": 10,
@@ -347,105 +400,110 @@
       "source_timestamp": "2026-09-25T00:00:00+00:00",
       "timestamp": "20260925T000000Z",
       "unit": "index_0_to_1",
-      "valid_pixel_percent": 42.725,
-      "valid_pixels": 7022352,
+      "valid_pixel_percent": 4.639,
+      "valid_pixels": 762490,
       "visualization": {
+        "component_filter": {
+          "connectivity": "8-connected",
+          "minimum_pixels": 5
+        },
+        "land_overlay": {
+          "opacity": 0.25098039215686274,
+          "rgb": [
+            105,
+            76,
+            51
+          ]
+        },
+        "land_overlay_semantics": "brown tint for clear Sentinel-2 observations not classified as water; cloud/no-data pixels remain transparent",
         "layers": [
           "halo",
           "glow",
           "sharp"
         ],
         "legend": {
-          "gradient": "magenta \u2192 red \u2192 orange \u2192 yellow \u2192 lime \u2192 teal/cyan",
-          "left_label": "DEGRADED",
-          "right_label": "HEALTHY"
+          "gradient": "dark blue/teal \u2192 blue \u2192 cyan \u2192 turquoise",
+          "left_label": "LOW \u00b7 0.146",
+          "range": {
+            "max": 0.6002172827720642,
+            "min": 0.14557279646396637
+          },
+          "right_label": "HIGH \u00b7 0.600",
+          "unit": "index_0_to_1"
         },
         "percentile_normalized": true,
         "stops": [
           {
-            "label": "degraded",
-            "quantile": "p05",
-            "raw_bound": 0.4108462631702423,
+            "display_value": 0.0,
+            "label": "low",
             "rgb": [
-              221,
-              38,
-              154
+              5,
+              42,
+              58
             ],
-            "value": 0.0
+            "value": 0.14557279646396637
           },
           {
-            "label": "poor",
-            "quantile": null,
-            "raw_bound": null,
-            "rgb": [
-              255,
-              59,
-              59
-            ],
-            "value": 0.18
-          },
-          {
-            "label": "fair",
+            "display_value": 0.25,
+            "label": "medium-low",
             "quantile": "p25",
-            "raw_bound": 0.4538944363594055,
             "rgb": [
-              255,
-              140,
-              0
+              4,
+              82,
+              126
             ],
-            "value": 0.38
+            "value": 0.44103583693504333
           },
           {
-            "label": "good",
+            "display_value": 0.5,
+            "label": "medium",
             "quantile": "p50",
-            "raw_bound": 0.46847930550575256,
             "rgb": [
-              255,
-              210,
-              60
+              0,
+              138,
+              184
             ],
-            "value": 0.58
+            "value": 0.45877814292907715
           },
           {
-            "label": "very good",
+            "display_value": 0.75,
+            "label": "medium-high",
             "quantile": "p75",
-            "raw_bound": 0.4784276485443115,
             "rgb": [
-              92,
-              214,
-              72
+              0,
+              192,
+              220
             ],
-            "value": 0.78
+            "value": 0.47173547744750977
           },
           {
-            "label": "healthy",
-            "quantile": "p95",
-            "raw_bound": 0.4905346632003784,
+            "display_value": 1.0,
+            "label": "high",
             "rgb": [
-              18,
-              200,
-              212
+              30,
+              232,
+              238
             ],
-            "value": 1.0
+            "value": 0.6002172827720642
           }
         ],
         "study_region_clipped": true
       },
       "water_health_statistics": {
-        "max": 0.7337239980697632,
-        "mean": 0.4628327488899231,
-        "median": 0.46847930550575256,
-        "min": 0.1105065643787384,
-        "p05": 0.4108462631702423,
-        "p25": 0.4538944363594055,
-        "p50": 0.46847930550575256,
-        "p75": 0.4784276485443115,
-        "p95": 0.4905346632003784
+        "max": 0.6002172827720642,
+        "mean": 0.45481112599372864,
+        "median": 0.45877814292907715,
+        "min": 0.14557279646396637,
+        "p05": 0.407408207654953,
+        "p25": 0.44103583693504333,
+        "p50": 0.45877814292907715,
+        "p75": 0.47173547744750977,
+        "p95": 0.48678749799728394
       },
-      "wh_max": 0.734,
-      "wh_mean": 0.463,
-      "wh_median": 0.468,
-      "wh_min": 0.111,
+      "wh_max": 0.6,
+      "wh_mean": 0.455,
+      "wh_median": 0.459,
+      "wh_min": 0.146,
       "width": 3384
     }
   },

@@ -1,11 +1,165 @@
 import { CITY_CONFIG } from "../../constants/cities";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SeverityLegend
-// Horizontal glowing gradient bar with impact labels
-// ─────────────────────────────────────────────────────────────────────────────
+const AQI_COLORS = {
+  good: "#00a651",
+  satisfactory: "#a3be2d",
+  moderate: "#f7be32",
+  poor: "#e84b2b",
+  veryPoor: "#871424",
+  severe: "#41001a",
+};
 
-function SeverityLegend() {
+const AQI_COLOR_STOPS = [
+  { value: 0, color: AQI_COLORS.good },
+  { value: 50, color: AQI_COLORS.good },
+  { value: 100, color: AQI_COLORS.satisfactory },
+  { value: 200, color: AQI_COLORS.moderate },
+  { value: 300, color: AQI_COLORS.poor },
+  { value: 400, color: AQI_COLORS.veryPoor },
+  { value: 500, color: AQI_COLORS.severe },
+];
+
+const DEFAULT_NDVI_STOPS = [
+  { value: 0.05, label: "Very low", rgb: [214, 39, 129] },
+  { value: 0.1, label: "Low", rgb: [255, 94, 40] },
+  { value: 0.2, label: "Moderate", rgb: [255, 205, 50] },
+  { value: 0.35, label: "Moderate-high", rgb: [168, 230, 53] },
+  { value: 0.55, label: "High", rgb: [41, 217, 103] },
+  { value: 0.8, label: "Very high", rgb: [20, 200, 180] },
+];
+
+const DEFAULT_WATER_STOPS = [
+  { display_value: 0, value: 0.146, label: "Low", rgb: [5, 42, 58] },
+  { display_value: 0.25, value: 0.441, label: "Medium-low", rgb: [4, 82, 126] },
+  { display_value: 0.5, value: 0.459, label: "Medium", rgb: [0, 138, 184] },
+  {
+    display_value: 0.75,
+    value: 0.472,
+    label: "Medium-high",
+    rgb: [0, 192, 220],
+  },
+  { display_value: 1, value: 0.6, label: "High", rgb: [30, 232, 238] },
+];
+
+const DEFAULT_LST_STOPS = [
+  { position: 0, temperature_c: -1.2, label: "Cool", color: "#2563eb" },
+  { position: 0.2, temperature_c: 9.2, label: "Cool", color: "#06b6d4" },
+  { position: 0.45, temperature_c: 22.3, label: "Moderate", color: "#facc15" },
+  { position: 0.7, temperature_c: 35.4, label: "Hot", color: "#f97316" },
+  { position: 0.88, temperature_c: 44.8, label: "Very hot", color: "#ef4444" },
+  { position: 1, temperature_c: 51, label: "Very hot", color: "#7f1d1d" },
+];
+
+const COMPOSITE_STOPS = [
+  { value: 0, color: "#1dd1a1" },
+  { value: 25, color: "#ffd32a" },
+  { value: 50, color: "#ff8c00" },
+  { value: 70, color: "#ff3b3b" },
+  { value: 85, color: "#8F3F97" },
+  { value: 100, color: "#7E0023" },
+];
+
+function rgbToHex(rgb) {
+  return `#${rgb.map((channel) => Math.round(channel).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function numericLabel(value, digits = 2) {
+  return Number(value).toFixed(digits);
+}
+
+function getLayerLegendConfig(
+  layerId,
+  { aqiSurface, ndviSurface, waterHealthSurface, lstSurface },
+) {
+  if (layerId === "aqi") {
+    if (!aqiSurface) return null;
+    return {
+      stops: AQI_COLOR_STOPS.map(({ value, color }) => ({
+        position: (value / 500) * 100,
+        color,
+      })),
+      minimumLabel: "0 Good",
+      maximumLabel: "500 Severe",
+      minimumColor: AQI_COLORS.good,
+      maximumColor: AQI_COLORS.severe,
+    };
+  }
+
+  if (layerId === "ndvi") {
+    const stops = ndviSurface?.visualization?.stops || DEFAULT_NDVI_STOPS;
+    const firstValue = Number(stops[0]?.value ?? 0.05);
+    const lastValue = Number(stops.at(-1)?.value ?? 0.8);
+    const span = Math.max(lastValue - firstValue, Number.EPSILON);
+    const rgbStops = stops.map((stop) => ({
+      position: ((Number(stop.value) - firstValue) / span) * 100,
+      color: Array.isArray(stop.rgb) ? rgbToHex(stop.rgb) : stop.color,
+    }));
+    return {
+      stops: rgbStops,
+      minimumLabel: ndviSurface?.visualization?.legend?.left_label || "LOW",
+      maximumLabel: ndviSurface?.visualization?.legend?.right_label || "HIGH",
+      minimumColor: rgbStops[0]?.color,
+      maximumColor: rgbStops.at(-1)?.color,
+    };
+  }
+
+  if (layerId === "water_health") {
+    const visualization = waterHealthSurface?.visualization;
+    const stops = visualization?.stops || DEFAULT_WATER_STOPS;
+    const range = visualization?.legend?.range;
+    const colors = stops.map((stop) =>
+      Array.isArray(stop.rgb) ? rgbToHex(stop.rgb) : stop.color,
+    );
+    return {
+      stops: stops.map((stop) => ({
+        position: Number(stop.display_value ?? stop.position ?? 0) * 100,
+        color: Array.isArray(stop.rgb) ? rgbToHex(stop.rgb) : stop.color,
+      })),
+      minimumLabel:
+        visualization?.legend?.left_label ||
+        `LOW · ${numericLabel(range?.min ?? stops[0]?.value ?? 0, 3)}`,
+      maximumLabel:
+        visualization?.legend?.right_label ||
+        `HIGH · ${numericLabel(range?.max ?? stops.at(-1)?.value ?? 1, 3)}`,
+      minimumColor: colors[0],
+      maximumColor: colors.at(-1),
+    };
+  }
+
+  if (layerId === "lst") {
+    const stops = lstSurface?.visualization?.color_stops || DEFAULT_LST_STOPS;
+    const minimum = Number(stops[0]?.temperature_c ?? -1.2);
+    const maximum = Number(stops.at(-1)?.temperature_c ?? 51);
+    return {
+      stops: stops.map((stop) => ({
+        position: Number(stop.position) * 100,
+        color: stop.color,
+      })),
+      minimumLabel: `${numericLabel(minimum, 1)}°C`,
+      maximumLabel: `${numericLabel(maximum, 1)}°C`,
+      minimumColor: stops[0]?.color,
+      maximumColor: stops.at(-1)?.color,
+    };
+  }
+
+  return {
+    stops: COMPOSITE_STOPS.map((stop) => ({
+      position: stop.value,
+      color: stop.color,
+    })),
+    minimumLabel: "LOW IMPACT",
+    maximumLabel: "CRITICAL",
+    minimumColor: COMPOSITE_STOPS[0].color,
+    maximumColor: COMPOSITE_STOPS.at(-1).color,
+  };
+}
+
+function SeverityLegend({ config }) {
+  if (!config) return null;
+  const gradient = config.stops
+    .map((stop) => `${stop.color} ${stop.position}%`)
+    .join(", ");
+
   return (
     <div
       className="glass-sharp"
@@ -15,7 +169,15 @@ function SeverityLegend() {
         padding: "8px 18px 10px",
       }}
     >
-      <div className="severity-gradient-bar" style={{ marginBottom: 5 }} />
+      <div
+        className="severity-gradient-bar"
+        role="img"
+        aria-label={`${config.minimumLabel} to ${config.maximumLabel}`}
+        style={{
+          background: `linear-gradient(to right, ${gradient})`,
+          marginBottom: 5,
+        }}
+      />
       <div
         style={{
           display: "flex",
@@ -26,10 +188,12 @@ function SeverityLegend() {
           textTransform: "uppercase",
         }}
       >
-        <span style={{ color: "#1dd1a1" }}>● Low Impact</span>
-        <span>Moderate</span>
-        <span>Severe</span>
-        <span style={{ color: "#ff3b3b" }}>● Critical</span>
+        <span style={{ color: config.minimumColor }}>
+          ● {config.minimumLabel}
+        </span>
+        <span style={{ color: config.maximumColor }}>
+          {config.maximumLabel} ●
+        </span>
       </div>
     </div>
   );
@@ -159,7 +323,29 @@ function CitySelector({ activeCity, onSelect }) {
 // Fixed bottom panel containing legend + city selector
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function BottomBar({ activeCity, onSelectCity }) {
+export default function BottomBar({
+  activeCity,
+  onSelectCity,
+  activeLayers,
+  ndviSurface,
+  waterHealthSurface,
+  lstSurface,
+  aqiSurface,
+}) {
+  const activeLayer = activeLayers?.all
+    ? "all"
+    : ["aqi", "ndvi", "water_health", "lst"].find(
+        (layerId) => activeLayers?.[layerId],
+      );
+  const legendConfig = activeLayer
+    ? getLayerLegendConfig(activeLayer, {
+        aqiSurface,
+        ndviSurface,
+        waterHealthSurface,
+        lstSurface,
+      })
+    : null;
+
   return (
     <div
       className="slide-in-up"
@@ -173,9 +359,7 @@ export default function BottomBar({ activeCity, onSelectCity }) {
         animationDelay: "0.2s",
       }}
     >
-
-
-      <SeverityLegend />
+      <SeverityLegend config={legendConfig} />
       <CitySelector activeCity={activeCity} onSelect={onSelectCity} />
     </div>
   );

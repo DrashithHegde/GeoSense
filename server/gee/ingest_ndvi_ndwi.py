@@ -41,7 +41,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 S2_DATASET = "COPERNICUS/S2_SR_HARMONIZED"
 COMPOSITE_WINDOW_DAYS = 14
-DEFAULT_MNDWI_THRESHOLD = 0.0
+DEFAULT_MNDWI_THRESHOLD = 0.15
 
 
 def calculate_mndwi(green: float | None, shortwave_ir: float | None) -> float | None:

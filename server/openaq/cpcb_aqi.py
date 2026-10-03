@@ -7,9 +7,11 @@ Units: pm25/pm10/no2/so2/o3 in ug/m3; co in ug/m3 (internally converted to mg/m3
 """
 from __future__ import annotations
 
+import math
 from typing import Dict, Optional, Tuple
 
-# CPCB 24-h breakpoints: (C_low, C_high, I_low, I_high)
+# CPCB concentration breakpoints: (C_low, C_high, I_low, I_high).
+# PM2.5/PM10/NO2/SO2 are rounded to whole ug/m3; CO is rounded to 0.1 mg/m3.
 CPCB_BREAKPOINTS: Dict[str, list] = {
     "pm25": [
         (0,    30,    0,   50), (31,   60,   51,  100),
@@ -45,6 +47,16 @@ CPCB_BREAKPOINTS: Dict[str, list] = {
 }
 
 CO_UGM3_TO_MGM3 = 1.0 / 1000.0
+MIN_VALID_POLLUTANTS = 3
+PARTICULATE_POLLUTANTS = {"pm25", "pm10"}
+
+
+def _round_cpcb_concentration(param: str, concentration: float) -> float:
+    """Round positive concentrations to the precision used by CPCB bands."""
+    if param == "co":
+        value_mg = concentration * CO_UGM3_TO_MGM3
+        return math.floor(value_mg * 10.0 + 0.5) / 10.0
+    return float(math.floor(concentration + 0.5))
 
 
 def _sub_index(concentration: float, breakpoints: list) -> Optional[float]:
@@ -70,8 +82,18 @@ def compute_pollutant_sub_indices(
         if conc is None:
             sub_indices[param] = None
             continue
+        try:
+            conc = float(conc)
+        except (TypeError, ValueError):
+            sub_indices[param] = None
+            continue
+        if not math.isfinite(conc) or conc < 0:
+            sub_indices[param] = None
+            continue
         if param == "co":
-            conc = conc * CO_UGM3_TO_MGM3
+            conc = _round_cpcb_concentration(param, conc)
+        else:
+            conc = _round_cpcb_concentration(param, conc)
         sub_indices[param] = _sub_index(conc, bpts)
     return sub_indices
 
@@ -86,7 +108,7 @@ def compute_station_cpcb_aqi(
     """
     sub_indices = compute_pollutant_sub_indices(pollutants)
     valid = {p: v for p, v in sub_indices.items() if v is not None}
-    if not valid:
+    if len(valid) < MIN_VALID_POLLUTANTS or not (PARTICULATE_POLLUTANTS & valid.keys()):
         return None, None, sub_indices
     dominant = max(valid, key=lambda p: valid[p])
     aqi = int(round(valid[dominant]))

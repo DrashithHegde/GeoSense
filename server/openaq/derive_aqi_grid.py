@@ -20,7 +20,7 @@ from sqlalchemy import text
 from app.database import get_db
 from app.core.config import get_settings
 from app.services.source_metadata import ensure_compatible_metadata, metadata_payload
-from openaq.client import get_mumbai_station_measurements
+from openaq.client import CPCB_PROVIDERS, get_mumbai_station_measurements
 from openaq.cpcb_aqi import compute_station_cpcb_aqi
 from aqicn.derive_aqi_grid import haversine_m
 
@@ -34,11 +34,37 @@ PROVENANCE = "openaq_cpcb_idw"
 
 def freshness_label(observed_at: datetime) -> str:
     age_h = (datetime.now(timezone.utc) - observed_at).total_seconds() / 3600
+    if age_h < 0:
+        return "unavailable"
     if age_h <= FRESH_THRESHOLD_HOURS:
         return "fresh"
     if age_h <= STALE_THRESHOLD_HOURS:
         return "stale"
     return "unavailable"
+
+
+def select_idw_neighbors(
+    zone_lat: float,
+    zone_lon: float,
+    points: List[Dict],
+    k: int,
+    max_interp_distance_m: float,
+    min_stations: int,
+    *,
+    prefer_fresh: bool = True,
+) -> List[Tuple[float, Dict]]:
+    candidates = []
+    for point in points:
+        if point.get("freshness") == "unavailable":
+            continue
+        distance = haversine_m(zone_lat, zone_lon, point["lat"], point["lon"])
+        if distance <= max_interp_distance_m:
+            candidates.append((distance, point))
+    fresh_candidates = [item for item in candidates if item[1].get("freshness") == "fresh"]
+    if prefer_fresh and len(fresh_candidates) >= min_stations:
+        candidates = fresh_candidates
+    candidates.sort(key=lambda item: item[0])
+    return candidates[:k]
 
 
 def idw_estimate(
@@ -49,22 +75,25 @@ def idw_estimate(
     max_interp_distance_m: float,
     min_stations: int,
     power: float,
+    prefer_fresh: bool = True,
 ) -> Tuple[Optional[float], Optional[float], int]:
-    dlist = []
-    for p in points:
-        d = haversine_m(zone_lat, zone_lon, p["lat"], p["lon"])
-        if d <= max_interp_distance_m:
-            dlist.append((d, p["aqi"]))
-    if not dlist:
+    selected = select_idw_neighbors(
+        zone_lat,
+        zone_lon,
+        points,
+        k,
+        max_interp_distance_m,
+        min_stations,
+        prefer_fresh=prefer_fresh,
+    )
+    if not selected:
         return None, None, 0
-    dlist.sort(key=lambda x: x[0])
-    selected = dlist[:k]
     if len(selected) < min_stations:
         return None, None, len(selected)
     if selected[0][0] == 0:
-        return float(selected[0][1]), 0.0, len(selected)
-    weights = [1.0 / (d ** power) for d, _ in selected]
-    vals = [v for _, v in selected]
+        return float(selected[0][1]["aqi"]), 0.0, len(selected)
+    weights = [1.0 / (distance ** power) for distance, _ in selected]
+    vals = [point["aqi"] for _, point in selected]
     total_w = sum(weights)
     if total_w == 0:
         return None, None, len(selected)
@@ -88,8 +117,9 @@ def collect_station_aqi_points(
         raise RuntimeError("OPENAQ_AQI_KEY not configured")
 
     raw_stations = get_mumbai_station_measurements(
-        api_key, max_age_hours=max_age_hours, cpcb_only=False
+        api_key, max_age_hours=max_age_hours, cpcb_only=True
     )
+    raw_stations = [station for station in raw_stations if station.get("is_cpcb_mpcb")]
     if not raw_stations:
         raise RuntimeError("OpenAQ returned no usable station measurements for MMR")
 
@@ -110,6 +140,8 @@ def collect_station_aqi_points(
             "aqi": float(aqi_val),
             "dominant_pollutant": dominant,
             "observed_at": s["observed_at"],
+            "freshness": freshness_label(s["observed_at"]),
+            "pollutant_metadata": s.get("pollutant_metadata", {}),
         })
         logger.info(
             "Station %s: CPCB AQI=%d dominant=%s freshness=%s provider=%s",
@@ -185,8 +217,20 @@ def run_openaq_derivation(
         station_points, stations_fetched, cpcb_aqi_failures = collect_station_aqi_points(
             max_age_hours=max_age_hours
         )
+    allowed_providers = {provider.casefold() for provider in CPCB_PROVIDERS}
+    station_points = [
+        point for point in station_points
+        if point.get("is_cpcb_mpcb")
+        and str(point.get("provider", "")).casefold() in allowed_providers
+        and point.get("freshness") != "unavailable"
+    ]
     if not station_points:
-        raise RuntimeError("No stations with computable CPCB AQI found")
+        raise RuntimeError("No fresh or <=48-hour CPCB/MPCB stations with computable CPCB AQI found")
+    if len(station_points) < min_stations:
+        raise RuntimeError(
+            f"Only {len(station_points)} eligible CPCB/MPCB stations; "
+            f"at least {min_stations} are required for AQI interpolation"
+        )
     if stations_fetched is None:
         stations_fetched = len(station_points)
     if cpcb_aqi_failures is None:
@@ -222,23 +266,37 @@ def run_openaq_derivation(
             zlat = float(z["lat"])
             zlon = float(z["lon"])
 
-            direct = None
-            for sp in station_points:
-                dist = haversine_m(zlat, zlon, sp["lat"], sp["lon"])
-                if dist <= station_assign_distance_m:
-                    if direct is None or dist < direct[1]:
-                        direct = (sp, dist)
+            direct_candidates = []
+            for point in station_points:
+                dist = haversine_m(zlat, zlon, point["lat"], point["lon"])
+                if dist <= min(station_assign_distance_m, 1000):
+                    direct_candidates.append((dist, point))
+            fresh_direct = [item for item in direct_candidates if item[1].get("freshness") == "fresh"]
+            if fresh_direct:
+                direct_candidates = fresh_direct
+            direct = min(direct_candidates, key=lambda item: item[0]) if direct_candidates else None
+            support_points: List[Tuple[float, Dict]] = []
 
-            if direct is not None and direct[1] <= 1000:
-                aqi_val = direct[0]["aqi"]
+            if direct is not None:
+                aqi_val = direct[1]["aqi"]
                 source_type = "openaq_observed"
-                nearest = direct[1]
+                nearest = direct[0]
+                support_points = [direct]
                 observed_count += 1
             else:
+                support_points = select_idw_neighbors(
+                    zlat,
+                    zlon,
+                    station_points,
+                    k,
+                    max_interp_distance_m,
+                    min_stations,
+                    prefer_fresh=True,
+                )
                 est, nearest, used = idw_estimate(
                     zlat, zlon, station_points,
                     k=k, max_interp_distance_m=max_interp_distance_m,
-                    min_stations=min_stations, power=power,
+                    min_stations=min_stations, power=power, prefer_fresh=True,
                 )
                 aqi_val = est
                 if aqi_val is None:
@@ -251,11 +309,35 @@ def run_openaq_derivation(
             if aqi_val is not None:
                 aqi_vals.append(aqi_val)
 
+            row_source_context = None
+            if aqi_val is not None:
+                row_source_context = {
+                    **source_context,
+                    "station_support": [
+                        {
+                            "station_id": point["station_id"],
+                            "station_name": point["station_name"],
+                            "provider": point["provider"],
+                            "is_cpcb_mpcb": point["is_cpcb_mpcb"],
+                            "pollutants": {
+                                pollutant: {
+                                    "sensor_id": metadata["sensor_id"],
+                                    "source_unit": metadata["source_unit"],
+                                    "normalized_unit": metadata["normalized_unit"],
+                                    "averaging_period_hours": metadata["averaging_period_hours"],
+                                }
+                                for pollutant, metadata in point.get("pollutant_metadata", {}).items()
+                            },
+                        }
+                        for _, point in support_points
+                    ],
+                }
+
             upsert_openaq_aqi(
                 db, cid, observed_at,
                 int(round(aqi_val)) if aqi_val is not None else None,
                 source_type, nearest,
-                source_context=source_context if aqi_val is not None else None,
+                source_context=row_source_context,
             )
 
             if len(sample_rows) < 15:
@@ -288,4 +370,18 @@ def run_openaq_derivation(
         "observed_at": observed_at.isoformat(),
         "freshness": freshness_label(observed_at),
         "sample": sample_rows,
+        "station_provenance": [
+            {
+                "station_id": point["station_id"],
+                "station_name": point["station_name"],
+                "provider": point["provider"],
+                "is_cpcb_mpcb": point["is_cpcb_mpcb"],
+                "aqi": point["aqi"],
+                "dominant_pollutant": point["dominant_pollutant"],
+                "observed_at": point["observed_at"].isoformat(),
+                "freshness": point["freshness"],
+                "pollutant_metadata": point.get("pollutant_metadata", {}),
+            }
+            for point in station_points
+        ],
     }

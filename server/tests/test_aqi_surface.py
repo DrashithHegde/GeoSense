@@ -12,6 +12,9 @@ from unittest.mock import patch
 import numpy as np
 from PIL import Image
 import rasterio
+from rasterio.features import geometry_mask
+from rasterio.transform import from_bounds
+from shapely.geometry import mapping
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SERVER_ROOT = REPO_ROOT / "server"
@@ -29,6 +32,7 @@ from app.services.surfaces.aqi_surface import (
     generate_aqi_surface,
     generate_aqi_grid,
 )
+from app.services.municipality_boundaries import get_study_region_bounds, load_study_region_geometry
 from openaq.derive_aqi_grid import idw_estimate
 
 
@@ -41,6 +45,25 @@ CONFIG = AqiSurfaceConfig(bounds=(72.80, 19.00, 73.05, 19.28), width=20, height=
 
 
 class AqiSurfaceTests(unittest.TestCase):
+    def test_default_surface_bounds_use_municipality_union(self):
+        self.assertEqual(AqiSurfaceConfig().bounds, get_study_region_bounds())
+
+    def test_grid_has_no_valid_pixels_outside_municipality_union(self):
+        config = AqiSurfaceConfig(width=80, height=100, max_interpolation_distance_m=20_000.0)
+        grid = generate_aqi_grid(STATIONS, config)
+        transform = from_bounds(*config.bounds, config.width, config.height)
+        inside_union = geometry_mask(
+            [mapping(load_study_region_geometry())],
+            out_shape=grid.shape,
+            transform=transform,
+            invert=True,
+            all_touched=False,
+        )
+        valid = grid != NODATA_VALUE
+        self.assertGreater(int(valid.sum()), 0)
+        self.assertEqual(int((valid & ~inside_union).sum()), 0)
+        self.assertTrue(np.all(grid[~inside_union] == NODATA_VALUE))
+
     def test_pixel_idw_delegates_to_canonical_implementation(self):
         expected, _nearest, _used = idw_estimate(19.15, 72.90, STATIONS, k=4, max_interp_distance_m=20_000, min_stations=2, power=2.0)
         actual = estimate_pixel_aqi(lat=19.15, lon=72.90, station_points=STATIONS, config=CONFIG)

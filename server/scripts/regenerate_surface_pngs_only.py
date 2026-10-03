@@ -42,7 +42,7 @@ from app.services.surfaces.ndvi_surface import (
 from app.services.surfaces.water_health_surface import (
     SURFACE_ROOT as WH_SURFACE_ROOT,
     MANIFEST_PATH as WH_MANIFEST_PATH,
-    publish_water_health_geotiff,
+    regenerate_water_health_visualization,
     CRS as WH_CRS,
     NODATA_VALUE as WH_NODATA,
     SCALE_METERS as WH_SCALE,
@@ -105,15 +105,9 @@ def regenerate_water_health() -> dict:
     end_date = _stamp_to_end_date(stamp)
     end_dt = datetime.fromisoformat(end_date).date()
     start_date = (end_dt - timedelta(days=WH_COMPOSITE_DAYS)).isoformat()
-    with rasterio.open(tif_path) as src:
-        tags = src.tags()
-    image_count = int(tags.get("IMAGE_COUNT", "0")) or 1
-    record = publish_water_health_geotiff(
-        tif_path,
+    record = regenerate_water_health_visualization(
         start_date=start_date,
         end_date=end_date,
-        image_count=image_count,
-        output_root=WH_SURFACE_ROOT,
     )
     return {"water_health": {"source_tif": str(tif_path), "stamp": record.get("timestamp")}}
 

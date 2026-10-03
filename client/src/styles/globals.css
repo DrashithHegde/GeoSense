@@ -2,7 +2,7 @@
    GeoSense – Global Styles
    ───────────────────────────────────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap");
 
 /* ── Reset & Base ─────────────────────────────────────────────────────────── */
 *,
@@ -23,7 +23,7 @@ body,
 }
 
 body {
-  font-family: 'DM Mono', monospace;
+  font-family: "DM Mono", monospace;
   cursor: crosshair;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -80,16 +80,28 @@ select {
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 56%,
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) 26%,
-      rgba(0, 0, 0, 0.68) 47%,
-      rgba(0, 0, 0, 0.96) 72%,
-      rgba(0, 0, 0, 1) 100%);
+  background: radial-gradient(
+    circle at 50% 56%,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) 26%,
+    rgba(0, 0, 0, 0.68) 47%,
+    rgba(0, 0, 0, 0.96) 72%,
+    rgba(0, 0, 0, 1) 100%
+  );
   backdrop-filter: blur(16px) brightness(0.34) saturate(0.65);
   -webkit-backdrop-filter: blur(16px) brightness(0.34) saturate(0.65);
-  -webkit-mask-image: radial-gradient(circle at 50% 56%, transparent 0 28%, #000 50%, #000 100%);
-  mask-image: radial-gradient(circle at 50% 56%, transparent 0 28%, #000 50%, #000 100%);
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 56%,
+    transparent 0 28%,
+    #000 50%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    circle at 50% 56%,
+    transparent 0 28%,
+    #000 50%,
+    #000 100%
+  );
 }
 
 .satellite-ring {
@@ -173,20 +185,22 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Globe pulse */
 @keyframes globePulse {
-
   0%,
   100% {
-    box-shadow: 0 0 40px rgba(0, 229, 255, 0.18), 0 0 80px rgba(0, 229, 255, 0.08);
+    box-shadow:
+      0 0 40px rgba(0, 229, 255, 0.18),
+      0 0 80px rgba(0, 229, 255, 0.08);
   }
 
   50% {
-    box-shadow: 0 0 65px rgba(0, 229, 255, 0.32), 0 0 130px rgba(0, 229, 255, 0.14);
+    box-shadow:
+      0 0 65px rgba(0, 229, 255, 0.32),
+      0 0 130px rgba(0, 229, 255, 0.14);
   }
 }
 
 /* Reticle pulsing glow */
 @keyframes spin {
-
   0%,
   100% {
     opacity: 0.3;
@@ -198,7 +212,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 @keyframes spinReverse {
-
   0%,
   100% {
     opacity: 0.5;
@@ -302,12 +315,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .slide-in-up {
-  animation: slideInUp 0.40s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: slideInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Anomaly markers */
 @keyframes anomalyPulse {
-
   0%,
   100% {
     transform: scale(1);
@@ -370,7 +382,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .typewriter-text::after {
   animation: blink 0.7s infinite;
-  content: '';
+  content: "";
   display: inline-block;
   width: 2px;
   height: 0.9em;
@@ -404,7 +416,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   animation: textReveal 10s steps(32, end) infinite;
 }
 
-
 @keyframes blink {
   50% {
     opacity: 0;
@@ -413,22 +424,20 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Telemetry line 1: Glow pulse */
 @keyframes glowPulse {
-
   0%,
   100% {
     opacity: 0.6;
-    textShadow: 0 0 8px rgba(217, 127, 42, 0.3);
+    textshadow: 0 0 8px rgba(217, 127, 42, 0.3);
   }
 
   50% {
     opacity: 1;
-    textShadow: 0 0 16px rgba(217, 127, 42, 0.8);
+    textshadow: 0 0 16px rgba(217, 127, 42, 0.8);
   }
 }
 
 /* Telemetry line 2: Fade flicker */
 @keyframes fadeFlicker {
-
   0%,
   10%,
   30%,
@@ -450,37 +459,37 @@ input[type="range"]::-webkit-slider-thumb:hover {
 @keyframes glitchFade {
   0% {
     opacity: 0.65;
-    textShadow: 2px 2px rgba(217, 127, 42, 0.5);
+    textshadow: 2px 2px rgba(217, 127, 42, 0.5);
     transform: translateX(0);
   }
 
   20% {
     opacity: 0.3;
-    textShadow: -2px 0 rgba(217, 127, 42, 0.8);
+    textshadow: -2px 0 rgba(217, 127, 42, 0.8);
     transform: translateX(-2px);
   }
 
   40% {
     opacity: 0.65;
-    textShadow: 2px -2px rgba(217, 127, 42, 0.6);
+    textshadow: 2px -2px rgba(217, 127, 42, 0.6);
     transform: translateX(1px);
   }
 
   60% {
     opacity: 0.4;
-    textShadow: -1px 1px rgba(217, 127, 42, 0.7);
+    textshadow: -1px 1px rgba(217, 127, 42, 0.7);
     transform: translateX(-1px);
   }
 
   80% {
     opacity: 0.65;
-    textShadow: 1px -1px rgba(217, 127, 42, 0.5);
+    textshadow: 1px -1px rgba(217, 127, 42, 0.5);
     transform: translateX(0);
   }
 
   100% {
     opacity: 0.65;
-    textShadow: 0 0 rgba(217, 127, 42, 0.5);
+    textshadow: 0 0 rgba(217, 127, 42, 0.5);
     transform: translateX(0);
   }
 }
@@ -490,55 +499,54 @@ input[type="range"]::-webkit-slider-thumb:hover {
   0% {
     opacity: 0.85;
     color: #d97f2a;
-    textShadow: 0 0 8px rgba(217, 127, 42, 0.5);
+    textshadow: 0 0 8px rgba(217, 127, 42, 0.5);
   }
 
   10% {
     opacity: 0.4;
     color: #ff9e4a;
-    textShadow: 0 0 12px rgba(255, 158, 74, 0.7);
+    textshadow: 0 0 12px rgba(255, 158, 74, 0.7);
   }
 
   20% {
     opacity: 0.85;
     color: #d97f2a;
-    textShadow: 0 0 8px rgba(217, 127, 42, 0.5);
+    textshadow: 0 0 8px rgba(217, 127, 42, 0.5);
   }
 
   35% {
     opacity: 0.55;
     color: #ffa844;
-    textShadow: 0 0 10px rgba(255, 168, 68, 0.6);
+    textshadow: 0 0 10px rgba(255, 168, 68, 0.6);
   }
 
   50% {
     opacity: 0.75;
     color: #d97f2a;
-    textShadow: 0 0 12px rgba(217, 127, 42, 0.8);
+    textshadow: 0 0 12px rgba(217, 127, 42, 0.8);
   }
 
   65% {
     opacity: 0.3;
     color: #ffb85a;
-    textShadow: 0 0 15px rgba(255, 184, 90, 0.9);
+    textshadow: 0 0 15px rgba(255, 184, 90, 0.9);
   }
 
   80% {
     opacity: 0.85;
     color: #d97f2a;
-    textShadow: 0 0 8px rgba(217, 127, 42, 0.5);
+    textshadow: 0 0 8px rgba(217, 127, 42, 0.5);
   }
 
   100% {
     opacity: 0.85;
     color: #d97f2a;
-    textShadow: 0 0 8px rgba(217, 127, 42, 0.5);
+    textshadow: 0 0 8px rgba(217, 127, 42, 0.5);
   }
 }
 
 /* Heatmap drift */
 @keyframes heatDrift {
-
   0%,
   100% {
     transform: scale(1) translate(0, 0);
@@ -552,7 +560,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
   66% {
     transform: scale(0.97) translate(-1px, 2px);
-    opacity: 0.60;
+    opacity: 0.6;
   }
 }
 
@@ -574,7 +582,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* REC blink */
 @keyframes recBlink {
-
   0%,
   100% {
     opacity: 1;
@@ -591,7 +598,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Status dot */
 @keyframes statusPulse {
-
   0%,
   100% {
     opacity: 1;
@@ -704,27 +710,31 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* ── Scanlines overlay ────────────────────────────────────────────────────── */
 .scanlines::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(0deg,
-      transparent,
-      transparent 3px,
-      rgba(0, 0, 0, 0.07) 3px,
-      rgba(0, 0, 0, 0.07) 4px);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.07) 3px,
+    rgba(0, 0, 0, 0.07) 4px
+  );
   z-index: 2;
 }
 
 /* ── Vignette overlay ─────────────────────────────────────────────────────── */
 .vignette::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 50%,
-      transparent 52%,
-      rgba(4, 7, 11, 0.72) 100%);
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 52%,
+    rgba(4, 7, 11, 0.72) 100%
+  );
   z-index: 3;
 }
 
@@ -743,7 +753,13 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .severity-gradient-bar {
   height: 5px;
   border-radius: 3px;
-  background: linear-gradient(to right, #1dd1a1, #ffd32a 38%, #ff8c00 68%, #ff3b3b);
+  background: linear-gradient(
+    to right,
+    #1dd1a1,
+    #ffd32a 38%,
+    #ff8c00 68%,
+    #ff3b3b
+  );
   box-shadow:
     0 0 18px rgba(255, 59, 59, 0.22),
     0 0 32px rgba(29, 209, 161, 0.14);
@@ -755,10 +771,13 @@ input[type="range"]::-webkit-slider-thumb:hover {
   width: 34px;
   height: 18px;
   background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 9px;
   cursor: pointer;
-  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
   flex-shrink: 0;
 }
 
@@ -774,9 +793,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
   left: 2px;
   width: 12px;
   height: 12px;
-  background: rgba(200, 214, 229, 0.40);
+  background: rgba(200, 214, 229, 0.4);
   border-radius: 50%;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.25s ease;
 }
 
 .toggle-track.on .toggle-thumb {

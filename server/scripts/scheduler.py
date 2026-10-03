@@ -28,6 +28,7 @@ from openaq.derive_aqi_grid import (
 from app.services.surfaces.aqi_surface import AqiSurfaceConfig, generate_aqi_surface
 from gee.ingest_lst import COMPOSITE_WINDOW_DAYS as LST_WINDOW_DAYS
 from gee.ingest_lst import run_ingest as run_lst_ingest
+from app.services.surfaces.lst_surface import generate_lst_surface
 from gee.ingest_ndvi_ndwi import COMPOSITE_WINDOW_DAYS as S2_WINDOW_DAYS
 from gee.ingest_ndvi_ndwi import run_ingest as run_ndvi_ndwi_ingest
 from app.services.surfaces.ndvi_surface import generate_ndvi_surface
@@ -92,10 +93,15 @@ def _run_s2_for_today(today) -> dict:
 
 
 def _run_lst_for_today(today) -> dict:
-    return run_lst_ingest(
-        (today - timedelta(days=LST_WINDOW_DAYS)).isoformat(),
-        today.isoformat(),
-    )
+    start = (today - timedelta(days=LST_WINDOW_DAYS)).isoformat()
+    end = today.isoformat()
+    ingestion = run_lst_ingest(start, end)
+    try:
+        surface = generate_lst_surface(start, end)
+    except Exception as exc:
+        logger.exception("LST surface generation failed after successful Landsat ingestion")
+        surface = {"generation_status": "failed", "error": str(exc)}
+    return {"ingestion": ingestion, "surface": surface}
 
 
 def describe_schedule() -> dict:
@@ -200,13 +206,37 @@ def run_scheduler() -> None:
         time.sleep(POLL_SECONDS)
 
 
+def run_aqi_scheduler() -> None:
+    """Run only the existing OpenAQ/CPCB/IDW cycle at its configured cadence."""
+    last_run: datetime | None = None
+    logger.info("AQI-only scheduler started; cadence=%s", AQI_INTERVAL)
+    while True:
+        now = datetime.now(timezone.utc)
+        if last_run is None or now - last_run >= AQI_INTERVAL:
+            try:
+                logger.info("Running AQI/IDW cycle")
+                logger.info("AQI/IDW report: %s", run_aqi_cycle())
+            except Exception:
+                logger.exception("AQI/IDW cycle failed; no fallback values were generated")
+            finally:
+                last_run = now
+        time.sleep(POLL_SECONDS)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the current GeoSense ingestion scheduler")
     parser.add_argument("--dry-run", action="store_true", help="Print cadence and exit without reading or writing data")
+    parser.add_argument("--aqi-only", action="store_true", help="Run only the existing OpenAQ/CPCB/IDW scheduler cycle")
     args = parser.parse_args()
     if args.dry_run:
-        for name, detail in describe_schedule().items():
-            print(f"{name}: {detail}")
+        if args.aqi_only:
+            print(f"aqi_idw: every {AQI_INTERVAL}; CPCB/MPCB-backed OpenAQ stations only")
+        else:
+            for name, detail in describe_schedule().items():
+                print(f"{name}: {detail}")
+        return 0
+    if args.aqi_only:
+        run_aqi_scheduler()
         return 0
     run_scheduler()
     return 0

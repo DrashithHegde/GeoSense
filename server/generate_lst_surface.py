@@ -26,6 +26,7 @@ from app.services.surfaces.lst_surface import (
     COMPOSITE_WINDOW_DAYS,
     generate_lst_surface,
     publish_lst_geotiff,
+    regenerate_lst_visualizations,
 )
 
 
@@ -35,9 +36,30 @@ def main() -> int:
     parser.add_argument("--end", help="End date YYYY-MM-DD (default: today)")
     parser.add_argument(
         "--geotiff",
-        help="Path to already-downloaded LST GeoTIFF (skip GEE export, go straight to publish)",
+        help="Path to an already-downloaded real GEE LST GeoTIFF (skip the direct download)",
+    )
+    parser.add_argument("--image-count", type=int, help="Real Landsat scene count for a supplied --geotiff")
+    parser.add_argument(
+        "--visualize-current",
+        action="store_true",
+        help="Regenerate PNGs from the currently published scientific TIFF without rewriting it",
     )
     args = parser.parse_args()
+
+    if args.visualize_current:
+        try:
+            record = regenerate_lst_visualizations()
+            print("LST visualizations regenerated from the published scientific TIFF.")
+            print(f"  Scientific TIFF unchanged: {record['files']['geotiff']}")
+            print(f"  Temperature range: {record['lst_min_c']:.2f} to {record['lst_max_c']:.2f} °C")
+            print(f"  Sharp PNG: {record['files']['png']}")
+            print(f"  Glow PNG: {record['files']['glow_png']}")
+            return 0
+        except Exception as exc:
+            print(f"ERROR: {exc}")
+            import traceback
+            traceback.print_exc()
+            return 1
 
     today = datetime.now(timezone.utc).date()
     end = datetime.fromisoformat(args.end).date() if args.end else today
@@ -56,7 +78,9 @@ def main() -> int:
     end_str = end.isoformat()
 
     if args.geotiff:
-        # User already has the GeoTIFF — publish directly
+        if args.image_count is None or args.image_count <= 0:
+            print("ERROR: --geotiff requires a positive --image-count from the matching Earth Engine collection.")
+            return 1
         geotiff_path = Path(args.geotiff)
         if not geotiff_path.exists():
             print(f"ERROR: GeoTIFF not found: {geotiff_path}")
@@ -67,7 +91,7 @@ def main() -> int:
             geotiff_path,
             start_date=start_str,
             end_date=end_str,
-            image_count=0,  # Unknown — user provided pre-exported TIFF
+            image_count=args.image_count,
         )
         print("✓ LST surface published:")
         print(f"  GeoTIFF: {record['files']['geotiff']}")
@@ -79,17 +103,20 @@ def main() -> int:
         print(f"  Glow threshold: {record['glow_threshold_c']:.1f} °C")
         return 0
 
-    # Generate from GEE
     print(f"Generating LST surface: {start_str} to {end_str}")
     try:
-        result = generate_lst_surface(start_str, end_str)
-        print("GEE export task started successfully.")
-        print(f"Task ID: {result['task_id']}")
-        print("")
-        print("NEXT STEPS:")
-        print("1. Wait for the export to complete (monitor in GEE Code Editor or via task.status())")
-        print("2. Download the GeoTIFF from Google Drive")
-        print("3. Run this script again with --geotiff <path> to publish the surface")
+        record = generate_lst_surface(start_str, end_str)
+        print("LST surface exported, downloaded, validated, and published.")
+        print(f"  Scene count: {record['image_count']}")
+        print(f"  Source period: {record['source_period']['start']} to {record['source_period']['end']}")
+        print(f"  Bounds: {record['bounds']}")
+        print(f"  Valid pixels: {record['valid_pixels']:,}")
+        print(f"  NoData pixels: {record['nodata_pixels']:,}")
+        print(f"  Municipality coverage: {record['valid_pixels_by_municipality']}")
+        print(f"  Temperature range: {record['lst_min_c']:.2f} to {record['lst_max_c']:.2f} °C")
+        print(f"  GeoTIFF: {record['files']['geotiff']}")
+        print(f"  Sharp PNG: {record['files']['png']}")
+        print(f"  Glow PNG: {record['files']['glow_png']}")
         return 0
     except Exception as exc:
         print(f"ERROR: {exc}")

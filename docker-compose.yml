@@ -11,7 +11,11 @@
       - geosense_postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-geosense}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-geosense}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,6 +28,24 @@
     restart: unless-stopped
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - ./.env:/.env:ro
+      - ${USERPROFILE}/.config/earthengine:/root/.config/earthengine:ro
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+
+  scheduler:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: geosense-scheduler
+    restart: unless-stopped
+    command: ["python", "scripts/scheduler.py", "--aqi-only"]
     depends_on:
       db:
         condition: service_healthy
@@ -49,6 +71,7 @@
       - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000
+      - VITE_MAPBOX_TOKEN=${VITE_MAPBOX_TOKEN:-}
 
 volumes:
   geosense_postgres_data:

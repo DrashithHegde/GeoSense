@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from shapely.geometry import mapping, shape
+from shapely.ops import unary_union
 
 
 class MunicipalityBoundaryError(RuntimeError):
@@ -69,3 +70,20 @@ def load_municipality_boundaries() -> tuple[dict[str, Any], ...]:
             raise MunicipalityBoundaryError(f"Unable to read boundary asset {path}: {exc}") from exc
         boundaries.append(_feature_from_geojson(payload, municipality_id=municipality_id, path=path))
     return tuple(boundaries)
+
+
+@lru_cache(maxsize=1)
+def load_study_region_geometry():
+    """Return the validated union of the three municipality boundaries in WGS84."""
+    geometry = unary_union([boundary["shapely_geom"] for boundary in load_municipality_boundaries()])
+    if geometry.is_empty or not geometry.is_valid:
+        raise MunicipalityBoundaryError("The municipality study-region union is invalid")
+    return geometry
+
+
+def get_study_region_bounds() -> tuple[float, float, float, float]:
+    """Return west, south, east, north bounds for the municipality union."""
+    west, south, east, north = load_study_region_geometry().bounds
+    if west >= east or south >= north:
+        raise MunicipalityBoundaryError("The municipality study-region bounds are invalid")
+    return float(west), float(south), float(east), float(north)

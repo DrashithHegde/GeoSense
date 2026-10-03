@@ -24,7 +24,8 @@ import BottomBar from "./components/panels/BottomBar";
 // ── HUD ───────────────────────────────────────────────────────────────────
 import HUDCorners from "./components/hud/HUDCorners";
 import StatusBar from "./components/hud/StatusBar";
-import Toast from "./components/hud/Toast"; import ClassificationHeader from "./components/hud/ClassificationHeader";
+import Toast from "./components/hud/Toast";
+import ClassificationHeader from "./components/hud/ClassificationHeader";
 import OrbitalPass from "./components/hud/OrbitalPass";
 import TelemetryOverlay from "./components/hud/TelemetryOverlay";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ export default function App() {
   const { message: toastMsg, phase: toastPhase, show: showToast } = useToast();
 
   // ── City & layer state ───────────────────────────────────────────────────
-  const [activeCity, setActiveCity] = useState(null);   // starts on India overview
+  const [activeCity, setActiveCity] = useState(null); // starts on India overview
   const [activeLayers, setActiveLayers] = useState({
     aqi: true,
     ndvi: false,
@@ -65,8 +66,25 @@ export default function App() {
   const activeCityLabel = activeCity ? CITY_CONFIG[activeCity]?.label : null;
 
   // ── Data Fetching ────────────────────────────────────────────────────────
-  const { zones: liveZones, liveMunicipalities, waterBodies, aqiSurface, ndviSurface, lstSurface, waterHealthSurface, boundary: liveBoundary, loading: zonesLoading, error: zonesError } = useGeoSenseData(activeCity);
-  const { explanationData, explanationLoading, fetchExplanation, clearExplanation } = useZoneExplanation();
+  const {
+    zones: liveZones,
+    liveMunicipalities,
+    waterBodies,
+    aqiSurface,
+    aqiSurfaceStatus,
+    ndviSurface,
+    lstSurface,
+    waterHealthSurface,
+    boundary: liveBoundary,
+    loading: zonesLoading,
+    error: zonesError,
+  } = useGeoSenseData(activeCity);
+  const {
+    explanationData,
+    explanationLoading,
+    fetchExplanation,
+    clearExplanation,
+  } = useZoneExplanation();
 
   // ── Mapbox container ref (used in production) ────────────────────────────
   const mapContainerRef = useRef(null);
@@ -129,7 +147,9 @@ export default function App() {
       lng: city.center[0].toFixed(4),
     });
 
-    showToast(`SCANNING ${city.label.toUpperCase()} // ANOMALY DETECTION ACTIVE`);
+    showToast(
+      `SCANNING ${city.label.toUpperCase()} // ANOMALY DETECTION ACTIVE`,
+    );
 
     // Show layer controls after zoom animation (700ms)
     setTimeout(() => {
@@ -145,12 +165,19 @@ export default function App() {
       setPointAnalysis(zone?.pointAnalysis || null);
     }
     // Use cell-level ID (from spatial_cells) for explanation when available
-    const resolvedId = analysisData?.cell?.id || zone?.pointAnalysis?.cell?.id || zone.id;
-    if (resolvedId && !String(resolvedId).startsWith("mum-") && !String(resolvedId).startsWith("blr-") && !String(resolvedId).startsWith("del-")) {
+    const resolvedId =
+      analysisData?.cell?.id || zone?.pointAnalysis?.cell?.id || zone.id;
+    if (
+      resolvedId &&
+      !String(resolvedId).startsWith("mum-") &&
+      !String(resolvedId).startsWith("blr-") &&
+      !String(resolvedId).startsWith("del-")
+    ) {
       // Real backend zone / cell ID
-      const pixelLst = analysisData?.pixel?.lst?.value_c
-        ?? zone?.pointAnalysis?.pixel?.lst?.value_c
-        ?? (zone.pixelLST && !zone.pixelLST.nodata ? zone.pixelLST.value_c : null);
+      const pixelLst =
+        analysisData?.pixel?.lst?.value_c ??
+        zone?.pointAnalysis?.pixel?.lst?.value_c ??
+        (zone.pixelLST && !zone.pixelLST.nodata ? zone.pixelLST.value_c : null);
       fetchExplanation(resolvedId, pixelLst);
     } else {
       // Placeholder UI zone - no real backend data
@@ -158,9 +185,10 @@ export default function App() {
     }
     setInsightOpen(true);
     setDeepAnalysisOpen(false);
-    const muniName = analysisData?.municipality?.name
-      || zone?.pointAnalysis?.municipality?.name
-      || zone.name;
+    const muniName =
+      analysisData?.municipality?.name ||
+      zone?.pointAnalysis?.municipality?.name ||
+      zone.name;
     showToast(`LOCATION SCANNED // ${muniName.toUpperCase()}`);
   }
 
@@ -183,12 +211,36 @@ export default function App() {
     setDeepAnalysisOpen(false);
   }
 
-  const handleLayerToggle = useCallback((layerId) => {
-    setActiveLayers((prev) => {
-      if (layerId === "all") {
-        const isCurrentlyActive = prev.all;
+  const handleLayerToggle = useCallback(
+    (layerId) => {
+      setActiveLayers((prev) => {
+        if (layerId === "all") {
+          const isCurrentlyActive = prev.all;
+          if (isCurrentlyActive) {
+            // Toggle off all layers
+            return {
+              aqi: false,
+              ndvi: false,
+              water_health: false,
+              lst: false,
+              all: false,
+            };
+          } else {
+            // Toggle on all layers
+            return {
+              aqi: true,
+              ndvi: true,
+              water_health: true,
+              lst: true,
+              all: true,
+            };
+          }
+        }
+
+        // Individual layer toggle: if already active, turn it off; otherwise activate it
+        const isCurrentlyActive = prev[layerId] && !prev.all;
         if (isCurrentlyActive) {
-          // Toggle off all layers
+          // Toggle off — show base map only
           return {
             aqi: false,
             ndvi: false,
@@ -197,44 +249,23 @@ export default function App() {
             all: false,
           };
         } else {
-          // Toggle on all layers
+          // Toggle on — single-select
           return {
-            aqi: true,
-            ndvi: true,
-            water_health: true,
-            lst: true,
-            all: true,
+            aqi: layerId === "aqi",
+            ndvi: layerId === "ndvi",
+            water_health: layerId === "water_health",
+            lst: layerId === "lst",
+            all: false,
           };
         }
-      }
+      });
 
-      // Individual layer toggle: if already active, turn it off; otherwise activate it
-      const isCurrentlyActive = prev[layerId];
-      if (isCurrentlyActive) {
-        // Toggle off — show base map only
-        return {
-          aqi: false,
-          ndvi: false,
-          water_health: false,
-          lst: false,
-          all: false,
-        };
-      } else {
-        // Toggle on — single-select
-        return {
-          aqi: layerId === "aqi",
-          ndvi: layerId === "ndvi",
-          water_health: layerId === "water_health",
-          lst: layerId === "lst",
-          all: false,
-        };
-      }
-    });
-
-    const layerLabel = LAYER_CONFIG[layerId]?.label || "Layer";
-    const action = activeLayers[layerId] ? "DEACTIVATED" : "ACTIVATED";
-    showToast(`${layerLabel.toUpperCase()} LAYER ${action}`);
-  }, [showToast, activeLayers]);
+      const layerLabel = LAYER_CONFIG[layerId]?.label || "Layer";
+      const action = activeLayers[layerId] ? "DEACTIVATED" : "ACTIVATED";
+      showToast(`${layerLabel.toUpperCase()} LAYER ${action}`);
+    },
+    [showToast, activeLayers],
+  );
 
   // Prevent browser-level zoom (Ctrl/Cmd + wheel / +/- / 0)
   // so only the map surface performs zoom interactions.
@@ -252,7 +283,9 @@ export default function App() {
       }
     };
 
-    window.addEventListener("wheel", preventBrowserWheelZoom, { passive: false });
+    window.addEventListener("wheel", preventBrowserWheelZoom, {
+      passive: false,
+    });
     window.addEventListener("keydown", preventBrowserKeyZoom);
 
     return () => {
@@ -278,13 +311,20 @@ export default function App() {
       <div className="grain" />
 
       {/* ── Real Mapbox map container ───────────────────────────────────── */}
-      <div ref={mapContainerRef} style={{ position: "absolute", inset: 0, zIndex: 0 }} />
+      <div
+        ref={mapContainerRef}
+        style={{ position: "absolute", inset: 0, zIndex: 0 }}
+      />
 
       {/* ── Satellite circular mask overlays ─────────────────────────────── */}
       {(activeCity || isLeavingCity) && (
         <div
           className="satellite-mask"
-          style={isLeavingCity ? { animation: "fadeOutMask 0.7s ease-in-out forwards" } : { animation: "fadeInMask 0.7s ease-in-out forwards" }}
+          style={
+            isLeavingCity
+              ? { animation: "fadeOutMask 0.7s ease-in-out forwards" }
+              : { animation: "fadeInMask 0.7s ease-in-out forwards" }
+          }
         />
       )}
 
@@ -308,6 +348,7 @@ export default function App() {
             <LayerControls
               activeLayers={activeLayers}
               onToggleLayer={handleLayerToggle}
+              aqiSurfaceStatus={aqiSurfaceStatus}
             />
           )}
 
@@ -336,6 +377,11 @@ export default function App() {
           <BottomBar
             activeCity={activeCity}
             onSelectCity={handleCitySelect}
+            activeLayers={activeLayers}
+            ndviSurface={ndviSurface}
+            waterHealthSurface={waterHealthSurface}
+            aqiSurface={aqiSurface}
+            lstSurface={lstSurface}
           />
         </>
       )}
@@ -353,9 +399,7 @@ export default function App() {
       )}
 
       {/* ── Status bar ───────────────────────────────────────────────────── */}
-      {panelsVisible && (
-        <StatusBar activeCity={activeCity} recTime={recTime} />
-      )}
+      {panelsVisible && <StatusBar activeCity={activeCity} recTime={recTime} />}
     </div>
   );
 }

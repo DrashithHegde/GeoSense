@@ -198,6 +198,14 @@ def _safe_surface_asset(surface: dict, key: str) -> str | None:
     return filename
 
 
+def _versioned_water_health_asset(surface: dict, filename: str, checksum_key: str) -> str:
+    """Give overwritten Water Health PNG paths a content-versioned URL."""
+    checksum = (surface.get("checksums") or {}).get(checksum_key)
+    if not isinstance(checksum, str) or not checksum:
+        checksum = str(surface.get("generated_at") or "current")
+    return f"/surface-assets/{filename}?v={checksum}"
+
+
 @router.get("/surfaces/ndvi/latest")
 async def get_latest_ndvi_surface():
     """Return metadata for the latest real Sentinel-2 NDVI image surface."""
@@ -269,10 +277,20 @@ async def get_latest_lst_surface():
         if not isinstance(filename, str) or not filename or ".." in filename.replace("\\", "/").split("/"):
             raise HTTPException(status_code=503, detail="LST surface manifest contains an unsafe file path")
 
+    checksums = surface.get("checksums") or {}
+    png_version = checksums.get("png_sha256")
+    glow_version = checksums.get("glow_png_sha256")
+    png_url = f"/surface-assets/lst/{png_filename}"
+    glow_url = f"/surface-assets/lst/{glow_filename}"
+    if isinstance(png_version, str) and png_version:
+        png_url = f"{png_url}?v={png_version}"
+    if isinstance(glow_version, str) and glow_version:
+        glow_url = f"{glow_url}?v={glow_version}"
+
     response = {
         "metric": surface["metric"],
-        "image_url": f"/surface-assets/lst/{png_filename}",
-        "glow_url": f"/surface-assets/lst/{glow_filename}",
+        "image_url": png_url,
+        "glow_url": glow_url,
         "coordinates": surface["coordinates"],
         "generated_at": surface["generated_at"],
         "source_timestamp": surface["timestamp"],
@@ -286,6 +304,7 @@ async def get_latest_lst_surface():
         "lst_mean_c": surface["lst_mean_c"],
         "lst_median_c": surface["lst_median_c"],
         "glow_threshold_c": surface["glow_threshold_c"],
+        "visualization": surface.get("visualization"),
         "nodata": True,
         "nodata_semantics": "transparent",
         "valid_pixels": surface["valid_pixels"],
@@ -309,12 +328,21 @@ async def get_latest_water_health_surface():
     if not sharp_rel:
         raise HTTPException(status_code=503, detail="Water Health surface manifest contains an unsafe PNG path")
 
+    checksums = surface.get("checksums") or {}
+    sharp_url = _versioned_water_health_asset(
+        surface,
+        sharp_rel,
+        "sharp_png_sha256" if checksums.get("sharp_png_sha256") else "png_sha256",
+    )
+    glow_url = _versioned_water_health_asset(surface, glow_rel, "glow_png_sha256") if glow_rel else None
+    halo_url = _versioned_water_health_asset(surface, halo_rel, "halo_png_sha256") if halo_rel else None
+
     response = {
         "metric": surface["metric"],
-        "image_url": f"/surface-assets/{sharp_rel}",
-        "sharp_url": f"/surface-assets/{sharp_rel}",
-        "glow_url":  f"/surface-assets/{glow_rel}" if glow_rel else None,
-        "halo_url":  f"/surface-assets/{halo_rel}" if halo_rel else None,
+        "image_url": sharp_url,
+        "sharp_url": sharp_url,
+        "glow_url": glow_url,
+        "halo_url": halo_url,
         "coordinates": surface["mapbox_coordinates"],
         "generated_at": surface["generated_at"],
         "source_timestamp": surface.get("source_timestamp"),

@@ -6,7 +6,7 @@ IDW estimates rather than monitoring-station observations.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -28,14 +28,20 @@ if _RASTERIO_PROJ_DATA.is_dir():
     os.environ["PROJ_LIB"] = str(_RASTERIO_PROJ_DATA)
     os.environ["PROJ_DATA"] = str(_RASTERIO_PROJ_DATA)
 import rasterio
+from rasterio.features import geometry_mask
 from rasterio.transform import from_bounds
+from shapely.geometry import mapping
 
+from app.services.municipality_boundaries import (
+    get_study_region_bounds,
+    load_municipality_boundaries,
+    load_study_region_geometry,
+)
 from openaq.derive_aqi_grid import idw_estimate
 
 
-# OpenAQ's existing MMR discovery extent.  This is a presentation extent, not
-# a municipal mask or a replacement for the 189 analytical zones.
-PRESENTATION_BOUNDS = (72.77, 18.89, 73.12, 19.40)  # west, south, east, north
+# Compatibility name retained, now bound to the shared municipality union.
+PRESENTATION_BOUNDS = get_study_region_bounds()
 DEFAULT_WIDTH = 160
 DEFAULT_HEIGHT = 240
 DEFAULT_K = 4
@@ -55,7 +61,7 @@ MANIFEST_PATH = SURFACE_ROOT / "manifest.json"
 
 @dataclass(frozen=True)
 class AqiSurfaceConfig:
-    bounds: tuple[float, float, float, float] = PRESENTATION_BOUNDS
+    bounds: tuple[float, float, float, float] = field(default_factory=get_study_region_bounds)
     width: int = DEFAULT_WIDTH
     height: int = DEFAULT_HEIGHT
     k: int = DEFAULT_K
@@ -115,9 +121,19 @@ def generate_aqi_grid(
     grid = np.full((config.height, config.width), NODATA_VALUE, dtype=np.float32)
     lon_step = (east - west) / config.width
     lat_step = (north - south) / config.height
+    transform = from_bounds(*config.bounds, config.width, config.height)
+    union_mask = geometry_mask(
+        [mapping(load_study_region_geometry())],
+        out_shape=grid.shape,
+        transform=transform,
+        invert=True,
+        all_touched=False,
+    )
     for row in range(config.height):
         lat = north - (row + 0.5) * lat_step
         for col in range(config.width):
+            if not union_mask[row, col]:
+                continue
             lon = west + (col + 0.5) * lon_step
             estimate = estimate_pixel_aqi(lat=lat, lon=lon, station_points=stations, config=config)
             if estimate is not None and math.isfinite(estimate):
@@ -126,11 +142,12 @@ def generate_aqi_grid(
 
 
 def _interpolate_color(value: float) -> tuple[int, int, int]:
-    """AQI colours follow the existing GeoSense AQI stress ramp."""
+    """Interpolate the presentation color ramp for the CPCB AQI raster."""
     stops = (
-        (0.0, (29, 209, 161)), (140.0, (255, 211, 42)),
-        (225.0, (255, 140, 0)), (345.0, (255, 59, 59)),
-        (420.0, (143, 63, 151)), (500.0, (126, 0, 35)),
+        (0.0, (0, 166, 81)), (50.0, (0, 166, 81)),
+        (100.0, (163, 190, 45)), (200.0, (247, 190, 50)),
+        (300.0, (232, 75, 43)), (400.0, (135, 20, 36)),
+        (500.0, (65, 0, 26)),
     )
     value = max(0.0, min(500.0, value))
     for (left, c0), (right, c1) in zip(stops, stops[1:]):
@@ -190,6 +207,16 @@ def generate_aqi_surface(
     generated_at = datetime.now(timezone.utc)
     grid = generate_aqi_grid(stations, config)
     valid = grid != NODATA_VALUE
+    transform = from_bounds(*config.bounds, config.width, config.height)
+    union_mask = geometry_mask(
+        [mapping(load_study_region_geometry())],
+        out_shape=grid.shape,
+        transform=transform,
+        invert=True,
+        all_touched=False,
+    )
+    if np.any(valid & ~union_mask):
+        raise ValueError("AQI raster contains valid pixels outside the municipality union")
     if not valid.any():
         raise ValueError(
             "AQI surface has no supported pixels: insufficient eligible real stations "
@@ -200,7 +227,18 @@ def generate_aqi_surface(
     stamp = source_timestamp.strftime("%Y%m%dT%H%M%SZ")
     tif_path = output_aqi_root / f"aqi_{stamp}.tif"
     png_path = output_aqi_root / f"aqi_{stamp}.png"
-    transform = from_bounds(*config.bounds, config.width, config.height)
+    municipality_coverage = {
+        municipality["name"]: int(np.count_nonzero(
+            valid & geometry_mask(
+                [municipality["geojson"]],
+                out_shape=grid.shape,
+                transform=transform,
+                invert=True,
+                all_touched=False,
+            )
+        ))
+        for municipality in load_municipality_boundaries()
+    }
 
     # PostgreSQL/PostGIS can set PROJ_LIB globally on Windows.  Rasterio needs
     # its own compatible database; scope this override to raster creation.
@@ -215,7 +253,7 @@ def generate_aqi_surface(
                 metric="aqi", methodology=METHODOLOGY,
                 generated_at=generated_at.isoformat(), source_timestamp=source_timestamp.isoformat(),
                 idw_power=str(config.power), max_interpolation_distance_m=str(config.max_interpolation_distance_m),
-                nodata_semantics="No station support; not zero or healthy AQI",
+                nodata_semantics="No station support or outside the municipality union; not zero or healthy AQI",
             )
     Image.fromarray(grid_to_rgba(grid), mode="RGBA").save(png_path)
 
@@ -237,7 +275,9 @@ def generate_aqi_surface(
         "mapbox_coordinates": mapbox_coordinates(config.bounds),
         "width": config.width, "height": config.height,
         "pixel_size_degrees": {"longitude": (east - west) / config.width, "latitude": (north - south) / config.height},
-        "nodata_value": NODATA_VALUE, "nodata_semantics": "transparent; no eligible station support within configured IDW distance",
+        "nodata_value": NODATA_VALUE,
+        "nodata_semantics": "transparent; no eligible station support or outside the municipality union",
+        "study_region": {"municipalities": list(municipality_coverage), "valid_pixels": municipality_coverage},
         "valid_pixels": int(valid.sum()), "nodata_pixels": int((~valid).sum()),
         "valid_pixel_percent": round(float(valid.mean() * 100), 3),
         "aqi_statistics": {"min": float(values.min()) if values.size else None,
