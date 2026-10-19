@@ -161,7 +161,7 @@ def run_ingest(start_date: str, end_date: str) -> Dict:
                     """
                 ),
                 {
-                    "z": zid,
+                    "c": zid,
                     "obs": observed_at,
                     "lst": lst_val,
                     "metadata": metadata_payload("lst", metadata_context),

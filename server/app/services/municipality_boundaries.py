@@ -74,8 +74,16 @@ def load_municipality_boundaries() -> tuple[dict[str, Any], ...]:
 
 @lru_cache(maxsize=1)
 def load_study_region_geometry():
-    """Return the validated union of the three municipality boundaries in WGS84."""
+    """Return the validated union of the three municipality boundaries in WGS84, filling any holes (e.g. SGNP)."""
     geometry = unary_union([boundary["shapely_geom"] for boundary in load_municipality_boundaries()])
+    
+    # Fill holes in the union to include enclaves like Sanjay Gandhi National Park
+    from shapely.geometry import Polygon, MultiPolygon
+    if geometry.geom_type == 'Polygon':
+        geometry = Polygon(geometry.exterior)
+    elif geometry.geom_type == 'MultiPolygon':
+        geometry = MultiPolygon([Polygon(p.exterior) for p in geometry.geoms])
+        
     if geometry.is_empty or not geometry.is_valid:
         raise MunicipalityBoundaryError("The municipality study-region union is invalid")
     return geometry

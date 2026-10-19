@@ -95,11 +95,12 @@ export const LAYER_CONFIG = {
     desc: "Combined multi-metric overlay",
     gradient: {
       0.0: "rgba(0,0,0,0)",
-      0.15: "rgba(29,209,161,0.6)",
-      0.35: "rgba(255,211,42,0.75)",
-      0.6: "rgba(255,140,0,0.85)",
-      0.85: "rgba(255,59,59,0.95)",
-      1.0: "rgba(255,255,255,0.9)",
+      0.2: "#00E400", // Green
+      0.45: "#FFFF00", // Light Green
+      0.6: "#FF7E00", // Orange
+      0.8: "#FF0000", // Red
+      0.9: "#8F3F97", // Purple
+      1.0: "#7E0023", // Maroon
     },
     blobColors: [
       "rgba(255,59,59,0.30)",

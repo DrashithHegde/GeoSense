@@ -25,7 +25,7 @@ from openaq.derive_aqi_grid import (
     collect_station_aqi_points,
     run_openaq_derivation as run_derivation,
 )
-from app.services.surfaces.aqi_surface import AqiSurfaceConfig, generate_aqi_surface
+from app.services.surfaces.aqi_surface import generate_aqi_surface
 from gee.ingest_lst import COMPOSITE_WINDOW_DAYS as LST_WINDOW_DAYS
 from gee.ingest_lst import run_ingest as run_lst_ingest
 from app.services.surfaces.lst_surface import generate_lst_surface
@@ -62,14 +62,11 @@ def run_aqi_cycle() -> dict:
     # Derived surface failure must never invalidate the canonical raw/zone AQI
     # ingestion that already succeeded.  It is retried at the next AQI cycle.
     try:
+        end = datetime.now(timezone.utc).date()
+        start = end - timedelta(days=14)
         surface = generate_aqi_surface(
-            station_points,
-            source_timestamp=max(point["observed_at"] for point in station_points),
-            config=AqiSurfaceConfig(
-                k=configuration["k"], min_stations=configuration["min_stations"],
-                power=configuration["power"],
-                max_interpolation_distance_m=configuration["max_interp_distance_m"],
-            ),
+            start_date=start.isoformat(),
+            end_date=end.isoformat(),
         )
         surface_result = {"generation_status": "generated", "png": surface["png_filename"]}
     except Exception as exc:

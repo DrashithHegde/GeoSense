@@ -16,6 +16,7 @@ export function useGeoSenseData(activeCity) {
   const [ndviSurface, setNdviSurface] = useState(null);
   const [lstSurface, setLstSurface] = useState(null);
   const [waterHealthSurface, setWaterHealthSurface] = useState(null);
+  const [compositeSurface, setCompositeSurface] = useState(null);
   const [boundary, setBoundary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -39,6 +40,7 @@ export function useGeoSenseData(activeCity) {
       setNdviSurface(null);
       setLstSurface(null);
       setWaterHealthSurface(null);
+      setCompositeSurface(null);
       setLoading(false);
       setError(null);
       return;
@@ -68,6 +70,19 @@ export function useGeoSenseData(activeCity) {
         }
         const data = await res.json();
         setWaterHealthSurface(data);
+        return data;
+      };
+
+      const fetchCompositeSurface = async () => {
+        const res = await fetch(getApiUrl("/api/surfaces/composite/latest"));
+        if (res.status === 404) {
+          return null;
+        }
+        if (!res.ok) {
+          throw new Error(`Composite Surface API error: ${res.status}`);
+        }
+        const data = await res.json();
+        setCompositeSurface(data);
         return data;
       };
 
@@ -123,6 +138,7 @@ export function useGeoSenseData(activeCity) {
           ndviSurfaceRes,
           lstSurfaceRes,
           waterHealthSurfaceData,
+          compositeSurfaceData,
         ] = await Promise.all([
           fetch(getApiUrl("/api/metrics/latest")),
           fetch(getApiUrl("/api/anomalies?days=30&limit=200")),
@@ -133,6 +149,7 @@ export function useGeoSenseData(activeCity) {
           fetch(ndviUrl),
           fetch(getApiUrl("/api/surfaces/lst/latest")),
           fetchWaterHealthSurface(),
+          fetchCompositeSurface(),
         ]);
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -362,6 +379,9 @@ export function useGeoSenseData(activeCity) {
         // ═══════════════════════════════════════════════════════════════════════════
 
         setWaterHealthSurface(waterHealthSurfaceData);
+        if (compositeSurfaceData) {
+          setCompositeSurface(compositeSurfaceData);
+        }
         setBoundary(boundaryData);
         setLoading(false);
       } catch (err) {
@@ -408,6 +428,7 @@ export function useGeoSenseData(activeCity) {
     ndviSurface,
     lstSurface,
     waterHealthSurface,
+    compositeSurface,
     boundary,
     loading,
     error,

@@ -1,4 +1,4 @@
-﻿services:
+services:
   db:
     image: postgis/postgis:16-3.4
     container_name: geosense-postgres
@@ -34,7 +34,7 @@
     volumes:
       - ./server:/app
       - ./.env:/.env:ro
-      - ${USERPROFILE}/.config/earthengine:/root/.config/earthengine:ro
+      - ${USERPROFILE}/.config/earthengine:/root/.config/earthengine
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -63,7 +63,7 @@
     container_name: geosense-client
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5173:5173"
     depends_on:
       - server
     volumes:

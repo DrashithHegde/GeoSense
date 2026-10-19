@@ -173,12 +173,24 @@ async def get_latest_aqi_surface():
         raise HTTPException(status_code=503, detail=f"AQI surface manifest unavailable: {exc}") from exc
     if surface is None:
         raise HTTPException(status_code=404, detail="No generated AQI surface is available")
-    filename = surface.get("png_filename")
-    if not isinstance(filename, str) or not filename or ".." in filename.replace("\\", "/").split("/"):
+
+    sharp_rel = _safe_surface_asset(surface, "sharp_png_filename") or _safe_surface_asset(surface, "png_filename")
+    glow_rel  = _safe_surface_asset(surface, "glow_png_filename")
+    halo_rel  = _safe_surface_asset(surface, "halo_png_filename")
+    if not sharp_rel:
         raise HTTPException(status_code=503, detail="AQI surface manifest contains an unsafe PNG path")
+
+    checksums = surface.get("checksums", {})
+    sharp_v = checksums.get("sharp_png_sha256", surface.get("generated_at", "current"))
+    glow_v = checksums.get("glow_png_sha256", surface.get("generated_at", "current"))
+    halo_v = checksums.get("halo_png_sha256", surface.get("generated_at", "current"))
+
     return {
         "metric": surface["metric"],
-        "image_url": f"/surface-assets/{filename}",
+        "image_url": f"/surface-assets/{sharp_rel}?v={sharp_v}",
+        "sharp_url": f"/surface-assets/{sharp_rel}?v={sharp_v}",
+        "glow_url":  f"/surface-assets/{glow_rel}?v={glow_v}"  if glow_rel  else None,
+        "halo_url":  f"/surface-assets/{halo_rel}?v={halo_v}"  if halo_rel  else None,
         "coordinates": surface["mapbox_coordinates"],
         "generated_at": surface["generated_at"],
         "source_timestamp": surface["source_timestamp"],
@@ -186,8 +198,6 @@ async def get_latest_aqi_surface():
         "interpretation": surface["interpretation"],
         "nodata": True,
         "nodata_semantics": surface["nodata_semantics"],
-        "station_count": surface["station_count"],
-        "idw": surface["idw"],
     }
 
 
@@ -538,23 +548,8 @@ async def get_zone_boundary(db_cm=Depends(get_db)):
 
 @lru_cache(maxsize=1)
 def _mumbai_boundary() -> dict:
-    features = []
-    for query in (
-        "Mumbai City District, Maharashtra, India",
-        "Mumbai Suburban District, Maharashtra, India",
-    ):
-        response = requests.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": query, "format": "geojson", "polygon_geojson": 1, "limit": 1},
-            headers={"User-Agent": "GeoSense/1.0"},
-            timeout=20,
-        )
-        response.raise_for_status()
-        result = response.json().get("features", [])
-        if not result or result[0].get("geometry", {}).get("type") not in {"Polygon", "MultiPolygon"}:
-            raise ValueError(f"No polygon returned for {query}")
-        features.append(result[0])
-    geometry = unary_union([shape(feature["geometry"]) for feature in features])
+    from app.services.municipality_boundaries import load_study_region_geometry
+    geometry = load_study_region_geometry()
     return {"type": "Feature", "geometry": mapping(geometry)}
 
 
@@ -957,6 +952,55 @@ async def get_zone_explanation(zone_id: int, pixel_lst: Optional[float] = None, 
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Evidence assembly failed: {exc}") from exc
+
+
+@router.get("/surfaces/composite/latest")
+async def get_latest_composite_surface():
+    """Return metadata for the latest static composite image surface."""
+    try:
+        import json
+        from pathlib import Path
+        manifest_path = Path(__file__).resolve().parents[3] / "data" / "surfaces" / "manifest.json"
+        if not manifest_path.exists():
+            surface = None
+        else:
+            data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            surface = data.get("surfaces", {}).get("composite")
+            # Inject empty coordinates if missing just in case
+            if surface and "mapbox_coordinates" not in surface:
+                surface["mapbox_coordinates"] = data.get("surfaces", {}).get("lst", {}).get("mapbox_coordinates")
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Composite surface manifest unavailable: {exc}") from exc
+    if surface is None:
+        raise HTTPException(status_code=404, detail="No generated composite surface is available")
+
+    # Use the existing _build_surface_response builder or just raw construct
+    sharp_rel = _safe_surface_asset(surface, "sharp_png_filename") or _safe_surface_asset(surface, "png_filename")
+    glow_rel  = _safe_surface_asset(surface, "glow_png_filename")
+    halo_rel  = _safe_surface_asset(surface, "halo_png_filename")
+    
+    if not sharp_rel:
+        raise HTTPException(status_code=503, detail="Composite surface manifest contains an unsafe PNG path")
+
+    checksums = surface.get("checksums", {})
+    sharp_v = checksums.get("sharp_png_sha256", surface.get("generated_at", "current"))
+    glow_v = checksums.get("glow_png_sha256", surface.get("generated_at", "current"))
+    halo_v = checksums.get("halo_png_sha256", surface.get("generated_at", "current"))
+
+    return {
+        "metric": surface["metric"],
+        "image_url": f"/surface-assets/{sharp_rel}?v={sharp_v}",
+        "sharp_url": f"/surface-assets/{sharp_rel}?v={sharp_v}",
+        "glow_url":  f"/surface-assets/{glow_rel}?v={glow_v}"  if glow_rel  else None,
+        "halo_url":  f"/surface-assets/{halo_rel}?v={halo_v}"  if halo_rel  else None,
+        "coordinates": surface["mapbox_coordinates"],
+        "generated_at": surface["generated_at"],
+        "source_timestamp": surface.get("source_timestamp", surface["generated_at"]),
+        "methodology": "Composite of AQI, LST, NDVI, NDWI",
+        "interpretation": "Impact score 0-1",
+        "nodata": True,
+        "nodata_semantics": "transparent outside city",
+    }
 
 
 @router.get("/health")

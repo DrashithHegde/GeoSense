@@ -1,21 +1,26 @@
 import { CITY_CONFIG } from "../../constants/cities";
 
 const AQI_COLORS = {
-  good: "#00a651",
-  satisfactory: "#a3be2d",
-  moderate: "#f7be32",
-  poor: "#e84b2b",
-  veryPoor: "#871424",
-  severe: "#41001a",
+  good: "#00A859",
+  satisfactory: "#8CC63F",
+  moderate: "#FFF200",
+  poor: "#F7931E",
+  veryPoor: "#ED1C24",
+  severe: "#9E0B0F",
 };
 
 const AQI_COLOR_STOPS = [
   { value: 0, color: AQI_COLORS.good },
   { value: 50, color: AQI_COLORS.good },
+  { value: 50, color: AQI_COLORS.satisfactory },
   { value: 100, color: AQI_COLORS.satisfactory },
+  { value: 100, color: AQI_COLORS.moderate },
   { value: 200, color: AQI_COLORS.moderate },
+  { value: 200, color: AQI_COLORS.poor },
   { value: 300, color: AQI_COLORS.poor },
+  { value: 300, color: AQI_COLORS.veryPoor },
   { value: 400, color: AQI_COLORS.veryPoor },
+  { value: 400, color: AQI_COLORS.severe },
   { value: 500, color: AQI_COLORS.severe },
 ];
 

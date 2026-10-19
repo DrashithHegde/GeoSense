@@ -75,6 +75,7 @@ export default function App() {
     ndviSurface,
     lstSurface,
     waterHealthSurface,
+    compositeSurface,
     boundary: liveBoundary,
     loading: zonesLoading,
     error: zonesError,
@@ -102,7 +103,9 @@ export default function App() {
     ndviSurface,
     lstSurface,
     waterHealthSurface,
+    compositeSurface,
     boundary: liveBoundary,
+    zones: liveZones,
   });
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -164,9 +167,12 @@ export default function App() {
     } else {
       setPointAnalysis(zone?.pointAnalysis || null);
     }
-    // Use cell-level ID (from spatial_cells) for explanation when available
+    // Explanations (Isolation Forest + LLM) are run at the zone/municipality level, not the 300m cell level.
     const resolvedId =
-      analysisData?.cell?.id || zone?.pointAnalysis?.cell?.id || zone.id;
+      analysisData?.municipality?.id || 
+      zone?.pointAnalysis?.municipality?.id || 
+      zone?.municipality_id || 
+      zone.id;
     if (
       resolvedId &&
       !String(resolvedId).startsWith("mum-") &&

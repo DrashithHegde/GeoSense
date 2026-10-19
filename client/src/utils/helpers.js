@@ -376,6 +376,8 @@ export function buildZonesGeoJSON(zones) {
   return { type: "FeatureCollection", features };
 }
 
+
+
 export function buildMunicipalitiesGeoJSON(municipalities) {
   if (!municipalities || municipalities.length === 0) {
     return { type: "FeatureCollection", features: [] };

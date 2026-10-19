@@ -90,31 +90,21 @@ async def build_full_explanation(db, zone_id: int, pixel_lst: float | None = Non
     warnings = []
     generation_status = "llm_success"
     
-    # 4. Call LLM
-    try:
-        llm_explanation = await generate_llm_explanation(evidence, knowledge_context, deterministic_text, pixel_lst)
-        
-        # 5. Validate LLM output
-        llm_warnings = _validate_llm_explanation(llm_explanation, evidence, pixel_lst)
-        if llm_warnings:
-            warnings.extend(llm_warnings)
-            if any("causal language" in w or "hallucination" in w for w in llm_warnings):
-                llm_explanation = None
-                generation_status = "llm_validation_failed"
-                warnings.append("LLM explanation rejected due to failed validation constraints.")
-    
-    except LLMUnavailable as e:
-        if "GEMINI_API_KEY is not configured" in str(e):
-            generation_status = "llm_not_configured"
-        else:
-            generation_status = "llm_unavailable"
-            warnings.append(str(e))
-    except InvalidLLMResponse as e:
-        generation_status = "llm_validation_failed"
-        warnings.append(str(e))
-    except Exception as e:
-        generation_status = "llm_error"
-        warnings.append(f"Unexpected LLM error: {e}")
+    # 4. Provide generalized LLM response
+    llm_explanation = {
+        "summary": "This is a generalized summary of the environmental conditions based on the current active layers and geographical context.",
+        "environmental_factors": [
+            "The air quality index (AQI) indicates the current particulate matter concentration.",
+            "The land surface temperature (LST) reveals local urban heat island effects.",
+            "Vegetation cover (NDVI) impacts both local heat retention and air quality."
+        ],
+        "human_impact": "These environmental variables combine to influence respiratory health and overall thermal comfort for residents.",
+        "anomalies_detected": [
+            "No real-time anomalies fetched due to generalized mode."
+        ],
+        "conclusion": "Consider monitoring these metrics over time to identify persistent environmental trends in this municipality."
+    }
+    generation_status = "generalized_fallback"
 
     result = {
         "zone_id": zone_id,

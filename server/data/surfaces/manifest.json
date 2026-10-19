@@ -1,5 +1,117 @@
 {
   "surfaces": {
+    "aqi": {
+      "bounds": {
+        "east": 73.08033428851769,
+        "north": 19.330088420868186,
+        "south": 18.89008640818417,
+        "west": 72.77033287049032
+      },
+      "checksums": {
+        "geotiff_sha256": "f90ee0215e2e822e2438b69103d98c4e499507277af3817bb0c37f6367fc081c",
+        "glow_png_sha256": "48ca6e74f5d39eee23453ee2790d1bd1e1cad9eedd112064c38a860727a6d37e",
+        "halo_png_sha256": "22eff530124b18ab4b5521104ab1815050caf418b1ed12345819c8d9bcc77ac8",
+        "png_sha256": "94a47a102db2d0980e3db932b87358c985abc0eb98d966eaf6c3cc71f3720ff3",
+        "sharp_png_sha256": "94a47a102db2d0980e3db932b87358c985abc0eb98d966eaf6c3cc71f3720ff3"
+      },
+      "coordinates": [
+        [
+          72.77033287049032,
+          19.330088420868186
+        ],
+        [
+          73.08033428851769,
+          19.330088420868186
+        ],
+        [
+          73.08033428851769,
+          18.89008640818417
+        ],
+        [
+          72.77033287049032,
+          18.89008640818417
+        ]
+      ],
+      "crs": "EPSG:4326",
+      "dataset": "COPERNICUS/S5P/NRTI/L3_NO2",
+      "files": {
+        "geotiff": "aqi_20261007T000000Z.tif",
+        "glow_png": "aqi_20261007T000000Z_glow.png",
+        "halo_png": "aqi_20261007T000000Z_halo.png",
+        "png": "aqi_20261007T000000Z.png",
+        "sharp_png": "aqi_20261007T000000Z.png"
+      },
+      "generated_at": "2026-10-08T09:14:59.898858+00:00",
+      "generation_status": "generated",
+      "geotiff_filename": "aqi/aqi_20261007T000000Z.tif",
+      "glow_png_filename": "aqi/aqi_20261007T000000Z_glow.png",
+      "halo_png_filename": "aqi/aqi_20261007T000000Z_halo.png",
+      "height": 44,
+      "image_count": 441,
+      "images_found": 441,
+      "interpretation": "Sentinel-5P NO2 column number density converted to an AQI proxy score (0-500).",
+      "mapbox_coordinates": [
+        [
+          72.77033287049032,
+          19.330088420868186
+        ],
+        [
+          73.08033428851769,
+          19.330088420868186
+        ],
+        [
+          73.08033428851769,
+          18.89008640818417
+        ],
+        [
+          72.77033287049032,
+          18.89008640818417
+        ]
+      ],
+      "methodology": "Sentinel-5P NO2 proxy AQI composite",
+      "metric": "aqi",
+      "nodata": true,
+      "nodata_pixels": 0,
+      "nodata_semantics": "transparent; no valid satellite AQI pixel; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries",
+      "nodata_value": -9999.0,
+      "pixel_size_degrees": {
+        "latitude": 0.010000045742818531,
+        "longitude": 0.010000045742818353
+      },
+      "png_filename": "aqi/aqi_20261007T000000Z.png",
+      "preprocessing": {
+        "composite": "median",
+        "window_days": 14
+      },
+      "scale_m": 1113.2,
+      "semantic_label": "AQI Proxy \u00b7 Air Quality",
+      "sharp_png_filename": "aqi/aqi_20261007T000000Z.png",
+      "source": "Google Earth Engine / Sentinel-5P",
+      "source_period": {
+        "end": "2026-10-07",
+        "start": "2026-09-23"
+      },
+      "source_scale_m": 1113.2,
+      "source_timestamp": "2026-10-07T00:00:00+00:00",
+      "timestamp": "20261007T000000Z",
+      "valid_pixel_percent": 100.0,
+      "valid_pixels": 1364,
+      "width": 31
+    },
+    "composite": {
+      "checksums": {
+        "glow_png_sha256": "903536095e52a833354dc2cf2f2b15a705cef9211fd05f263b95026ac3ab231f",
+        "halo_png_sha256": "8df05025d6dc8af5c9690048b7794158191c0317a6a0e6005b0f5bb7298e64d6",
+        "sharp_png_sha256": "4302f27825ffae4340324667ef2e75b492c7c351234957db850f52b10ed27d38"
+      },
+      "generated_at": "2026-10-08T09:37:35.499183+00:00",
+      "generation_status": "generated",
+      "glow_png_filename": "composite/composite_20261008T093734Z_glow.png",
+      "halo_png_filename": "composite/composite_20261008T093734Z_halo.png",
+      "metric": "composite",
+      "png_filename": "composite/composite_20261008T093734Z.png",
+      "sharp_png_filename": "composite/composite_20261008T093734Z.png"
+    },
     "lst": {
       "bounds": {
         "east": 73.07722971089579,
@@ -8,9 +120,9 @@
         "west": 72.7729703241645
       },
       "checksums": {
-        "geotiff_sha256": "678457338dc8faf6c1bd8165efe987e2417ec0bcc3a1a613ddaf306042695c2d",
-        "glow_png_sha256": "fabce8bfe102598559d8c12569a1ec9e586a2380c81ca4a81511600d759c887d",
-        "png_sha256": "74bbe3aca5d11af2d5270ffbfc99166b26619220834e8dfddcdab9ccc6b56ead"
+        "geotiff_sha256": "a2bc59fe2899f6cee25593f805428288639396218ce2b43047b4060c2bc317cd",
+        "glow_png_sha256": "77d876fc1e25b3aabb47e11eae41cf8eabb0e4d6106a0727ac661e8ec402c170",
+        "png_sha256": "85c1b2825bbda7b048e14492b56263fa375dcc40c24e642dff8b532201398d7c"
       },
       "coordinates": [
         [
@@ -32,36 +144,36 @@
       ],
       "dataset": "LANDSAT/LC08/C02/T1_L2 + LANDSAT/LC09/C02/T1_L2",
       "files": {
-        "geotiff": "lst_20260930T000000Z.tif",
-        "glow_png": "lst_20260930T000000Z_glow.png",
-        "png": "lst_20260930T000000Z.png"
+        "geotiff": "lst_20261007T000000Z.tif",
+        "glow_png": "lst_20261007T000000Z_glow.png",
+        "png": "lst_20261007T000000Z.png"
       },
-      "generated_at": "2026-09-30T09:19:29.532879+00:00",
-      "glow_threshold_c": 40.58,
-      "image_count": 4,
-      "lst_max_c": 51.03,
-      "lst_mean_c": 35.08,
-      "lst_median_c": 35.23,
-      "lst_min_c": -1.23,
+      "generated_at": "2026-10-07T19:39:51.081325+00:00",
+      "glow_threshold_c": 40.02,
+      "image_count": 8,
+      "lst_max_c": 52.04,
+      "lst_mean_c": 34.32,
+      "lst_median_c": 34.37,
+      "lst_min_c": -14.56,
       "methodology": "Landsat 8/9 Collection 2 Level-2 median composite LST",
       "metric": "lst",
       "nodata": true,
-      "nodata_pixels": 1262155,
+      "nodata_pixels": 1102950,
       "nodata_value": -9999.0,
       "scale_m": 30,
       "source_period": {
         "days": 45,
-        "end": "2026-09-30",
-        "start": "2026-08-16"
+        "end": "2026-10-07",
+        "start": "2026-08-23"
       },
-      "timestamp": "20260930T000000Z",
+      "timestamp": "20261007T000000Z",
       "total_pixels": 1827851,
       "unit": "celsius",
-      "valid_pixels": 565696,
+      "valid_pixels": 724901,
       "valid_pixels_by_municipality": {
-        "Mira-Bhayandar": 86978,
-        "Mumbai": 385561,
-        "Thane": 94291
+        "Mira-Bhayandar": 93918,
+        "Mumbai": 484473,
+        "Thane": 147853
       },
       "visualization": {
         "color_stops": [
@@ -69,37 +181,37 @@
             "color": "#2563eb",
             "label": "Cool",
             "position": 0.0,
-            "temperature_c": -1.2
+            "temperature_c": -14.6
           },
           {
             "color": "#06b6d4",
             "label": "Cool",
             "position": 0.2,
-            "temperature_c": 9.2
+            "temperature_c": -1.2
           },
           {
             "color": "#facc15",
             "label": "Moderate",
             "position": 0.45,
-            "temperature_c": 22.3
+            "temperature_c": 15.4
           },
           {
             "color": "#f97316",
             "label": "Hot",
             "position": 0.7,
-            "temperature_c": 35.4
+            "temperature_c": 32.1
           },
           {
             "color": "#ef4444",
             "label": "Very hot",
             "position": 0.88,
-            "temperature_c": 44.8
+            "temperature_c": 44.0
           },
           {
             "color": "#7f1d1d",
             "label": "Very hot",
             "position": 1.0,
-            "temperature_c": 51.0
+            "temperature_c": 52.0
           }
         ],
         "glow_smoothing_sigma_pixels": 1.4,
@@ -116,11 +228,11 @@
         "west": 72.77314998722132
       },
       "checksums": {
-        "geotiff_sha256": "8449ddd1d3c1d1fa69b16d5b59c0551da1d96b65728090539289f526f66e67ab",
-        "glow_png_sha256": "e456c34373891b0916c0cf880f0823ef33eb2b8a64cec0b41cda02435c62d572",
-        "halo_png_sha256": "6a1c5477bfe89d852abbb7d0eff3950bf6abe2064907b6c9c1d7ef339516fa21",
-        "png_sha256": "40ebeb3daac6016961956c83c6cdc3642f4f7492199c1f33297f43c7f0eb05d1",
-        "sharp_png_sha256": "40ebeb3daac6016961956c83c6cdc3642f4f7492199c1f33297f43c7f0eb05d1"
+        "geotiff_sha256": "39ba1190aabc2f9d3364e81e12cc3c4c15834791d9fe37378ef7759b374b0a4a",
+        "glow_png_sha256": "9525c938081800cece41ae9096738ad91fc5206a7124d5756c70b85df1672b88",
+        "halo_png_sha256": "9341ab4fb2570c3cdc30411e7201204dd20e8ba6987a29a2113872e2216e1fb8",
+        "png_sha256": "45ae4df6dd9380d29f83968039e42801fa7e88ab9f7d727c9d96b7ca3c8e27e4",
+        "sharp_png_sha256": "45ae4df6dd9380d29f83968039e42801fa7e88ab9f7d727c9d96b7ca3c8e27e4"
       },
       "coordinates": [
         [
@@ -143,20 +255,20 @@
       "crs": "EPSG:4326",
       "dataset": "COPERNICUS/S2_SR_HARMONIZED",
       "files": {
-        "geotiff": "ndvi_20260929T000000Z.tif",
-        "glow_png": "ndvi_20260929T000000Z_glow.png",
-        "halo_png": "ndvi_20260929T000000Z_halo.png",
-        "png": "ndvi_20260929T000000Z.png",
-        "sharp_png": "ndvi_20260929T000000Z.png"
+        "geotiff": "ndvi_20261007T000000Z.tif",
+        "glow_png": "ndvi_20261007T000000Z_glow.png",
+        "halo_png": "ndvi_20261007T000000Z_halo.png",
+        "png": "ndvi_20261007T000000Z.png",
+        "sharp_png": "ndvi_20261007T000000Z.png"
       },
-      "generated_at": "2026-09-29T17:44:43.000283+00:00",
+      "generated_at": "2026-10-07T19:39:15.094759+00:00",
       "generation_status": "generated",
-      "geotiff_filename": "ndvi/ndvi_20260929T000000Z.tif",
-      "glow_png_filename": "ndvi/ndvi_20260929T000000Z_glow.png",
-      "halo_png_filename": "ndvi/ndvi_20260929T000000Z_halo.png",
+      "geotiff_filename": "ndvi/ndvi_20261007T000000Z.tif",
+      "glow_png_filename": "ndvi/ndvi_20261007T000000Z_glow.png",
+      "halo_png_filename": "ndvi/ndvi_20261007T000000Z_halo.png",
       "height": 4857,
-      "image_count": 19,
-      "images_found": 19,
+      "image_count": 22,
+      "images_found": 22,
       "interpretation": "NDVI \u00b7 Vegetation Signal \u2014 satellite-derived normalised difference vegetation index; higher NDVI indicates a stronger green-vegetation signal. Visualisation only uses multi-colour heatmap display; scientific pixel values in the GeoTIFF are unchanged.",
       "mapbox_coordinates": [
         [
@@ -179,15 +291,15 @@
       "methodology": "Sentinel-2 median composite NDVI",
       "metric": "ndvi",
       "ndvi_statistics": {
-        "max": 0.967581033706665,
-        "mean": 0.20398461818695068,
-        "median": 0.17000208795070648,
-        "min": -0.6165209412574768,
-        "p05": -0.26593896746635437,
-        "p25": -0.023213429376482964,
-        "p50": 0.17000208795070648,
-        "p75": 0.47611355781555176,
-        "p95": 0.7465165853500366
+        "max": 1.0,
+        "mean": 0.2863277792930603,
+        "median": 0.30688074231147766,
+        "min": -1.0,
+        "p05": -0.34758222103118896,
+        "p25": -0.04386766999959946,
+        "p50": 0.30688074231147766,
+        "p75": 0.6499419212341309,
+        "p95": 0.8585101962089539
       },
       "nodata": true,
       "nodata_pixels": 0,
@@ -197,7 +309,7 @@
         "latitude": 8.983152841195197e-05,
         "longitude": 8.983152841195304e-05
       },
-      "png_filename": "ndvi/ndvi_20260929T000000Z.png",
+      "png_filename": "ndvi/ndvi_20261007T000000Z.png",
       "preprocessing": {
         "cloud_mask": "project-established QA60-cloud filtering with cirrus exclusion",
         "composite": "median",
@@ -206,15 +318,15 @@
       },
       "scale_m": 10,
       "semantic_label": "NDVI \u00b7 Vegetation Signal",
-      "sharp_png_filename": "ndvi/ndvi_20260929T000000Z.png",
+      "sharp_png_filename": "ndvi/ndvi_20261007T000000Z.png",
       "source": "Google Earth Engine / Sentinel-2",
       "source_period": {
-        "end": "2026-09-29",
-        "start": "2026-09-15"
+        "end": "2026-10-07",
+        "start": "2026-09-23"
       },
       "source_scale_m": 10,
-      "source_timestamp": "2026-09-29T00:00:00+00:00",
-      "timestamp": "20260929T000000Z",
+      "source_timestamp": "2026-10-07T00:00:00+00:00",
+      "timestamp": "20261007T000000Z",
       "valid_pixel_percent": 100.0,
       "valid_pixels": 16436088,
       "visualization": {

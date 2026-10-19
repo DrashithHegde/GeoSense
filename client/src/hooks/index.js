@@ -3,6 +3,7 @@ import {
   formatUTCTime,
   buildMunicipalitiesGeoJSON,
   buildWaterBodiesGeoJSON,
+  buildZonesGeoJSON,
 } from "../utils/helpers";
 import { CITY_CONFIG } from "../constants/cities";
 import { MAPBOX_TOKEN } from "../constants/layers";
@@ -33,6 +34,12 @@ const MUNI_LABEL = "muni-label";
 const WATER_SOURCE = "water-bodies";
 const WATER_FILL = "water-fill";
 const WATER_OUTLINE = "water-outline";
+const ZONES_SOURCE = "zones-source";
+const COMPOSITE_EXTRUDE = "composite-extrude";
+const AQI_HALO_SOURCE = "aqi-halo";
+const AQI_HALO_LAYER = "aqi-halo-raster";
+const AQI_GLOW_SOURCE = "aqi-glow";
+const AQI_GLOW_LAYER = "aqi-glow-raster";
 const AQI_SURFACE_SOURCE = "aqi-surface";
 const AQI_SURFACE_LAYER = "aqi-surface-raster";
 const AQI_RASTER_OPACITY = 0.72;
@@ -52,7 +59,12 @@ const LST_GLOW_SOURCE = "lst-glow";
 const LST_GLOW_LAYER = "lst-glow-raster";
 const LST_SURFACE_SOURCE = "lst-surface";
 const LST_SURFACE_LAYER = "lst-surface-raster";
-
+const COMPOSITE_GLOW_SOURCE = "composite-glow";
+const COMPOSITE_GLOW_LAYER = "composite-glow-raster";
+const COMPOSITE_SURFACE_SOURCE = "composite-surface";
+const COMPOSITE_SURFACE_LAYER = "composite-surface-raster";
+const COMPOSITE_HALO_SOURCE = "composite-halo";
+const COMPOSITE_HALO_LAYER = "composite-halo-raster";
 function getMetricProp(layerId) {
   switch (layerId) {
     case "aqi":
@@ -74,12 +86,12 @@ function buildFillColorExpression(layerId) {
   const prop = getMetricProp(layerId);
   const ramps = {
     aqi_norm: [
-      [0.0, "#1dd1a1"],
-      [0.28, "#ffd32a"],
-      [0.45, "#ff8c00"],
-      [0.69, "#ff3b3b"],
-      [0.84, "#8F3F97"],
-      [1.0, "#7E0023"],
+      [0.0, "#ffffff"],
+      [0.1, "#f0f0f0"],
+      [0.2, "#c8c8c8"],
+      [0.4, "#969696"],
+      [0.6, "#646464"],
+      [1.0, "#323232"],
     ],
     ndvi_norm: [
       [0.0, "#006400"],
@@ -98,11 +110,12 @@ function buildFillColorExpression(layerId) {
       [1.0, "#8B0000"],
     ],
     composite_norm: [
-      [0.0, "#1dd1a1"],
-      [0.25, "#ffd32a"],
-      [0.5, "#ff8c00"],
-      [0.7, "#ff3b3b"],
-      [0.85, "#8F3F97"],
+      [0.0, "#00E400"],
+      [0.2, "#00E400"],
+      [0.45, "#FFFF00"],
+      [0.6, "#FF7E00"],
+      [0.8, "#FF0000"],
+      [0.9, "#8F3F97"],
       [1.0, "#7E0023"],
     ],
   };
@@ -209,7 +222,9 @@ export function useMapbox({
   ndviSurface = null,
   lstSurface = null,
   waterHealthSurface = null,
+  compositeSurface = null,
   boundary = null,
+  zones = [],
 }) {
   // ═══════════════════════════════════════════════════════════════════════════
   // DIAGNOSTIC: Hook execution confirmation
@@ -222,6 +237,7 @@ export function useMapbox({
   console.log("  ndviSurface:", !!ndviSurface);
   console.log("  lstSurface:", !!lstSurface);
   console.log("  waterHealthSurface:", !!waterHealthSurface);
+  console.log("  compositeSurface:", !!compositeSurface);
   console.log("  lstSurface actual value:", lstSurface);
   console.log("🚨🚨🚨 END CACHE BUSTER 🚨🚨🚨");
   // ═══════════════════════════════════════════════════════════════════════════
@@ -238,6 +254,51 @@ export function useMapbox({
   const ndviSurfaceRef = useRef(ndviSurface);
   const lstSurfaceRef = useRef(lstSurface);
   const waterHealthSurfaceRef = useRef(waterHealthSurface);
+  const compositeSurfaceRef = useRef(compositeSurface);
+  const anomalyMarkersRef = useRef({});
+  const zonesRef = useRef(zones);
+
+  useEffect(() => {
+    zonesRef.current = zones;
+    const map = mapRef.current;
+    if (!map) return;
+    const syncMarkers = () => {
+      const activeIds = new Set();
+      zonesRef.current.forEach((zone) => {
+        if (zone.is_anomaly && zone.coords) {
+          activeIds.add(zone.id);
+          if (!anomalyMarkersRef.current[zone.id]) {
+            const el = document.createElement("div");
+            el.className = "anomaly-zone";
+            const ring1 = document.createElement("div");
+            ring1.className = "anomaly-zone-ring";
+            const ring2 = document.createElement("div");
+            ring2.className = "anomaly-zone-ring-2";
+            el.appendChild(ring1);
+            el.appendChild(ring2);
+            
+            const marker = new mapboxgl.Marker({ element: el })
+              .setLngLat(zone.coords)
+              .addTo(map);
+            anomalyMarkersRef.current[zone.id] = marker;
+          }
+        }
+      });
+      Object.keys(anomalyMarkersRef.current).forEach((id) => {
+        if (!activeIds.has(Number(id)) && !activeIds.has(String(id))) {
+          anomalyMarkersRef.current[id].remove();
+          delete anomalyMarkersRef.current[id];
+        }
+      });
+      
+      const zonesSource = map.getSource(ZONES_SOURCE);
+      if (zonesSource) {
+        zonesSource.setData(buildZonesGeoJSON(zonesRef.current));
+      }
+    };
+    if (map.isStyleLoaded()) syncMarkers();
+    else map.once("idle", syncMarkers);
+  }, [zones]);
 
   useEffect(() => {
     onZoneClickRef.current = onZoneClick;
@@ -264,6 +325,7 @@ export function useMapbox({
         !!ndviSurfaceRef.current,
         !!lstSurfaceRef.current,
         !!waterHealthSurfaceRef.current,
+        !!compositeSurfaceRef.current,
       );
     };
     if (map.isStyleLoaded()) sync();
@@ -285,16 +347,57 @@ export function useMapbox({
   useEffect(() => {
     aqiSurfaceRef.current = aqiSurface;
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded() || !aqiSurface) return;
-    const imageOptions = {
-      url: getApiUrl(aqiSurface.image_url),
-      coordinates: aqiSurface.coordinates,
-    };
-    const sync = () => {
-      const source = map.getSource(AQI_SURFACE_SOURCE);
-      if (source) source.updateImage(imageOptions);
-      else
-        map.addSource(AQI_SURFACE_SOURCE, { type: "image", ...imageOptions });
+    if (!map || !aqiSurface) return;
+
+    function syncAQI() {
+      const coords = aqiSurface.coordinates;
+      const beforeId = map.getLayer(MUNI_EXTRUDE) ? MUNI_EXTRUDE : undefined;
+
+      // HALO
+      if (aqiSurface.halo_url) {
+        const haloOpts = { url: getApiUrl(aqiSurface.halo_url), coordinates: coords };
+        const s = map.getSource(AQI_HALO_SOURCE);
+        if (s) s.updateImage(haloOpts);
+        else map.addSource(AQI_HALO_SOURCE, { type: "image", ...haloOpts });
+        if (!map.getLayer(AQI_HALO_LAYER)) {
+          map.addLayer(
+            {
+              id: AQI_HALO_LAYER,
+              type: "raster",
+              source: AQI_HALO_SOURCE,
+              layout: { visibility: "none" },
+              paint: { "raster-opacity": 0.78, "raster-fade-duration": 500, "raster-resampling": "linear" },
+            },
+            beforeId,
+          );
+        }
+      }
+
+      // GLOW
+      if (aqiSurface.glow_url) {
+        const glowOpts = { url: getApiUrl(aqiSurface.glow_url), coordinates: coords };
+        const s = map.getSource(AQI_GLOW_SOURCE);
+        if (s) s.updateImage(glowOpts);
+        else map.addSource(AQI_GLOW_SOURCE, { type: "image", ...glowOpts });
+        if (!map.getLayer(AQI_GLOW_LAYER)) {
+          map.addLayer(
+            {
+              id: AQI_GLOW_LAYER,
+              type: "raster",
+              source: AQI_GLOW_SOURCE,
+              layout: { visibility: "none" },
+              paint: { "raster-opacity": 0.72, "raster-fade-duration": 380, "raster-resampling": "linear" },
+            },
+            beforeId,
+          );
+        }
+      }
+
+      // SHARP
+      const sharpOpts = { url: getApiUrl(aqiSurface.sharp_url || aqiSurface.image_url), coordinates: coords };
+      const s = map.getSource(AQI_SURFACE_SOURCE);
+      if (s) s.updateImage(sharpOpts);
+      else map.addSource(AQI_SURFACE_SOURCE, { type: "image", ...sharpOpts });
       if (!map.getLayer(AQI_SURFACE_LAYER)) {
         map.addLayer(
           {
@@ -302,15 +405,12 @@ export function useMapbox({
             type: "raster",
             source: AQI_SURFACE_SOURCE,
             layout: { visibility: "none" },
-            paint: {
-              "raster-opacity": AQI_RASTER_OPACITY,
-              "raster-fade-duration": 0,
-              "raster-resampling": "linear",
-            },
+            paint: { "raster-opacity": AQI_RASTER_OPACITY, "raster-fade-duration": 300, "raster-resampling": "linear" },
           },
-          map.getLayer(MUNI_EXTRUDE) ? MUNI_EXTRUDE : undefined,
+          beforeId,
         );
       }
+
       applyMunicipalityPaint(
         map,
         activeLayersRef.current,
@@ -319,10 +419,25 @@ export function useMapbox({
         !!ndviSurfaceRef.current,
         !!lstSurfaceRef.current,
         !!waterHealthSurfaceRef.current,
+        !!compositeSurfaceRef.current,
       );
-    };
-    if (map.isStyleLoaded()) sync();
-    else map.once("idle", sync);
+    }
+
+    let styleReady = false;
+    try {
+      map.getStyle();
+      styleReady = true;
+    } catch (_) {
+      styleReady = false;
+    }
+
+    if (styleReady) {
+      syncAQI();
+    } else {
+      const onStyleLoad = () => syncAQI();
+      map.once("style.load", onStyleLoad);
+      return () => map.off("style.load", onStyleLoad);
+    }
   }, [aqiSurface]);
 
   useEffect(() => {
@@ -423,6 +538,7 @@ export function useMapbox({
         true,
         !!lstSurfaceRef.current,
         !!waterHealthSurfaceRef.current,
+        !!compositeSurfaceRef.current,
       );
     }
 
@@ -521,6 +637,7 @@ export function useMapbox({
         !!ndviSurfaceRef.current,
         true,
         !!waterHealthSurfaceRef.current,
+        !!compositeSurfaceRef.current,
       );
     }
 
@@ -658,6 +775,7 @@ export function useMapbox({
         !!ndviSurfaceRef.current,
         !!lstSurfaceRef.current,
         true,
+        !!compositeSurfaceRef.current,
       );
     }
 
@@ -677,6 +795,143 @@ export function useMapbox({
       return () => map.off("style.load", onStyleLoad);
     }
   }, [waterHealthSurface]);
+
+  useEffect(() => {
+    compositeSurfaceRef.current = compositeSurface;
+    const map = mapRef.current;
+
+    if (!map || !compositeSurface) return;
+
+    function syncComposite() {
+      const coords =
+        compositeSurface.coordinates || compositeSurface.mapbox_coordinates;
+      const beforeId = map.getLayer(MUNI_EXTRUDE) ? MUNI_EXTRUDE : undefined;
+
+      // HALO (widest soft glow — bottom of stack)
+      if (compositeSurface.halo_url) {
+        const haloOpts = {
+          url: getApiUrl(compositeSurface.halo_url),
+          coordinates: coords,
+        };
+        const s = map.getSource(COMPOSITE_HALO_SOURCE);
+        if (s) s.updateImage(haloOpts);
+        else
+          map.addSource(COMPOSITE_HALO_SOURCE, {
+            type: "image",
+            ...haloOpts,
+          });
+        if (!map.getLayer(COMPOSITE_HALO_LAYER)) {
+          map.addLayer(
+            {
+              id: COMPOSITE_HALO_LAYER,
+              type: "raster",
+              source: COMPOSITE_HALO_SOURCE,
+              layout: { visibility: "none" },
+              paint: {
+                "raster-opacity": 0.8,
+                "raster-fade-duration": 500,
+                "raster-resampling": "linear",
+              },
+            },
+            beforeId,
+          );
+        }
+      }
+
+      // GLOW (medium blur — middle)
+      if (compositeSurface.glow_url) {
+        const glowOpts = {
+          url: getApiUrl(compositeSurface.glow_url),
+          coordinates: coords,
+        };
+        const existingGlowSource = map.getSource(COMPOSITE_GLOW_SOURCE);
+        if (existingGlowSource) {
+          existingGlowSource.updateImage(glowOpts);
+        } else {
+          map.addSource(COMPOSITE_GLOW_SOURCE, {
+            type: "image",
+            ...glowOpts,
+          });
+        }
+        if (!map.getLayer(COMPOSITE_GLOW_LAYER)) {
+          map.addLayer(
+            {
+              id: COMPOSITE_GLOW_LAYER,
+              type: "raster",
+              source: COMPOSITE_GLOW_SOURCE,
+              layout: { visibility: "none" },
+              paint: {
+                "raster-opacity": 0.6,
+                "raster-fade-duration": 400,
+                "raster-resampling": "linear",
+              },
+            },
+            beforeId,
+          );
+        }
+      }
+
+      // SHARP (pixel-exact — top of surface stack, above halo+glow)
+      const sharpOpts = {
+        url: getApiUrl(
+          compositeSurface.sharp_url || compositeSurface.image_url,
+        ),
+        coordinates: coords,
+      };
+      const existingSharpSource = map.getSource(COMPOSITE_SURFACE_SOURCE);
+      if (existingSharpSource) {
+        existingSharpSource.updateImage(sharpOpts);
+      } else {
+        map.addSource(COMPOSITE_SURFACE_SOURCE, {
+          type: "image",
+          ...sharpOpts,
+        });
+      }
+      if (!map.getLayer(COMPOSITE_SURFACE_LAYER)) {
+        map.addLayer(
+          {
+            id: COMPOSITE_SURFACE_LAYER,
+            type: "raster",
+            source: COMPOSITE_SURFACE_SOURCE,
+            layout: { visibility: "none" },
+            paint: {
+              "raster-opacity": 0.96,
+              "raster-fade-duration": 300,
+              "raster-resampling": "linear",
+            },
+          },
+          beforeId,
+        );
+      }
+
+      applyMunicipalityPaint(
+        map,
+        activeLayersRef.current,
+        selectedMuniRef.current,
+        !!aqiSurfaceRef.current,
+        !!ndviSurfaceRef.current,
+        !!lstSurfaceRef.current,
+        !!waterHealthSurfaceRef.current,
+        true, // composite
+      );
+    }
+
+    let styleReady = false;
+    try {
+      map.getStyle();
+      styleReady = true;
+    } catch (_) {
+      styleReady = false;
+    }
+
+    if (styleReady) {
+      syncComposite();
+    } else {
+      const onStyleLoad = () => syncComposite();
+      map.once("style.load", onStyleLoad);
+      return () => map.off("style.load", onStyleLoad);
+    }
+  }, [compositeSurface]);
 
   useEffect(() => {
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1121,6 +1376,34 @@ export function useMapbox({
         });
       }
 
+      // GeoJSON source for 5000+ 300x300m cells for the composite 3D grid
+      if (!map.getSource(ZONES_SOURCE))
+        map.addSource(ZONES_SOURCE, {
+          type: "geojson",
+          data: buildZonesGeoJSON(zonesRef.current),
+          promoteId: "id",
+        });
+
+      if (!map.getLayer(COMPOSITE_EXTRUDE)) {
+        map.addLayer({
+          id: COMPOSITE_EXTRUDE,
+          type: "fill-extrusion",
+          source: ZONES_SOURCE,
+          layout: { visibility: "none" },
+          paint: {
+            "fill-extrusion-color": buildFillColorExpression("all"),
+            "fill-extrusion-height": [
+              "case",
+              ["==", ["get", "composite_norm"], null],
+              0,
+              ["*", ["get", "composite_norm"], 3000] // Max 3000m height
+            ],
+            "fill-extrusion-base": 0,
+            "fill-extrusion-opacity": 0.85,
+          },
+        });
+      }
+      
       // Now add AQI raster layer positioned before MUNI_EXTRUDE.
       // NDVI source/layer are owned exclusively by the ndviSurface useEffect (syncNDVI).
       if (aqiSurfaceRef.current && !map.getSource(AQI_SURFACE_SOURCE)) {
@@ -1305,6 +1588,7 @@ export function useMapbox({
       !!ndviSurfaceRef.current,
       !!lstSurfaceRef.current,
       !!waterHealthSurfaceRef.current,
+      !!compositeSurfaceRef.current,
     );
   }, [activeLayers]);
 
@@ -1335,6 +1619,7 @@ function applyMunicipalityPaint(
   hasNdviSurface = false,
   hasLstSurface = false,
   hasWaterHealthSurface = false,
+  hasCompositeSurface = false,
 ) {
   if (!map || !map.isStyleLoaded()) return;
   const layerId = getPrimaryLayerId(activeLayers);
@@ -1344,16 +1629,20 @@ function applyMunicipalityPaint(
   const isLstSurfaceMode = layerId === "lst" && hasLstSurface;
   const isWaterHealthSurfaceMode =
     layerId === "water_health" && hasWaterHealthSurface;
+  const isCompositeSurfaceMode =
+    layerId === "all" && hasCompositeSurface;
   const isSurfaceMode =
     isAqiSurfaceMode ||
     isNdviSurfaceMode ||
     isLstSurfaceMode ||
-    isWaterHealthSurfaceMode;
+    isWaterHealthSurfaceMode ||
+    isCompositeSurfaceMode;
 
   const isEnvMetricPendingNoRasterYet =
     (layerId === "aqi" && !hasAqiSurface) ||
     (layerId === "ndvi" && !hasNdviSurface) ||
-    (layerId === "water_health" && !hasWaterHealthSurface);
+    (layerId === "water_health" && !hasWaterHealthSurface) ||
+    (layerId === "all" && !hasCompositeSurface);
 
   const isFLIRMode = isLstSurfaceMode;
 
@@ -1425,6 +1714,20 @@ function applyMunicipalityPaint(
     console.groupEnd();
   }
 
+  if (map.getLayer(AQI_HALO_LAYER)) {
+    map.setLayoutProperty(
+      AQI_HALO_LAYER,
+      "visibility",
+      isAqiSurfaceMode ? "visible" : "none",
+    );
+  }
+  if (map.getLayer(AQI_GLOW_LAYER)) {
+    map.setLayoutProperty(
+      AQI_GLOW_LAYER,
+      "visibility",
+      isAqiSurfaceMode ? "visible" : "none",
+    );
+  }
   if (map.getLayer(AQI_SURFACE_LAYER)) {
     map.setLayoutProperty(
       AQI_SURFACE_LAYER,
@@ -1489,6 +1792,28 @@ function applyMunicipalityPaint(
     );
   }
 
+  if (map.getLayer(COMPOSITE_HALO_LAYER)) {
+    map.setLayoutProperty(
+      COMPOSITE_HALO_LAYER,
+      "visibility",
+      isCompositeSurfaceMode ? "visible" : "none",
+    );
+  }
+  if (map.getLayer(COMPOSITE_GLOW_LAYER)) {
+    map.setLayoutProperty(
+      COMPOSITE_GLOW_LAYER,
+      "visibility",
+      isCompositeSurfaceMode ? "visible" : "none",
+    );
+  }
+  if (map.getLayer(COMPOSITE_SURFACE_LAYER)) {
+    map.setLayoutProperty(
+      COMPOSITE_SURFACE_LAYER,
+      "visibility",
+      isCompositeSurfaceMode ? "visible" : "none",
+    );
+  }
+
   if (map.getLayer(MUNI_EXTRUDE)) {
     if (isFLIRMode) {
       map.setLayoutProperty(MUNI_EXTRUDE, "visibility", "visible");
@@ -1497,15 +1822,16 @@ function applyMunicipalityPaint(
       map.setLayoutProperty(MUNI_EXTRUDE, "visibility", "visible");
       let colorExpr;
       let opacityExpr;
+      const isCompositeMode = layerId === "all" || layerId === "composite";
       if (isEnvMetricPendingNoRasterYet) {
         colorExpr = "#0e0e1a";
         opacityExpr = 0.06;
       } else {
         colorExpr =
-          isWaterMode || isSurfaceMode
+          isWaterMode || isSurfaceMode || isCompositeMode
             ? "#0e0e1a"
             : buildFillColorExpression(layerId);
-        opacityExpr = isSurfaceMode ? 0.08 : isWaterMode ? 0.12 : 0.82;
+        opacityExpr = isSurfaceMode || isCompositeMode ? 0.0 : isWaterMode ? 0.12 : 0.82;
       }
       const heightExpr =
         selectedMuniId != null && !isWaterMode
@@ -1523,33 +1849,26 @@ function applyMunicipalityPaint(
     }
   }
 
+  // Handle the composite extrude layer
+  if (map.getLayer(COMPOSITE_EXTRUDE)) {
+    map.setLayoutProperty(COMPOSITE_EXTRUDE, "visibility", "none");
+  }
+
   if (map.getLayer(MUNI_OUTLINE)) {
-    if (isFLIRMode) {
-      map.setLayoutProperty(MUNI_OUTLINE, "visibility", "none");
-    } else {
+    const isCompositeView = layerId === "all" || layerId === "composite";
+    
+    if (isCompositeView) {
       map.setLayoutProperty(MUNI_OUTLINE, "visibility", "visible");
-      const outlineColor = isWaterMode
-        ? "#1e2a3a"
-        : selectedMuniId != null
-          ? [
-              "case",
-              ["==", ["get", "id"], selectedMuniId],
-              "#ffffff",
-              "#00e5ff",
-            ]
-          : "#00e5ff";
-      const outlineWidth =
-        selectedMuniId != null && !isWaterMode
-          ? ["case", ["==", ["get", "id"], selectedMuniId], 2.2, 0.5]
-          : 0.5;
-      const outlineOpacity = isWaterMode
-        ? 0.12
-        : selectedMuniId != null
-          ? ["case", ["==", ["get", "id"], selectedMuniId], 0.85, 0.15]
-          : 0.18;
+      
+      const outlineColor = "#ffffff";
+      const outlineWidth = 1.5;
+      const outlineOpacity = 0.8;
+      
       map.setPaintProperty(MUNI_OUTLINE, "line-color", outlineColor);
       map.setPaintProperty(MUNI_OUTLINE, "line-width", outlineWidth);
       map.setPaintProperty(MUNI_OUTLINE, "line-opacity", outlineOpacity);
+    } else {
+      map.setLayoutProperty(MUNI_OUTLINE, "visibility", "none");
     }
   }
 
