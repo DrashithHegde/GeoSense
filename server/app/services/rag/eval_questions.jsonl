@@ -1,0 +1,42 @@
+{"q": "What does an AQI of 150 mean for health?", "gold": ["aqi_health_statements", "aqi_cpcb_scale"]}
+{"q": "Which AQI category is 85?", "gold": ["aqi_cpcb_scale"]}
+{"q": "Who should avoid going outside when the air is bad?", "gold": ["aqi_health_statements"]}
+{"q": "Why is the air worse in winter in Mumbai?", "gold": ["mumbai_air_seasonality"]}
+{"q": "Where does the dust and smoke in Mumbai's air come from?", "gold": ["mumbai_air_sources", "pollutant_signatures"]}
+{"q": "Nitrogen dioxide is high at this station, what does that suggest?", "gold": ["pollutant_signatures"]}
+{"q": "Why is ozone higher away from busy roads?", "gold": ["pollutant_signatures"]}
+{"q": "How do you estimate air quality between monitoring stations?", "gold": ["idw_method"]}
+{"q": "Where does the air quality data come from?", "gold": ["openaq_caaqms"]}
+{"q": "What is the government's national plan for clean air?", "gold": ["ncap", "mitigate_air"]}
+{"q": "How can a city cut particulate pollution?", "gold": ["mitigate_air"]}
+{"q": "What is NDVI?", "gold": ["ndvi_definition", "ndvi_ranges"]}
+{"q": "Is an NDVI of 0.15 bare ground or vegetation?", "gold": ["ndvi_ranges"]}
+{"q": "Why does the city look greener after the rains?", "gold": ["ndvi_season_mumbai"]}
+{"q": "Which satellite gives the 10 m vegetation images?", "gold": ["sentinel2"]}
+{"q": "How do you find which pixels are water?", "gold": ["mndwi"]}
+{"q": "How can a satellite see algae in a lake?", "gold": ["ndci"]}
+{"q": "How is muddy or murky water detected from space?", "gold": ["turbidity_proxy"]}
+{"q": "What does the Water Health index measure?", "gold": ["water_health_geosense"]}
+{"q": "How would you confirm water pollution on the ground?", "gold": ["water_quality_insitu"]}
+{"q": "What can be done to clean up a polluted lake?", "gold": ["mitigate_water"]}
+{"q": "Where does the surface temperature data come from?", "gold": ["landsat_lst"]}
+{"q": "Is the land surface temperature the same as the air temperature I feel?", "gold": ["lst_vs_air"]}
+{"q": "Why are dense built-up areas warmer than the countryside?", "gold": ["uhi"]}
+{"q": "Do trees make streets cooler?", "gold": ["vegetation_cooling"]}
+{"q": "Why are places near the sea or lakes cooler?", "gold": ["water_cooling"]}
+{"q": "Why is October so hot in Mumbai?", "gold": ["mumbai_october_heat"]}
+{"q": "How can we reduce heat in a hot neighbourhood?", "gold": ["mitigate_heat"]}
+{"q": "How do we increase green cover in the city?", "gold": ["mitigate_greening"]}
+{"q": "What is the Mumbai Climate Action Plan?", "gold": ["mumbai_climate_action_plan"]}
+{"q": "Tell me about the national park in the middle of Mumbai", "gold": ["sgnp"]}
+{"q": "Where do flamingos come in Thane?", "gold": ["thane_creek"]}
+{"q": "Why are mangroves protected?", "gold": ["mangroves"]}
+{"q": "What is the state of the Mithi river?", "gold": ["mithi_river"]}
+{"q": "How does the anomaly detector decide a cell is unusual?", "gold": ["isolation_forest", "layer_isolation_forest"]}
+{"q": "Why are some monitoring stations marked as having an odd pollutant mix?", "gold": ["station_isolation_forest"]}
+{"q": "How does the model say which factor made a place hotter?", "gold": ["xgboost_shap"]}
+{"q": "How was the temperature model's accuracy tested fairly?", "gold": ["spatial_cv"]}
+{"q": "What does unexplained heat mean?", "gold": ["residual_interpretation"]}
+{"q": "Why is there no data at some places on the map?", "gold": ["cloud_gaps"]}
+{"q": "What is the difference between the pixel and the cell values?", "gold": ["pixel_cell_municipality"]}
+{"q": "How is a water body judged worse than others?", "gold": ["robust_z", "water_health_geosense"]}

@@ -1,0 +1,1740 @@
+{
+  "surfaces": {
+    "aqi": {
+      "aqi_max": 117.99610137939453,
+      "aqi_mean": 81.8421859741211,
+      "aqi_min": 52.6524772644043,
+      "aqi_standard": "CPCB National Air Quality Index (2014)",
+      "audit": {
+        "freshness_limit_hours": 48.0,
+        "minimum_stations": 3,
+        "stations_eligible": 28,
+        "stations_received": 28,
+        "stations_rejected": []
+      },
+      "available": true,
+      "checksums": {
+        "geotiff_sha256": "9551fc4350861fad2a62dc729828ddb29c15896b705bc6aecb6bd1304c9c16d7",
+        "glow_png_sha256": "8869261933056c670510d1ebfde5a6d2fc4d02529f00bd25e9819185f0597479",
+        "halo_png_sha256": "f8506685012af5b6b4021129f999894b757e1294871d2d2c575b5c7244661a3a",
+        "png_sha256": "9444f77898f76a2795e78da53f7f62ad9369fd580a9ce6f4438132b7d54185a9",
+        "sharp_png_sha256": "9444f77898f76a2795e78da53f7f62ad9369fd580a9ce6f4438132b7d54185a9"
+      },
+      "dataset": "OpenAQ v3",
+      "files": {
+        "geotiff": "aqi_cpcb_idw_20261102T141500Z.tif",
+        "glow_png": "aqi_cpcb_idw_20261102T141500Z_glow.png",
+        "halo_png": "aqi_cpcb_idw_20261102T141500Z_halo.png",
+        "png": "aqi_cpcb_idw_20261102T141500Z_sharp.png",
+        "sharp_png": "aqi_cpcb_idw_20261102T141500Z_sharp.png"
+      },
+      "generated_at": "2026-11-02T16:19:56.477928+00:00",
+      "generation_status": "generated",
+      "geotiff_filename": "aqi/aqi_cpcb_idw_20261102T141500Z.tif",
+      "glow_png_filename": "aqi/aqi_cpcb_idw_20261102T141500Z_glow.png",
+      "halo_png_filename": "aqi/aqi_cpcb_idw_20261102T141500Z_halo.png",
+      "interpolation": {
+        "k": 4,
+        "max_distance_m": 15000.0,
+        "method": "IDW",
+        "min_neighbours": 2,
+        "power": 2.0
+      },
+      "interpretation": "Interpolated CPCB AQI between real monitoring stations. Values between stations are estimates (IDW), not measurements; pixels > 15 km from stations are NoData.",
+      "mapbox_coordinates": [
+        [
+          72.7732289,
+          19.3296596
+        ],
+        [
+          73.07822890000001,
+          19.3296596
+        ],
+        [
+          73.07822890000001,
+          18.8921596
+        ],
+        [
+          72.7732289,
+          18.8921596
+        ]
+      ],
+      "methodology": "OpenAQ v3 CPCB/MPCB stations \u2192 CPCB National AQI (2014) \u2192 IDW",
+      "metric": "aqi",
+      "nodata_semantics": "transparent; fewer than 2 stations within 15 km, or outside study region",
+      "nodata_value": -9999.0,
+      "png_filename": "aqi/aqi_cpcb_idw_20261102T141500Z_sharp.png",
+      "sharp_png_filename": "aqi/aqi_cpcb_idw_20261102T141500Z_sharp.png",
+      "source": "OpenAQ v3 (CPCB / MPCB continuous ambient monitoring stations)",
+      "source_timestamp": "2026-11-02T14:15:00+00:00",
+      "stations": [
+        {
+          "age_hours": 2.08,
+          "aqi": 55,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "so2",
+          "freshness": "fresh",
+          "lat": 18.91,
+          "lon": 72.82,
+          "observed_at": "2026-11-02T14:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 6927,
+          "station_name": "Colaba, Mumbai - MPCB",
+          "sub_indices": {
+            "co": null,
+            "no2": 51.0,
+            "o3": null,
+            "pm10": 52.0,
+            "pm25": 30.0,
+            "so2": 54.8
+          }
+        },
+        {
+          "age_hours": 5.33,
+          "aqi": 76,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "so2",
+          "freshness": "fresh",
+          "lat": 19.0863,
+          "lon": 72.8888,
+          "observed_at": "2026-11-02T11:00:00+00:00",
+          "provider": "CPCB",
+          "station_id": 6945,
+          "station_name": "Kurla, Mumbai - MPCB",
+          "sub_indices": {
+            "co": null,
+            "no2": 5.0,
+            "o3": 28.0,
+            "pm10": 70.0,
+            "pm25": 52.7,
+            "so2": 76.1
+          }
+        },
+        {
+          "age_hours": 2.08,
+          "aqi": 86,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "fresh",
+          "lat": 19.1375,
+          "lon": 72.915056,
+          "observed_at": "2026-11-02T14:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 6956,
+          "station_name": "Powai, Mumbai - MPCB",
+          "sub_indices": {
+            "co": null,
+            "no2": null,
+            "o3": null,
+            "pm10": 86.0,
+            "pm25": 54.4,
+            "so2": 56.0
+          }
+        },
+        {
+          "age_hours": 2.08,
+          "aqi": 118,
+          "category": {
+            "color": "#ffff00",
+            "name": "Moderate",
+            "range": [
+              101,
+              200
+            ]
+          },
+          "dominant_pollutant": "no2",
+          "freshness": "fresh",
+          "lat": 19.000083,
+          "lon": 72.813993,
+          "observed_at": "2026-11-02T14:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 6959,
+          "station_name": "Siddharth Nagar-Worli, Mumbai - IITM",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 118.0,
+            "o3": 33.0,
+            "pm10": 103.0,
+            "pm25": 38.3,
+            "so2": null
+          }
+        },
+        {
+          "age_hours": 3.83,
+          "aqi": 52,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "fresh",
+          "lat": 19.227474,
+          "lon": 72.864394,
+          "observed_at": "2026-11-02T12:30:00+00:00",
+          "provider": "CPCB",
+          "station_id": 6965,
+          "station_name": "Borivali East, Mumbai - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 17.5,
+            "o3": null,
+            "pm10": 52.0,
+            "pm25": 45.0,
+            "so2": 37.5
+          }
+        },
+        {
+          "age_hours": 14.08,
+          "aqi": 90,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "no2",
+          "freshness": "stale",
+          "lat": 19.047,
+          "lon": 72.8746,
+          "observed_at": "2026-11-02T02:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 6967,
+          "station_name": "Sion, Mumbai - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 89.9,
+            "o3": null,
+            "pm10": 52.0,
+            "pm25": 41.7,
+            "so2": 12.5
+          }
+        },
+        {
+          "age_hours": 17.58,
+          "aqi": 77,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.23241,
+          "lon": 72.86895,
+          "observed_at": "2026-11-01T22:45:00+00:00",
+          "provider": "CPCB",
+          "station_id": 11606,
+          "station_name": "Borivali East, Mumbai - IITM",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 45.0,
+            "o3": 45.0,
+            "pm10": 77.0,
+            "pm25": 67.9,
+            "so2": null
+          }
+        },
+        {
+          "age_hours": 17.33,
+          "aqi": 91,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "no2",
+          "freshness": "stale",
+          "lat": 19.19709,
+          "lon": 72.82204,
+          "observed_at": "2026-11-01T23:00:00+00:00",
+          "provider": "CPCB",
+          "station_id": 11611,
+          "station_name": "Malad West, Mumbai - IITM",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 91.2,
+            "o3": 50.0,
+            "pm10": 86.0,
+            "pm25": 62.8,
+            "so2": 33.8
+          }
+        },
+        {
+          "age_hours": 17.08,
+          "aqi": 76,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "no2",
+          "freshness": "stale",
+          "lat": 19.11074,
+          "lon": 72.86084,
+          "observed_at": "2026-11-01T23:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 12024,
+          "station_name": "Chakala-Andheri East, Mumbai - IITM",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 76.1,
+            "o3": 45.0,
+            "pm10": null,
+            "pm25": 61.1,
+            "so2": 10.0
+          }
+        },
+        {
+          "age_hours": 20.58,
+          "aqi": 83,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.164394,
+          "lon": 72.928297,
+          "observed_at": "2026-11-01T19:45:00+00:00",
+          "provider": "CPCB",
+          "station_id": 12039,
+          "station_name": "Khindipada-Bhandup West, Mumbai - IITM",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 79.9,
+            "o3": 41.0,
+            "pm10": 83.0,
+            "pm25": 52.7,
+            "so2": 28.8
+          }
+        },
+        {
+          "age_hours": 16.33,
+          "aqi": 68,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.192056,
+          "lon": 72.9585188,
+          "observed_at": "2026-11-02T00:00:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409322,
+          "station_name": "Pimpleshwar Mandir, Thane - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 21.2,
+            "o3": 21.0,
+            "pm10": 68.0,
+            "pm25": null,
+            "so2": 16.2
+          }
+        },
+        {
+          "age_hours": 16.83,
+          "aqi": 75,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "no2",
+          "freshness": "stale",
+          "lat": 18.9936162,
+          "lon": 72.8128113,
+          "observed_at": "2026-11-01T23:30:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409323,
+          "station_name": "Worli, Mumbai - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 74.9,
+            "o3": 32.0,
+            "pm10": 53.0,
+            "pm25": 46.7,
+            "so2": 30.0
+          }
+        },
+        {
+          "age_hours": 5.83,
+          "aqi": 122,
+          "category": {
+            "color": "#ffff00",
+            "name": "Moderate",
+            "range": [
+              101,
+              200
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "fresh",
+          "lat": 19.0627,
+          "lon": 72.84614,
+          "observed_at": "2026-11-02T10:30:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409328,
+          "station_name": "Bandra Kurla Complex, Mumbai - IITM",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 81.2,
+            "o3": 9.0,
+            "pm10": 121.6,
+            "pm25": null,
+            "so2": null
+          }
+        },
+        {
+          "age_hours": 17.08,
+          "aqi": 80,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.04946,
+          "lon": 72.923,
+          "observed_at": "2026-11-01T23:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409329,
+          "station_name": "Deonar, Mumbai - IITM",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 25.0,
+            "o3": 42.0,
+            "pm10": 80.0,
+            "pm25": 62.8,
+            "so2": 13.8
+          }
+        },
+        {
+          "age_hours": 10.33,
+          "aqi": 84,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.26777,
+          "lon": 72.97182,
+          "observed_at": "2026-11-02T06:00:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409469,
+          "station_name": "Kasarvadavali, Thane - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 56.0,
+            "o3": 33.0,
+            "pm10": 84.0,
+            "pm25": 54.4,
+            "so2": 30.0
+          }
+        },
+        {
+          "age_hours": 16.83,
+          "aqi": 63,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.02579,
+          "lon": 73.10297,
+          "observed_at": "2026-11-01T23:30:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409471,
+          "station_name": "Sector-2E Kalamboli, Navi Mumbai - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 28.8,
+            "o3": 12.0,
+            "pm10": 63.0,
+            "pm25": 45.0,
+            "so2": 11.2
+          }
+        },
+        {
+          "age_hours": 3.83,
+          "aqi": 58,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "fresh",
+          "lat": 19.222279,
+          "lon": 72.957979,
+          "observed_at": "2026-11-02T12:30:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409472,
+          "station_name": "Upvan Fort, Thane - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 37.5,
+            "o3": 26.0,
+            "pm10": 58.0,
+            "pm25": 46.7,
+            "so2": 13.8
+          }
+        },
+        {
+          "age_hours": 17.33,
+          "aqi": 79,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.0243902,
+          "lon": 73.0406721,
+          "observed_at": "2026-11-01T23:00:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409476,
+          "station_name": "CBD Belapur, Belapur - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 63.6,
+            "o3": 30.0,
+            "pm10": 79.0,
+            "pm25": 52.7,
+            "so2": 22.5
+          }
+        },
+        {
+          "age_hours": 27.83,
+          "aqi": 108,
+          "category": {
+            "color": "#ffff00",
+            "name": "Moderate",
+            "range": [
+              101,
+              200
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.090337,
+          "lon": 73.014232,
+          "observed_at": "2026-11-01T12:30:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409477,
+          "station_name": "Kopripada-Vashi, Navi Mumbai - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 38.8,
+            "o3": 39.0,
+            "pm10": 108.3,
+            "pm25": 101.0,
+            "so2": 7.5
+          }
+        },
+        {
+          "age_hours": 7.58,
+          "aqi": 80,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.296481,
+          "lon": 72.840923,
+          "observed_at": "2026-11-02T08:45:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409478,
+          "station_name": "Bhayandar West, Mira-Bhayandar - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 21.2,
+            "o3": 43.0,
+            "pm10": 80.0,
+            "pm25": 57.8,
+            "so2": 15.0
+          }
+        },
+        {
+          "age_hours": 10.08,
+          "aqi": 65,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.0364585,
+          "lon": 72.8954371,
+          "observed_at": "2026-11-02T06:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409483,
+          "station_name": "Chembur, Mumbai - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 64.8,
+            "o3": 44.0,
+            "pm10": 65.0,
+            "pm25": 57.8,
+            "so2": 10.0
+          }
+        },
+        {
+          "age_hours": 12.33,
+          "aqi": 118,
+          "category": {
+            "color": "#ffff00",
+            "name": "Moderate",
+            "range": [
+              101,
+              200
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.309073,
+          "lon": 73.057223,
+          "observed_at": "2026-11-02T04:00:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409485,
+          "station_name": "Gokul Nagar, Bhiwandi - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 23.8,
+            "o3": 18.0,
+            "pm10": 118.3,
+            "pm25": 74.7,
+            "so2": 3.8
+          }
+        },
+        {
+          "age_hours": 17.33,
+          "aqi": 85,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "stale",
+          "lat": 19.0632143,
+          "lon": 72.8456324,
+          "observed_at": "2026-11-01T23:00:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409486,
+          "station_name": "Kherwadi_Bandra East, Mumbai - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 17.5,
+            "o3": null,
+            "pm10": 85.0,
+            "pm25": 66.2,
+            "so2": 13.8
+          }
+        },
+        {
+          "age_hours": 4.33,
+          "aqi": 80,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm25",
+          "freshness": "fresh",
+          "lat": 19.0575752,
+          "lon": 73.0151367,
+          "observed_at": "2026-11-02T12:00:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409487,
+          "station_name": "Sanpada, Navi Mumbai - MPCB",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 59.8,
+            "o3": 29.0,
+            "pm10": null,
+            "pm25": 79.7,
+            "so2": 7.5
+          }
+        },
+        {
+          "age_hours": 17.08,
+          "aqi": 91,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "no2",
+          "freshness": "stale",
+          "lat": 18.9767,
+          "lon": 72.838,
+          "observed_at": "2026-11-01T23:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409510,
+          "station_name": "Byculla, Mumbai - BMC",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 91.2,
+            "o3": 29.0,
+            "pm10": 52.0,
+            "pm25": 36.7,
+            "so2": 5.0
+          }
+        },
+        {
+          "age_hours": 3.83,
+          "aqi": 84,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "fresh",
+          "lat": 19.060498,
+          "lon": 72.923356,
+          "observed_at": "2026-11-02T12:30:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409511,
+          "station_name": "Shivaji Nagar, Mumbai - BMC",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 8.8,
+            "o3": 30.0,
+            "pm10": 84.0,
+            "pm25": 61.1,
+            "so2": null
+          }
+        },
+        {
+          "age_hours": 2.83,
+          "aqi": 100,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "no2",
+          "freshness": "fresh",
+          "lat": 19.000084,
+          "lon": 72.85673,
+          "observed_at": "2026-11-02T13:30:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409513,
+          "station_name": "Sewri, Mumbai - BMC",
+          "sub_indices": {
+            "co": null,
+            "no2": 100.0,
+            "o3": 52.0,
+            "pm10": 74.0,
+            "pm25": 57.8,
+            "so2": 13.8
+          }
+        },
+        {
+          "age_hours": 3.08,
+          "aqi": 61,
+          "category": {
+            "color": "#92d050",
+            "name": "Satisfactory",
+            "range": [
+              51,
+              100
+            ]
+          },
+          "dominant_pollutant": "pm10",
+          "freshness": "fresh",
+          "lat": 19.083694,
+          "lon": 72.920967,
+          "observed_at": "2026-11-02T13:15:00+00:00",
+          "provider": "CPCB",
+          "station_id": 3409514,
+          "station_name": "Ghatkopar, Mumbai - BMC",
+          "sub_indices": {
+            "co": 0.0,
+            "no2": 12.5,
+            "o3": 14.0,
+            "pm10": 61.0,
+            "pm25": 38.3,
+            "so2": 2.5
+          }
+        }
+      ],
+      "visualization": {
+        "legend": {
+          "left_label": "GOOD \u00b7 0",
+          "range": {
+            "max": 500,
+            "min": 0
+          },
+          "right_label": "SEVERE \u00b7 500"
+        },
+        "mask_applied_after_blur": true,
+        "palette": "CPCB official category colours",
+        "stops": [
+          {
+            "color": "#00b050",
+            "label": "Good",
+            "position": 0.0,
+            "rgb": [
+              0,
+              176,
+              80
+            ],
+            "value": 25.0
+          },
+          {
+            "color": "#92d050",
+            "label": "Satisfactory",
+            "position": 0.2,
+            "rgb": [
+              146,
+              208,
+              80
+            ],
+            "value": 75.0
+          },
+          {
+            "color": "#ffff00",
+            "label": "Moderate",
+            "position": 0.4,
+            "rgb": [
+              255,
+              255,
+              0
+            ],
+            "value": 150.0
+          },
+          {
+            "color": "#ff9900",
+            "label": "Poor",
+            "position": 0.6,
+            "rgb": [
+              255,
+              153,
+              0
+            ],
+            "value": 250.0
+          },
+          {
+            "color": "#ff0000",
+            "label": "Very Poor",
+            "position": 0.8,
+            "rgb": [
+              255,
+              0,
+              0
+            ],
+            "value": 350.0
+          },
+          {
+            "color": "#c00000",
+            "label": "Severe",
+            "position": 1.0,
+            "rgb": [
+              192,
+              0,
+              0
+            ],
+            "value": 450.0
+          }
+        ],
+        "study_region_clipped": true
+      }
+    },
+    "composite": {
+      "checksums": {
+        "geotiff_sha256": "d65fc0112531d55770d30034e28280fdb73dcb36a0b17b6d03bf41af83dae26f",
+        "glow_png_sha256": "4f7908e064e1d8d4a06b16a2e2ca4b3a3104babb79d66c9ceee945d0d3791f3b",
+        "halo_png_sha256": "57c822a7ab96ee388ce0c56ab55b7b6f81d4240e96eeed77d2747546d50f4af3",
+        "sharp_png_sha256": "1082fef7e129f342ce436699a528f516a03122307008326141a6f382516312b0"
+      },
+      "generated_at": "2026-11-02T16:20:04.196668+00:00",
+      "generation_status": "generated",
+      "geotiff_filename": "composite/composite_20261102T161958Z.tif",
+      "glow_png_filename": "composite/composite_20261102T161958Z_glow.png",
+      "halo_png_filename": "composite/composite_20261102T161958Z_halo.png",
+      "inputs_used": [
+        "heat",
+        "greenness",
+        "air"
+      ],
+      "interpretation": "0 = low combined stress, 1 = high. Relative index for exploration, not a regulatory measure.",
+      "lst_scaling_c": {
+        "p5": 27.17941665649414,
+        "p95": 41.75043487548828
+      },
+      "mapbox_coordinates": [
+        [
+          72.7729703241645,
+          19.328421147700862
+        ],
+        [
+          73.07722971089579,
+          19.328421147700862
+        ],
+        [
+          73.07722971089579,
+          18.89210941420401
+        ],
+        [
+          72.7729703241645,
+          18.89210941420401
+        ]
+      ],
+      "methodology": "Weighted environmental stress from real LST + NDVI + CPCB AQI",
+      "metric": "composite",
+      "nodata_semantics": "transparent where any included input is missing (no imputation) or on open water (NDVI < 0)",
+      "png_filename": "composite/composite_20261102T161958Z_sharp.png",
+      "sharp_png_filename": "composite/composite_20261102T161958Z_sharp.png",
+      "source_timestamp": "20261007T000000Z",
+      "valid_pixels": 682523,
+      "visualization": {
+        "legend": {
+          "left_label": "LOW STRESS",
+          "range": {
+            "max": 0.85,
+            "min": 0.05
+          },
+          "right_label": "HIGH STRESS"
+        },
+        "stops": [
+          {
+            "color": "#12c8d4",
+            "label": "very low",
+            "position": 0.0,
+            "rgb": [
+              18,
+              200,
+              212
+            ],
+            "value": 0.05
+          },
+          {
+            "color": "#29d967",
+            "label": "low",
+            "position": 0.1667,
+            "rgb": [
+              41,
+              217,
+              103
+            ],
+            "value": 0.1833
+          },
+          {
+            "color": "#96e63c",
+            "label": "mild",
+            "position": 0.3333,
+            "rgb": [
+              150,
+              230,
+              60
+            ],
+            "value": 0.3167
+          },
+          {
+            "color": "#ffd23c",
+            "label": "moderate",
+            "position": 0.5,
+            "rgb": [
+              255,
+              210,
+              60
+            ],
+            "value": 0.45
+          },
+          {
+            "color": "#ff8c00",
+            "label": "elevated",
+            "position": 0.6667,
+            "rgb": [
+              255,
+              140,
+              0
+            ],
+            "value": 0.5833
+          },
+          {
+            "color": "#ff3b3b",
+            "label": "high",
+            "position": 0.8333,
+            "rgb": [
+              255,
+              59,
+              59
+            ],
+            "value": 0.7167
+          },
+          {
+            "color": "#dd269a",
+            "label": "very high",
+            "position": 1.0,
+            "rgb": [
+              221,
+              38,
+              154
+            ],
+            "value": 0.85
+          }
+        ]
+      },
+      "weights": {
+        "air": 0.25,
+        "greenness": 0.35,
+        "heat": 0.4
+      }
+    },
+    "lst": {
+      "bounds": {
+        "east": 73.07722971089579,
+        "north": 19.328421147700862,
+        "south": 18.89210941420401,
+        "west": 72.7729703241645
+      },
+      "checksums": {
+        "geotiff_sha256": "a2bc59fe2899f6cee25593f805428288639396218ce2b43047b4060c2bc317cd",
+        "glow_png_sha256": "c89ccffd1df2fb51ba807701a4cbe0567c72e37e5f0d415a27a1a587a49496b2",
+        "halo_png_sha256": "bd21aac033019a80cc0cbd0b8e4604d05c01fe91149a6e80a2d7476717c5ac1f",
+        "png_sha256": "3d394d654a4812afb4fb56cc10f23c8a87d31b4c928734ee9a9a9110f519897c"
+      },
+      "coordinates": [
+        [
+          72.7729703241645,
+          19.328421147700862
+        ],
+        [
+          73.07722971089579,
+          19.328421147700862
+        ],
+        [
+          73.07722971089579,
+          18.89210941420401
+        ],
+        [
+          72.7729703241645,
+          18.89210941420401
+        ]
+      ],
+      "dataset": "LANDSAT/LC08/C02/T1_L2 + LANDSAT/LC09/C02/T1_L2",
+      "files": {
+        "geotiff": "lst_20261007T000000Z.tif",
+        "glow_png": "lst_20261007T000000Z_v3_glow.png",
+        "halo_png": "lst_20261007T000000Z_v3_halo.png",
+        "png": "lst_20261007T000000Z_v3_sharp.png"
+      },
+      "generated_at": "2026-10-07T19:39:51.081325+00:00",
+      "glow_threshold_c": 38.52,
+      "image_count": 8,
+      "lst_display_p02_c": 24.89,
+      "lst_display_p98_c": 43.88,
+      "lst_max_c": 52.04,
+      "lst_mean_c": 34.32,
+      "lst_median_c": 34.37,
+      "lst_min_c": -14.56,
+      "methodology": "Landsat 8/9 Collection 2 Level-2 median composite LST",
+      "metric": "lst",
+      "nodata": true,
+      "nodata_pixels": 1102950,
+      "nodata_value": -9999.0,
+      "scale_m": 30,
+      "source_period": {
+        "days": 45,
+        "end": "2026-10-07",
+        "start": "2026-08-23"
+      },
+      "timestamp": "20261007T000000Z",
+      "total_pixels": 1827851,
+      "unit": "celsius",
+      "valid_pixels": 724901,
+      "valid_pixels_by_municipality": {
+        "Mira-Bhayandar": 93918,
+        "Mumbai": 484473,
+        "Thane": 147853
+      },
+      "visualization": {
+        "color_stops": [
+          {
+            "color": "#2563eb",
+            "label": "coolest",
+            "position": 0.0,
+            "temperature_c": 24.9
+          },
+          {
+            "color": "#06b6d4",
+            "label": "cool",
+            "position": 0.1667,
+            "temperature_c": 30.5
+          },
+          {
+            "color": "#a3e635",
+            "label": "mild",
+            "position": 0.3333,
+            "temperature_c": 32.6
+          },
+          {
+            "color": "#facc15",
+            "label": "warm",
+            "position": 0.5,
+            "temperature_c": 34.4
+          },
+          {
+            "color": "#f97316",
+            "label": "hot",
+            "position": 0.6667,
+            "temperature_c": 36.4
+          },
+          {
+            "color": "#ef4444",
+            "label": "very hot",
+            "position": 0.8333,
+            "temperature_c": 38.5
+          },
+          {
+            "color": "#9f1239",
+            "label": "hottest",
+            "position": 1.0,
+            "temperature_c": 43.9
+          }
+        ],
+        "mask_applied_after_blur": true,
+        "nodata_semantics": "transparent; output alpha masked to valid pixels in the municipality union",
+        "qc": {
+          "min_plausible_c": 20.0,
+          "rule": "pixels below this are probable residual cloud; hidden in display, excluded from cell stats"
+        },
+        "renderer": "heatmap_render v3",
+        "smoothing": "normalised Gaussian, display only",
+        "study_region_clipped": true
+      },
+      "visualization_rendered_at": "2026-11-02T16:14:12.524208+00:00"
+    },
+    "ndvi": {
+      "bounds": {
+        "east": 73.07713987936737,
+        "north": 19.328421147700862,
+        "south": 18.89210941420401,
+        "west": 72.77314998722132
+      },
+      "checksums": {
+        "geotiff_sha256": "39ba1190aabc2f9d3364e81e12cc3c4c15834791d9fe37378ef7759b374b0a4a",
+        "glow_png_sha256": "2bff884763dd4cc96bd1272782303be9b7fdd76b660f32eb4b930a6eb03cbe4f",
+        "halo_png_sha256": "9e19591aa28a9180b7e21c19b7473115d612748799b194d65bedadd9b98df9de",
+        "png_sha256": "3ac8a284ed3f9696a67c500eed95be3b4a161eb8cad88b026094ac91403cb01b",
+        "sharp_png_sha256": "3ac8a284ed3f9696a67c500eed95be3b4a161eb8cad88b026094ac91403cb01b"
+      },
+      "coordinates": [
+        [
+          72.77314998722132,
+          19.328421147700862
+        ],
+        [
+          73.07713987936737,
+          19.328421147700862
+        ],
+        [
+          73.07713987936737,
+          18.89210941420401
+        ],
+        [
+          72.77314998722132,
+          18.89210941420401
+        ]
+      ],
+      "crs": "EPSG:4326",
+      "dataset": "COPERNICUS/S2_SR_HARMONIZED",
+      "files": {
+        "geotiff": "ndvi_20261007T000000Z.tif",
+        "glow_png": "ndvi_20261007T000000Z_v3_glow.png",
+        "halo_png": "ndvi_20261007T000000Z_v3_halo.png",
+        "png": "ndvi_20261007T000000Z_v3_sharp.png",
+        "sharp_png": "ndvi_20261007T000000Z_v3_sharp.png"
+      },
+      "generated_at": "2026-10-07T19:39:15.094759+00:00",
+      "generation_status": "generated",
+      "geotiff_filename": "ndvi/ndvi_20261007T000000Z.tif",
+      "glow_png_filename": "ndvi/ndvi_20261007T000000Z_v3_glow.png",
+      "halo_png_filename": "ndvi/ndvi_20261007T000000Z_v3_halo.png",
+      "height": 4857,
+      "image_count": 22,
+      "images_found": 22,
+      "interpretation": "NDVI \u00b7 Vegetation Signal \u2014 satellite-derived normalised difference vegetation index; higher NDVI indicates a stronger green-vegetation signal. Visualisation only uses multi-colour heatmap display; scientific pixel values in the GeoTIFF are unchanged.",
+      "mapbox_coordinates": [
+        [
+          72.77314998722132,
+          19.328421147700862
+        ],
+        [
+          73.07713987936737,
+          19.328421147700862
+        ],
+        [
+          73.07713987936737,
+          18.89219924573242
+        ],
+        [
+          72.77314998722132,
+          18.89219924573242
+        ]
+      ],
+      "methodology": "Sentinel-2 median composite NDVI",
+      "metric": "ndvi",
+      "ndvi_statistics": {
+        "max": 1.0,
+        "mean": 0.2863277792930603,
+        "median": 0.30688074231147766,
+        "min": -1.0,
+        "p05": -0.34758222103118896,
+        "p25": -0.04386766999959946,
+        "p50": 0.30688074231147766,
+        "p75": 0.6499419212341309,
+        "p95": 0.8585101962089539
+      },
+      "ndvi_statistics_in_region": {
+        "mean": 0.4380703270435333,
+        "p05": 0.015302336774766445,
+        "p50": 0.4587002098560333,
+        "p95": 0.8813612461090088,
+        "valid_pixels": 7530990
+      },
+      "nodata": true,
+      "nodata_pixels": 0,
+      "nodata_semantics": "transparent; no valid cloud-masked satellite NDVI pixel; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries (visualisation layers only)",
+      "nodata_value": -9999.0,
+      "pixel_size_degrees": {
+        "latitude": 8.983152841195197e-05,
+        "longitude": 8.983152841195304e-05
+      },
+      "png_filename": "ndvi/ndvi_20261007T000000Z_v3_sharp.png",
+      "preprocessing": {
+        "cloud_mask": "project-established QA60-cloud filtering with cirrus exclusion",
+        "composite": "median",
+        "ndvi_formula": "normalizedDifference(B8,B4)",
+        "window_days": 14
+      },
+      "scale_m": 10,
+      "semantic_label": "NDVI \u00b7 Vegetation Signal",
+      "sharp_png_filename": "ndvi/ndvi_20261007T000000Z_v3_sharp.png",
+      "source": "Google Earth Engine / Sentinel-2",
+      "source_period": {
+        "end": "2026-10-07",
+        "start": "2026-09-23"
+      },
+      "source_scale_m": 10,
+      "source_timestamp": "2026-10-07T00:00:00+00:00",
+      "timestamp": "20261007T000000Z",
+      "valid_pixel_percent": 100.0,
+      "valid_pixels": 16436088,
+      "visualization": {
+        "display_resolution_m": 20,
+        "layers": [
+          "halo",
+          "glow",
+          "sharp"
+        ],
+        "legend": {
+          "gradient": "magenta \u2192 red \u2192 orange \u2192 yellow \u2192 lime \u2192 green \u2192 teal",
+          "left_label": "LOW \u00b7 0.0",
+          "range": {
+            "max": 0.8,
+            "min": 0.0
+          },
+          "right_label": "HIGH \u00b7 0.8+",
+          "unit": "NDVI"
+        },
+        "mask_applied_after_blur": true,
+        "renderer": "heatmap_render v3",
+        "smoothing": "normalised Gaussian on raw values, display only",
+        "stops": [
+          {
+            "color": "#dd269a",
+            "label": "bare / built",
+            "position": 0.0,
+            "rgb": [
+              221,
+              38,
+              154
+            ],
+            "value": 0.0
+          },
+          {
+            "color": "#ff3b3b",
+            "label": "very sparse",
+            "position": 0.1667,
+            "rgb": [
+              255,
+              59,
+              59
+            ],
+            "value": 0.1
+          },
+          {
+            "color": "#ff8c00",
+            "label": "sparse",
+            "position": 0.3333,
+            "rgb": [
+              255,
+              140,
+              0
+            ],
+            "value": 0.2
+          },
+          {
+            "color": "#ffd23c",
+            "label": "moderate",
+            "position": 0.5,
+            "rgb": [
+              255,
+              210,
+              60
+            ],
+            "value": 0.35
+          },
+          {
+            "color": "#96e63c",
+            "label": "healthy",
+            "position": 0.6667,
+            "rgb": [
+              150,
+              230,
+              60
+            ],
+            "value": 0.5
+          },
+          {
+            "color": "#29d967",
+            "label": "dense",
+            "position": 0.8333,
+            "rgb": [
+              41,
+              217,
+              103
+            ],
+            "value": 0.65
+          },
+          {
+            "color": "#12c8d4",
+            "label": "very dense",
+            "position": 1.0,
+            "rgb": [
+              18,
+              200,
+              212
+            ],
+            "value": 0.8
+          }
+        ],
+        "study_region_clipped": true,
+        "transparent_below": 0.0,
+        "transparent_semantics": "NDVI < 0 (open water) and NoData are transparent"
+      },
+      "visualization_rendered_at": "2026-11-02T16:13:48.797879+00:00",
+      "width": 3384
+    },
+    "no2_s5p_column_retired": {
+      "bounds": {
+        "east": 73.08033428851769,
+        "north": 19.330088420868186,
+        "south": 18.89008640818417,
+        "west": 72.77033287049032
+      },
+      "checksums": {
+        "geotiff_sha256": "f90ee0215e2e822e2438b69103d98c4e499507277af3817bb0c37f6367fc081c",
+        "glow_png_sha256": "48ca6e74f5d39eee23453ee2790d1bd1e1cad9eedd112064c38a860727a6d37e",
+        "halo_png_sha256": "22eff530124b18ab4b5521104ab1815050caf418b1ed12345819c8d9bcc77ac8",
+        "png_sha256": "94a47a102db2d0980e3db932b87358c985abc0eb98d966eaf6c3cc71f3720ff3",
+        "sharp_png_sha256": "94a47a102db2d0980e3db932b87358c985abc0eb98d966eaf6c3cc71f3720ff3"
+      },
+      "coordinates": [
+        [
+          72.77033287049032,
+          19.330088420868186
+        ],
+        [
+          73.08033428851769,
+          19.330088420868186
+        ],
+        [
+          73.08033428851769,
+          18.89008640818417
+        ],
+        [
+          72.77033287049032,
+          18.89008640818417
+        ]
+      ],
+      "crs": "EPSG:4326",
+      "dataset": "COPERNICUS/S5P/NRTI/L3_NO2",
+      "files": {
+        "geotiff": "aqi_20261007T000000Z.tif",
+        "glow_png": "aqi_20261007T000000Z_glow.png",
+        "halo_png": "aqi_20261007T000000Z_halo.png",
+        "png": "aqi_20261007T000000Z.png",
+        "sharp_png": "aqi_20261007T000000Z.png"
+      },
+      "generated_at": "2026-10-08T09:14:59.898858+00:00",
+      "generation_status": "generated",
+      "geotiff_filename": "aqi/aqi_20261007T000000Z.tif",
+      "glow_png_filename": "aqi/aqi_20261007T000000Z_glow.png",
+      "halo_png_filename": "aqi/aqi_20261007T000000Z_halo.png",
+      "height": 44,
+      "image_count": 441,
+      "images_found": 441,
+      "interpretation": "Sentinel-5P NO2 column number density converted to an AQI proxy score (0-500).",
+      "mapbox_coordinates": [
+        [
+          72.77033287049032,
+          19.330088420868186
+        ],
+        [
+          73.08033428851769,
+          19.330088420868186
+        ],
+        [
+          73.08033428851769,
+          18.89008640818417
+        ],
+        [
+          72.77033287049032,
+          18.89008640818417
+        ]
+      ],
+      "methodology": "Sentinel-5P NO2 proxy AQI composite",
+      "metric": "aqi",
+      "nodata": true,
+      "nodata_pixels": 0,
+      "nodata_semantics": "transparent; no valid satellite AQI pixel; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries",
+      "nodata_value": -9999.0,
+      "pixel_size_degrees": {
+        "latitude": 0.010000045742818531,
+        "longitude": 0.010000045742818353
+      },
+      "png_filename": "aqi/aqi_20261007T000000Z.png",
+      "preprocessing": {
+        "composite": "median",
+        "window_days": 14
+      },
+      "retired_reason": "Satellite NO2 column is not CPCB AQI; never served as AQI.",
+      "scale_m": 1113.2,
+      "semantic_label": "AQI Proxy \u00b7 Air Quality",
+      "sharp_png_filename": "aqi/aqi_20261007T000000Z.png",
+      "source": "Google Earth Engine / Sentinel-5P",
+      "source_period": {
+        "end": "2026-10-07",
+        "start": "2026-09-23"
+      },
+      "source_scale_m": 1113.2,
+      "source_timestamp": "2026-10-07T00:00:00+00:00",
+      "timestamp": "20261007T000000Z",
+      "valid_pixel_percent": 100.0,
+      "valid_pixels": 1364,
+      "width": 31
+    },
+    "water_health": {
+      "bounds": {
+        "east": 73.07713987936737,
+        "north": 19.328421147700862,
+        "south": 18.89210941420401,
+        "west": 72.77314998722132
+      },
+      "checksums": {
+        "geotiff_sha256": "e28ef79f7aabccc65a7f27cae458789371323f74707fa011fd4b242071c784e3",
+        "glow_png_sha256": "45ad39f91ae3c80e6925273c2196b40b93c6a461fbce830c5aa695fe5e2661a9",
+        "halo_png_sha256": "5c6c375317f9c00d62c1ee55e85ad875a705b4c95bae7b45351c2c691ea39556",
+        "png_sha256": "b175d2aa493e51771f20d6d26b87ebd800e3dff00b26f57ef378f9b435527827",
+        "sharp_png_sha256": "b175d2aa493e51771f20d6d26b87ebd800e3dff00b26f57ef378f9b435527827"
+      },
+      "coordinates": [
+        [
+          72.77314998722132,
+          19.328421147700862
+        ],
+        [
+          73.07713987936737,
+          19.328421147700862
+        ],
+        [
+          73.07713987936737,
+          18.89210941420401
+        ],
+        [
+          72.77314998722132,
+          18.89210941420401
+        ]
+      ],
+      "crs": "EPSG:4326",
+      "dataset": "COPERNICUS/S2_SR_HARMONIZED",
+      "display_percentiles": {
+        "p02_raw": 0.3961199223995209,
+        "p05_raw": 0.4073273539543152,
+        "p25_raw": 0.440914124250412,
+        "p50_raw": 0.45867034792900085,
+        "p75_raw": 0.47165364027023315,
+        "p95_raw": 0.48671072721481323,
+        "p98_raw": 0.4937255084514618
+      },
+      "files": {
+        "geotiff": "wh_20260925T000000Z.tif",
+        "glow_png": "wh_20260925T000000Z_v3_glow.png",
+        "halo_png": "wh_20260925T000000Z_v3_halo.png",
+        "png": "wh_20260925T000000Z_v3_sharp.png",
+        "sharp_png": "wh_20260925T000000Z_v3_sharp.png"
+      },
+      "generated_at": "2026-09-30T05:22:56.800862+00:00",
+      "generation_status": "generated",
+      "geotiff_filename": "water-health/wh_20260925T000000Z.tif",
+      "glow_png_filename": "water-health/wh_20260925T000000Z_v3_glow.png",
+      "halo_png_filename": "water-health/wh_20260925T000000Z_v3_halo.png",
+      "height": 4857,
+      "image_count": 15,
+      "images_found": 15,
+      "interpretation": "Water body condition index 0..1; higher means healthier (less algal stress + less suspended-material stress averaged), computed only for pixels detected as water via MNDWI >= 0.15 and a 5-pixel 8-connected component filter. Visualisation uses percentile-based colour spread so that tightly-clustered values show distinct saturated heatmap colours; scientific pixel values in the GeoTIFF are unchanged.",
+      "mapbox_coordinates": [
+        [
+          72.77314998722132,
+          19.328421147700862
+        ],
+        [
+          73.07713987936737,
+          19.328421147700862
+        ],
+        [
+          73.07713987936737,
+          18.89219924573242
+        ],
+        [
+          72.77314998722132,
+          18.89219924573242
+        ]
+      ],
+      "methodology": "Sentinel-2 median composite Water Health",
+      "metric": "water_health",
+      "nodata": true,
+      "nodata_pixels": 15673598,
+      "nodata_semantics": "transparent; non-water pixel / no valid Sentinel-2 observation; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries (visualisation layers only)",
+      "nodata_value": -9999.0,
+      "pixel_size_degrees": {
+        "latitude": 8.983152841195197e-05,
+        "longitude": 8.983152841195304e-05
+      },
+      "png_filename": "water-health/wh_20260925T000000Z_v3_sharp.png",
+      "preprocessing": {
+        "cloud_mask": "project-established QA60-cloud filtering with cirrus exclusion",
+        "composite": "median",
+        "mndwi_formula": "normalizedDifference(B3,B11)",
+        "mndwi_threshold": 0.15,
+        "ndci_proxy_formula": "normalizedDifference(B5,B4)",
+        "turbidity_proxy_formula": "normalizedDifference(B3,B4)",
+        "water_mask_connectivity": "8-connected",
+        "water_mask_min_component_pixels": 5,
+        "window_days": 14
+      },
+      "scale_m": 10,
+      "semantic_label": "Water Health \u00b7 Aquatic Condition Index",
+      "sharp_png_filename": "water-health/wh_20260925T000000Z_v3_sharp.png",
+      "source": "Google Earth Engine / Sentinel-2",
+      "source_period": {
+        "days": 14,
+        "end": "2026-09-25",
+        "start": "2026-09-11"
+      },
+      "source_scale_m": 10,
+      "source_timestamp": "2026-09-25T00:00:00+00:00",
+      "timestamp": "20260925T000000Z",
+      "unit": "index_0_to_1",
+      "valid_pixel_percent": 4.639,
+      "valid_pixels": 762490,
+      "visualization": {
+        "display_resolution_m": 20,
+        "layers": [
+          "halo",
+          "glow",
+          "sharp"
+        ],
+        "legend": {
+          "gradient": "dark teal \u2192 blue \u2192 cyan \u2192 turquoise",
+          "left_label": "DEGRADED \u00b7 0.396",
+          "note": "Colours stretched between in-region p2 and p98 so close values separate; raw index unchanged.",
+          "range": {
+            "max": 0.4937255203723907,
+            "min": 0.3961199164390564
+          },
+          "right_label": "HEALTHIER \u00b7 0.494",
+          "unit": "index_0_to_1"
+        },
+        "mask_applied_after_blur": true,
+        "percentile_normalized": true,
+        "renderer": "heatmap_render v3",
+        "smoothing": "normalised Gaussian on raw values inside detected water, display only",
+        "stops": [
+          {
+            "color": "#052a3a",
+            "label": "lowest",
+            "position": 0.0,
+            "rgb": [
+              5,
+              42,
+              58
+            ],
+            "value": 0.3961
+          },
+          {
+            "color": "#04527e",
+            "label": "medium-low",
+            "position": 0.25,
+            "rgb": [
+              4,
+              82,
+              126
+            ],
+            "value": 0.4418
+          },
+          {
+            "color": "#008ab8",
+            "label": "medium",
+            "position": 0.5,
+            "rgb": [
+              0,
+              138,
+              184
+            ],
+            "value": 0.4587
+          },
+          {
+            "color": "#00c0dc",
+            "label": "medium-high",
+            "position": 0.75,
+            "rgb": [
+              0,
+              192,
+              220
+            ],
+            "value": 0.4711
+          },
+          {
+            "color": "#1ee8ee",
+            "label": "highest",
+            "position": 1.0,
+            "rgb": [
+              30,
+              232,
+              238
+            ],
+            "value": 0.4937
+          }
+        ],
+        "study_region_clipped": true
+      },
+      "visualization_rendered_at": "2026-11-02T16:14:05.815697+00:00",
+      "water_health_statistics": {
+        "max": 0.6002172827720642,
+        "mean": 0.45481112599372864,
+        "median": 0.45877814292907715,
+        "min": 0.14557279646396637,
+        "p05": 0.407408207654953,
+        "p25": 0.44103583693504333,
+        "p50": 0.45877814292907715,
+        "p75": 0.47173547744750977,
+        "p95": 0.48678749799728394
+      },
+      "wh_max": 0.6,
+      "wh_mean": 0.455,
+      "wh_median": 0.459,
+      "wh_min": 0.146,
+      "width": 3384
+    }
+  },
+  "version": 1
+}

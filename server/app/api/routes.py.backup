@@ -1,0 +1,253 @@
+from typing import Optional
+
+from sqlalchemy import text, select, func
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
+from pydantic import BaseModel
+
+router = APIRouter()
+
+from app.database import engine
+from app.database import get_db
+from app.models import Zone, EnvironmentData, AnomalyResult
+from app.services.feature_anomaly_pipeline import run_feature_anomaly_pipeline
+from app.services.operational_status import get_operational_status
+from app.services.explanation_evidence import (
+    build_zone_evidence,
+    ZoneNotFoundError,
+    NoAnomalyResultError,
+)
+from app.services.explanation_engine import generate_deterministic_explanation
+from app.services.explanation_service import build_full_explanation
+from datetime import datetime, timedelta
+
+
+def _fetch_all(query: str, params: dict | None = None):
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text(query), params or {})
+            return [dict(row) for row in result.mappings().all()]
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Database query failed: {exc}") from exc
+
+
+def _execute(query: str, params: dict | None = None):
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(query), params or {})
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Database operation failed: {exc}") from exc
+
+
+@router.get("/metrics/latest")
+async def get_latest_metrics(db_cm = Depends(get_db)):
+    # get_db is a contextmanager; use it to obtain a session
+    with db_cm as db:
+        # Find the latest observation timestamp
+        subq = select(func.max(EnvironmentData.observed_at)).scalar_subquery()
+
+        stmt = (
+            select(
+                Zone.id.label("id"),
+                Zone.name.label("name"),
+                Zone.ward.label("ward"),
+                func.ST_X(func.ST_Centroid(Zone.geometry)).label("longitude"),
+                func.ST_Y(func.ST_Centroid(Zone.geometry)).label("latitude"),
+                EnvironmentData.ndvi.label("ndvi"),
+                EnvironmentData.lst.label("lst"),
+                EnvironmentData.ndwi.label("ndwi"),
+                EnvironmentData.aqi.label("aqi"),
+                EnvironmentData.pm25.label("pm25"),
+                EnvironmentData.pm10.label("pm10"),
+                EnvironmentData.no2.label("no2"),
+                EnvironmentData.observed_at.label("date"),
+                EnvironmentData.aqi_source_type.label("aqi_source_type"),
+                EnvironmentData.aqi_nearest_station_distance_m.label("aqi_nearest_station_distance_m"),
+            )
+            .join(EnvironmentData, Zone.id == EnvironmentData.zone_id)
+            .where(EnvironmentData.observed_at == subq)
+            .order_by(Zone.name)
+        )
+
+        rows = db.execute(stmt).mappings().all()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["temperature"] = None
+            d["humidity"] = None
+            out.append(d)
+        return out
+
+
+@router.get("/metrics/{locality_id}")
+async def get_locality_metrics(locality_id: int, days: int = 14, db_cm=Depends(get_db)):
+    # Interpret locality_id as zone_id in the new schema
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    with db_cm as db:
+        stmt = (
+            select(
+                EnvironmentData.observed_at.label("date"),
+                EnvironmentData.ndvi,
+                EnvironmentData.lst,
+                EnvironmentData.ndwi,
+                EnvironmentData.aqi,
+                EnvironmentData.pm25,
+                EnvironmentData.pm10,
+                EnvironmentData.no2,
+            )
+            .where(EnvironmentData.zone_id == locality_id)
+            .where(EnvironmentData.observed_at >= cutoff)
+            .order_by(EnvironmentData.observed_at.desc())
+        )
+        rows = db.execute(stmt).mappings().all()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["temperature"] = None
+            d["humidity"] = None
+            out.append(d)
+        return out
+
+
+@router.get("/aqi/stations")
+async def get_aqi_stations(db_cm=Depends(get_db)):
+    with db_cm as db:
+        # For each zone, get latest environment_data where aqi is not null
+        subq = select(func.max(EnvironmentData.observed_at)).scalar_subquery()
+        # Simpler: get latest per zone by ordering and distinct on zone
+        stmt = (
+            select(
+                Zone.name.label("locality_name"),
+                Zone.ward.label("ward"),
+                EnvironmentData.aqi,
+                EnvironmentData.pm25,
+                EnvironmentData.pm10,
+                EnvironmentData.no2,
+                EnvironmentData.observed_at.label("timestamp"),
+                EnvironmentData.aqi_source_type,
+                EnvironmentData.aqi_nearest_station_distance_m,
+            )
+            .join(EnvironmentData, Zone.id == EnvironmentData.zone_id)
+            .where(EnvironmentData.aqi != None)
+            .order_by(Zone.name, EnvironmentData.observed_at.desc())
+        )
+        rows = db.execute(stmt).mappings().all()
+        # keep the most recent per zone
+        seen = set()
+        out = []
+        for r in rows:
+            zname = r["locality_name"]
+            if zname in seen:
+                continue
+            seen.add(zname)
+            out.append(dict(r))
+        return out
+
+
+@router.get("/anomalies")
+async def get_anomalies(days: int = 7, limit: int = 20, db_cm=Depends(get_db)):
+    with db_cm as db:
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        stmt = (
+            select(
+                AnomalyResult.id,
+                AnomalyResult.zone_id.label("locality_id"),
+                Zone.name.label("locality_name"),
+                AnomalyResult.anomaly_score,
+                AnomalyResult.root_cause,
+                AnomalyResult.mitigation_suggestion.label("mitigation"),
+                AnomalyResult.detected_at,
+                AnomalyResult.observed_at,
+                AnomalyResult.is_anomaly,
+                AnomalyResult.evidence,
+            )
+            .join(Zone, AnomalyResult.zone_id == Zone.id)
+            .where(AnomalyResult.detected_at >= cutoff)
+            .where(AnomalyResult.is_anomaly.is_(True))
+            .order_by(AnomalyResult.anomaly_score.desc())
+            .limit(limit)
+        )
+        rows = db.execute(stmt).mappings().all()
+        out = []
+        for row in rows:
+            item = dict(row)
+            evidence = item.get("evidence") or {}
+            raw_values = evidence.get("raw_values") or {}
+            # The anomaly's relational anchor is usually the satellite row.  Use
+            # stored structured evidence for all source-aligned raw values so AQI
+            # and its provenance are not lost when their timestamps differ.
+            item.update(
+                {
+                    "aqi": raw_values.get("aqi"),
+                    "lst": raw_values.get("lst"),
+                    "ndvi": raw_values.get("ndvi"),
+                    "ndwi": raw_values.get("ndwi"),
+                    "pm25": raw_values.get("pm25"),
+                    "pm10": raw_values.get("pm10"),
+                    "no2": raw_values.get("no2"),
+                    "aqi_provenance": evidence.get("aqi_provenance"),
+                    "evidence": evidence,
+                }
+            )
+            out.append(item)
+        return out
+
+
+@router.post("/anomalies/detect")
+async def trigger_anomaly_detection(background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_anomaly_detection)
+    return {
+        "status": "detection_started",
+        "message": "Anomaly detection running in background",
+    }
+
+
+def run_anomaly_detection():
+    """Compatibility hook for the existing API trigger; work stays idempotent."""
+    run_feature_anomaly_pipeline()
+
+
+class FeedbackRequest(BaseModel):
+    anomaly_id: int
+    rating: bool
+    actual_cause: Optional[str] = None
+
+
+@router.post("/feedback")
+async def submit_feedback(feedback: FeedbackRequest):
+    # Feedback table is not part of the current schema/migrations.
+    raise HTTPException(status_code=501, detail="Feedback endpoint not supported in current schema")
+
+
+@router.get("/zones/{zone_id}/explanation")
+async def get_zone_explanation(zone_id: int, db_cm=Depends(get_db)):
+    """Return a structured, evidence-grounded explanation for a zone.
+
+    The endpoint retrieves the latest Isolation Forest result for the zone,
+    assembles a validated evidence object, and optionally uses an LLM to generate
+    a rich natural language explanation based on the evidence and RAG knowledge.
+
+    HTTP 404 — zone does not exist, or no Isolation Forest result exists yet.
+    HTTP 503 — database error during evidence assembly.
+    """
+    try:
+        with db_cm as db:
+            result = await build_full_explanation(db, zone_id)
+            return result
+    except ZoneNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except NoAnomalyResultError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Evidence assembly failed: {exc}") from exc
+
+
+@router.get("/health")
+async def health_check():
+    return {"status": "healthy", "phase": "2", "version": "2.0.0"}
+
+
+@router.get("/system/status")
+async def get_system_status(db_cm=Depends(get_db)):
+    """Read-only operational evidence for scheduled-history accumulation."""
+    with db_cm as db:
+        return get_operational_status(db)

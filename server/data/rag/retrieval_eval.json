@@ -1,0 +1,191 @@
+{
+  "generated_at": "2026-11-02T16:21:26.678071+00:00",
+  "retrieval_mode": "hybrid (BM25 + spaCy en_core_web_md embeddings, RRF)",
+  "knowledge_notes": 45,
+  "results": {
+    "bm25": {
+      "mode": "bm25",
+      "questions": 42,
+      "recall_at_5": 0.881,
+      "mrr": 0.683,
+      "misses": [
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": [
+            "mumbai_air_seasonality",
+            "aqi_cpcb_scale",
+            "openaq_caaqms"
+          ]
+        },
+        {
+          "question": "Why does the city look greener after the rains?",
+          "expected": [
+            "ndvi_season_mumbai"
+          ],
+          "got": [
+            "mumbai_climate",
+            "idw_method",
+            "ncap"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "water_health_geosense",
+            "vegetation_cooling",
+            "mitigate_heat"
+          ]
+        },
+        {
+          "question": "How would you confirm water pollution on the ground?",
+          "expected": [
+            "water_quality_insitu"
+          ],
+          "got": [
+            "mumbai_air_sources",
+            "mitigate_water",
+            "layer_isolation_forest"
+          ]
+        },
+        {
+          "question": "How do we increase green cover in the city?",
+          "expected": [
+            "mitigate_greening"
+          ],
+          "got": [
+            "mumbai_climate",
+            "mndwi",
+            "turbidity_proxy"
+          ]
+        }
+      ]
+    },
+    "embed": {
+      "mode": "embed",
+      "questions": 42,
+      "recall_at_5": 0.833,
+      "mrr": 0.591,
+      "misses": [
+        {
+          "question": "Which AQI category is 85?",
+          "expected": [
+            "aqi_cpcb_scale"
+          ],
+          "got": []
+        },
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": [
+            "lst_vs_air",
+            "ndvi_ranges",
+            "ncap"
+          ]
+        },
+        {
+          "question": "Why is ozone higher away from busy roads?",
+          "expected": [
+            "pollutant_signatures"
+          ],
+          "got": [
+            "mitigate_air",
+            "lst_vs_air",
+            "residual_interpretation"
+          ]
+        },
+        {
+          "question": "How do you find which pixels are water?",
+          "expected": [
+            "mndwi"
+          ],
+          "got": [
+            "pixel_cell_municipality"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "mitigate_water",
+            "water_quality_insitu",
+            "water_health_geosense"
+          ]
+        },
+        {
+          "question": "How would you confirm water pollution on the ground?",
+          "expected": [
+            "water_quality_insitu"
+          ],
+          "got": [
+            "mitigate_water",
+            "mumbai_air_sources",
+            "mitigate_air"
+          ]
+        },
+        {
+          "question": "How is a water body judged worse than others?",
+          "expected": [
+            "robust_z",
+            "water_health_geosense"
+          ],
+          "got": [
+            "aqi_health_statements",
+            "ndvi_ranges",
+            "mitigate_water"
+          ]
+        }
+      ]
+    },
+    "hybrid": {
+      "mode": "hybrid",
+      "questions": 42,
+      "recall_at_5": 0.929,
+      "mrr": 0.77,
+      "misses": [
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": [
+            "lst_vs_air",
+            "ncap",
+            "aqi_cpcb_scale"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "water_health_geosense",
+            "mitigate_water",
+            "water_quality_insitu"
+          ]
+        },
+        {
+          "question": "How would you confirm water pollution on the ground?",
+          "expected": [
+            "water_quality_insitu"
+          ],
+          "got": [
+            "mumbai_air_sources",
+            "mitigate_water",
+            "mitigate_air"
+          ]
+        }
+      ]
+    }
+  }
+}
