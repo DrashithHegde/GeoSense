@@ -1,6 +1,8 @@
-﻿services:
+services:
   db:
-    image: postgis/postgis:16-3.4
+    # PostGIS + pgvector (docker/db/Dockerfile). Same Postgres 16: the existing volume is kept.
+    build: ./docker/db
+    image: geosense-postgis-pgvector:16-3.4
     container_name: geosense-postgres
     restart: unless-stopped
     env_file:
@@ -34,24 +36,7 @@
     volumes:
       - ./server:/app
       - ./.env:/.env:ro
-      - ${USERPROFILE}/.config/earthengine:/root/.config/earthengine:ro
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-
-  scheduler:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    container_name: geosense-scheduler
-    restart: unless-stopped
-    command: ["python", "scripts/scheduler.py", "--aqi-only"]
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./server:/app
-      - ./.env:/.env:ro
+      - ${USERPROFILE}/.config/earthengine:/root/.config/earthengine
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -63,7 +48,7 @@
     container_name: geosense-client
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5173:5173"
     depends_on:
       - server
     volumes:

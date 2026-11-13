@@ -68,6 +68,26 @@ export function getWaterHealthBand(score) {
 }
 
 /**
+ * Water Health is a 0–1 satellite proxy whose real values sit in a narrow range
+ * (about 0.39–0.49 in Mumbai), so fixed 0–100% bands would call almost every
+ * water body a concern. Bands are therefore relative to all detected water cells.
+ */
+export function waterBandFromPercentile(p) {
+  if (p === null || p === undefined || !Number.isFinite(Number(p))) return null;
+  const v = Number(p);
+  if (v < 10) return "POTENTIAL CONCERN";
+  if (v < 30) return "WATCH";
+  if (v < 70) return "TYPICAL";
+  return "BETTER THAN MOST";
+}
+
+export function waterPercentileFromExplanation(explanationData) {
+  const ev = explanationData?.evidence;
+  const p = ev?.models?.water_health?.percentile ?? ev?.cell?.city_percentiles?.wh_mean;
+  return p === null || p === undefined ? null : Number(p);
+}
+
+/**
  * LST thermal condition band (°C)
  */
 export function getLstBand(lst) {
@@ -138,7 +158,7 @@ export function getMetricDisplay(metricId, metrics) {
     case "ndvi":
       return metrics.ndvi == null ? "N/A" : `${metrics.ndvi.toFixed(2)}`;
     case "water_health":
-      return metrics.water_health_score == null ? "N/A" : `${(metrics.water_health_score * 100).toFixed(0)}%`;
+      return metrics.water_health_score == null ? "N/A" : metrics.water_health_score.toFixed(3);
     case "lst":
       return metrics.lst == null ? "N/A" : `${metrics.lst.toFixed(1)}°C`;
     case "all":
@@ -375,6 +395,8 @@ export function buildZonesGeoJSON(zones) {
 
   return { type: "FeatureCollection", features };
 }
+
+
 
 export function buildMunicipalitiesGeoJSON(municipalities) {
   if (!municipalities || municipalities.length === 0) {

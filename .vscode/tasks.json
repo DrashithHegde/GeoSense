@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup: first-time (everything)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File ${workspaceFolder}/setup.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Database: start PostGIS (docker)",
+      "type": "shell",
+      "command": "docker compose up -d db",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pipeline: heatmaps + AQI + composite + ML",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File ${workspaceFolder}/setup.ps1 -PipelineOnly",
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: API server",
+      "type": "shell",
+      "command": "${workspaceFolder}/server/.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000",
+      "options": { "cwd": "${workspaceFolder}/server" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^x^" },
+        "background": { "beginsPattern": "Will watch|Started reloader", "endsPattern": "Application startup complete" }
+      }
+    },
+    {
+      "label": "Frontend: dev server",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/client" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^x^" },
+        "background": { "beginsPattern": "VITE|vite", "endsPattern": "Local:" }
+      }
+    },
+    {
+      "label": "GeoSense: start all",
+      "dependsOn": ["Database: start PostGIS (docker)", "Backend: API server", "Frontend: dev server"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Tests: intelligence layer",
+      "type": "shell",
+      "command": "${workspaceFolder}/server/.venv/Scripts/python.exe -m pytest tests/test_intelligence_layer.py -q",
+      "options": { "cwd": "${workspaceFolder}/server" },
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend: FastAPI (uvicorn)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["app.main:app", "--reload", "--port", "8000"],
+      "cwd": "${workspaceFolder}/server",
+      "python": "${workspaceFolder}/server/.venv/Scripts/python.exe",
+      "envFile": "${workspaceFolder}/.env",
+      "jinja": true,
+      "justMyCode": true
+    },
+    {
+      "name": "ML pipeline (debug)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/scripts/run_ml_pipeline.py",
+      "cwd": "${workspaceFolder}/server",
+      "python": "${workspaceFolder}/server/.venv/Scripts/python.exe",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Frontend: open in Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/client/src",
+      "preLaunchTask": "Frontend: dev server"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "GeoSense: full stack",
+      "configurations": ["Backend: FastAPI (uvicorn)", "Frontend: open in Chrome"],
+      "stopAll": true
+    }
+  ]
+}

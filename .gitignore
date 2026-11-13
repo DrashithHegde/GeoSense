@@ -1,28 +1,39 @@
-# ── Dependencies ──────────────────────────────────────────────
-node_modules/
+# ── Secrets: API keys, tokens, passwords (NEVER commit) ──────
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*credentials*.json
+*service-account*.json
+.config/earthengine/
+# Docs from earlier debugging that contain a Mapbox token
+DIAGNOSTIC_NOT_RUNNING.md
+MAPBOX_ERROR_DIAGNOSTIC.md
 
-# ── Build output ──────────────────────────────────────────────
+# ── Python ────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ── Node / frontend ───────────────────────────────────────────
+node_modules/
 dist/
 dist-ssr/
-
-# ── Environment variables (contains real API keys / tokens) ───
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-# .env.example is safe to commit — keep it
-
-# ── Vite cache ────────────────────────────────────────────────
 .vite/
 
-# ── OS files ──────────────────────────────────────────────────
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# ── Editor / IDE ──────────────────────────────────────────────
-.vscode/
+# ── Editor / IDE (shared VS Code config is force-added) ───────
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
 .idea/
 *.suo
 *.ntvs*
@@ -30,13 +41,25 @@ desktop.ini
 *.sln
 *.sw?
 
-# ── Logs ──────────────────────────────────────────────────────
+# ── OS files ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs / archives / temp ────────────────────────────────────
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-*.log
-
-# ── Misc ──────────────────────────────────────────────────────
 *.zip
 *.tar.gz
+*.bundle
+server/data/surfaces/temp_*.tif
+
+# ── RAG corpus (downloaded PDFs / extracted text are third-party documents) + embedding model ──
+server/data/rag/corpus/
+server/data/rag/models/
+
+# guardrail audit log (local)
+server/data/logs/

@@ -56,8 +56,11 @@ def get_operational_status(db) -> dict[str, Any]:
         """
         SELECT (SELECT count(*) FROM zones) AS total_zones,
                count(*) AS total_environment_data_rows,
-               count(DISTINCT (zone_id, observed_at)) AS distinct_zone_timestamp_rows,
-               count(*) - count(DISTINCT (zone_id, observed_at)) AS duplicate_zone_timestamp_rows,
+               -- zone rows only: 300 m cell rows have zone_id NULL, and DISTINCT counts all
+               -- (NULL, t) pairs as one, which reported every cell row as a "duplicate"
+               count(DISTINCT (zone_id, observed_at)) FILTER (WHERE zone_id IS NOT NULL) AS distinct_zone_timestamp_rows,
+               count(*) FILTER (WHERE zone_id IS NOT NULL)
+                 - count(DISTINCT (zone_id, observed_at)) FILTER (WHERE zone_id IS NOT NULL) AS duplicate_zone_timestamp_rows,
                min(observed_at) AS earliest_raw_observation,
                max(observed_at) AS latest_raw_observation
         FROM environment_data
@@ -187,11 +190,26 @@ def get_operational_status(db) -> dict[str, Any]:
             "spatial_isolation_forest": {"ready": int(latest_model["result_rows"]) >= 20, "model_name": SPATIAL_MODEL_NAME, **latest_model},
             "temporal_feature_calculations": {"ready": temporal_any, "reason": None if temporal_any else "insufficient compatible provenance-bearing history"},
             "future_temporal_modeling": {"ready": False, "reason": "insufficient real historical depth"},
-            "xgboost": {"target_defined": False, "training_ready": False, "reason": "no legitimate supervised target"},
+            "xgboost": _xgboost_status(),
         },
-        "scheduler": {
-            "status": "unavailable",
-            "reason": "Scheduler run state is in-process only and is not persisted in the database.",
-            "configured_cadence": {"aqi_idw": "every 3 hours", "sentinel_2_ndvi_ndwi": "every 7 days", "landsat_lst": "every 14 days", "feature_anomaly": "after same-day successful AQI and satellite sources"},
-        },
+        "aqi_auto_refresh": _aqi_refresh_status(),
     }
+
+
+def _xgboost_status() -> dict[str, Any]:
+    """The 300 m cell heat model (LST from land cover), from the ML pipeline's summary."""
+    try:
+        from app.services.rag.explainer import ml_summary
+        x = (ml_summary() or {}).get("xgboost_lst") or {}
+        m = x.get("metrics") or {}
+        return {"target": "cell mean LST (Landsat)", "trained": x.get("status") == "ok",
+                "r2_spatial_cv": m.get("r2_spatial_cv"), "rmse_c": m.get("rmse_c"), "cv": m.get("cv")}
+    except Exception as exc:
+        return {"trained": False, "reason": str(exc)}
+
+
+def _aqi_refresh_status() -> dict[str, Any]:
+    from app.services.surfaces import aqi_refresh
+    return {"enabled": aqi_refresh.enabled(), "layer_age_hours": aqi_refresh.layer_age_hours(),
+            "running": aqi_refresh.STATE["running"], "last_attempt": aqi_refresh.STATE["last_attempt"],
+            "last_result": aqi_refresh.STATE["last_result"]}

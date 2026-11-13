@@ -19,17 +19,18 @@ logger = logging.getLogger(__name__)
 
 MMR_BBOX = "72.77,18.89,73.12,19.40"
 CPCB_PROVIDERS = {"CPCB", "caaqm", "MPCB", "BMC"}
-AQI_POLLUTANTS = {"pm25", "pm10", "no2", "so2", "o3", "co"}
+AQI_POLLUTANTS = {"pm25", "pm10", "no2", "so2", "o3", "co", "nh3"}   # Pb: manual, not real-time
 POLLUTANT_AVERAGING_HOURS = {
     "pm25": 24,
     "pm10": 24,
+    "nh3": 24,
     "no2": 24,
     "so2": 24,
     "o3": 8,
     "co": 8,
 }
 MIN_COVERAGE_HOURS = {24: 16.0, 8: 6.0}
-GAS_MOLECULAR_WEIGHTS = {"no2": 46.0055, "so2": 64.066, "o3": 47.9982}
+GAS_MOLECULAR_WEIGHTS = {"no2": 46.0055, "so2": 64.066, "o3": 47.9982, "nh3": 17.031}
 CO_PPB_TO_UGM3 = 1.145
 OPENAQ_BASE = "https://api.openaq.org/v3"
 REQUEST_TIMEOUT = 20
@@ -38,7 +39,10 @@ MAX_MEASUREMENT_PAGES = 10
 MAX_HTTP_RETRIES = 3
 HTTP_BACKOFF_BASE_SECONDS = 0.5
 HTTP_BACKOFF_MAX_SECONDS = 8.0
-SENSOR_REQUEST_INTERVAL_SECONDS = 0.2
+# OpenAQ free tier: 60 requests/minute and 2,000/hour (docs.openaq.org/using-the-api/rate-limits).
+# One request every 1.05 s stays under 60/min; a full MMR run (~270 sensor requests) takes ~5 min.
+SENSOR_REQUEST_INTERVAL_SECONDS = 1.05
+RATE_LIMIT_WAIT_MAX_SECONDS = 65.0
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _SESSION = requests.Session()
 _last_sensor_request_at: float | None = None
@@ -62,7 +66,18 @@ def _retry_delay(response: requests.Response, retry_number: int) -> float:
             except (TypeError, ValueError, OverflowError):
                 delay = -1.0
         if delay >= 0:
-            return delay
+            return min(delay, RATE_LIMIT_WAIT_MAX_SECONDS)
+    if response.status_code == 429:
+        # OpenAQ reports seconds until the window resets in x-ratelimit-reset; the minute
+        # window resets within 60 s, so without the header wait out the window.
+        reset = response.headers.get("x-ratelimit-reset")
+        try:
+            wait = float(reset)
+            if wait > 1e9:                                   # an epoch timestamp, not seconds
+                wait = wait - datetime.now(timezone.utc).timestamp()
+        except (TypeError, ValueError):
+            wait = 60.0
+        return min(max(wait, 1.0) + 1.0, RATE_LIMIT_WAIT_MAX_SECONDS)
     return min(HTTP_BACKOFF_BASE_SECONDS * (2 ** retry_number), HTTP_BACKOFF_MAX_SECONDS)
 
 
@@ -74,6 +89,8 @@ def _request(method: str, url: str, **kwargs: Any) -> requests.Response:
             return response
         delay = _retry_delay(response, retry_number)
         response.close()
+        if response.status_code == 429:
+            logger.info("OpenAQ: rate limit reached - waiting %.0f s before retrying", delay)
         time.sleep(delay)
     raise RuntimeError("OpenAQ request retry loop ended unexpectedly")
 
@@ -320,8 +337,9 @@ def _build_sensor_map(sensors: List[Dict]) -> Dict[int, Dict]:
         sid = s.get("id")
         param = s.get("parameter") or {}
         if sid is not None:
+            name = str(param.get("name", "")).strip().lower()
             m[int(sid)] = {
-                "param_name": param.get("name", ""),
+                "param_name": {"ammonia": "nh3", "pm2.5": "pm25"}.get(name, name),
                 "units": param.get("units", ""),
                 "parameter_id": param.get("id"),
             }

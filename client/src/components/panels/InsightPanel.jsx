@@ -1,9 +1,21 @@
-import { getAqiCpcbBand, getLstBand, getNdviBand, getWaterHealthBand, getSeverityColor, getSeverityLabel, getZoneMetrics, getMetricDisplay, normalizeMetric } from "../../utils/helpers";
-import TrendSparkline from "../ui/TrendSparkline";
+import AIInsightSection from "./AIInsightSection";
+import {
+  getAqiCpcbBand,
+  getLstBand,
+  getNdviBand,
+  getSeverityColor,
+  getSeverityLabel,
+  getZoneMetrics,
+  normalizeMetric,
+} from "../../utils/helpers";
+import {
+  waterBandFromPercentile,
+  waterPercentileFromExplanation,
+} from "../../utils/helpers";
 import RootCauseBar from "../ui/RootCauseBar";
 
 const LAYER_PRIORITY = ["aqi", "ndvi", "water_health", "lst"];
-const COMPOSITE_ACCENT_COLOR = "#b45309";
+const COMPOSITE_ACCENT_COLOR = "#ff8a3d";
 
 const LAYER_META = {
   aqi: { icon: "○", label: "AQI", color: "#ff8c00" },
@@ -12,98 +24,188 @@ const LAYER_META = {
   lst: { icon: "▣", label: "LST", color: "#ff5f57" },
 };
 
+// Composite v2 components (see server/app/services/composite_v2.py)
+const COMPONENT_META = {
+  heat: { icon: "▣", label: "Heat", sub: "LST", color: "#ff5f57" },
+  surface: {
+    icon: "◇",
+    label: "Surface",
+    sub: "vegetation on land · Water Health on water",
+    color: "#1dd1a1",
+  },
+  air: { icon: "○", label: "Air", sub: "AQI", color: "#ff8c00" },
+};
+
 function resolveActiveLayerId(activeLayers) {
   if (!activeLayers) return "aqi";
   if (activeLayers.all) return "all";
-
   const selected = LAYER_PRIORITY.filter((layerId) => activeLayers[layerId]);
   if (selected.length > 1) return "all";
   if (selected.length === 1) return selected[0];
-
   return "aqi";
 }
 
+function fmt(layerId, v) {
+  if (v == null || !Number.isFinite(Number(v))) return null;
+  const n = Number(v);
+  if (layerId === "aqi") return String(Math.round(n));
+  if (layerId === "ndvi") return n.toFixed(2);
+  if (layerId === "lst") return n.toFixed(1);
+  if (layerId === "water_health") return n.toFixed(2);
+  if (layerId === "all") return String(Math.round(n));
+  return String(n);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// InsightPanel
-// Slides in from the right when a zone is clicked.
-// Width: 420px | Transition: 400ms cubic-bezier spring
-// Root cause analysis panel
+// InsightPanel — slides in from the right when a point is clicked.
+//   Top:    place, municipality, the 300 m area value of the map's layer (big), severity,
+//           intensity, and the exact-point value.
+//   Middle: insight summary (+ the composite breakdown on Composite).
+//   Bottom: details — at this point · surrounding 300 m area · municipality.
+// One layer on the map -> only that layer's data; Composite -> every layer.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function InsightPanel({ zone, pointAnalysis, cityLabel, explanationData, activeLayers, isOpen, onClose, onDeepAnalysis }) {
+export default function InsightPanel({
+  zone,
+  pointAnalysis,
+  cityLabel,
+  explanationData: rawExplanation,
+  activeLayers,
+  focusLayer,
+  isOpen,
+  onClose,
+  onDeepAnalysis,
+}) {
   const metrics = zone ? getZoneMetrics(zone) : null;
-  const activeLayerId = resolveActiveLayerId(activeLayers);
+  const activeLayerId = focusLayer
+    ? focusLayer === "composite"
+      ? "all"
+      : focusLayer
+    : resolveActiveLayerId(activeLayers);
   const isCompositeView = activeLayerId === "all";
   const activeLayerMeta = LAYER_META[activeLayerId] || LAYER_META.aqi;
+  const focusKey = isCompositeView ? "composite" : activeLayerId;
+  const show = (layerId) => isCompositeView || activeLayerId === layerId;
+  // Composite lists only the layers that have a value here; a single-layer view keeps its own line
+  const showPoint = (layerId, v) =>
+    isCompositeView ? v != null : activeLayerId === layerId;
+  // Use the write-up only when it was made for this layer (a layer switch refetches it).
+  const explanationData =
+    rawExplanation &&
+    (rawExplanation._unavailable || rawExplanation.focus === focusKey)
+      ? rawExplanation
+      : null;
 
-  // Extract point analysis hierarchy — prefer explicit prop, fall back to attached data
   const pixel = pointAnalysis?.pixel || zone?.pointAnalysis?.pixel || null;
   const cell = pointAnalysis?.cell || zone?.pointAnalysis?.cell || null;
-  const municipality = pointAnalysis?.municipality || zone?.pointAnalysis?.municipality || null;
+  const municipality =
+    pointAnalysis?.municipality || zone?.pointAnalysis?.municipality || null;
+  const place = pointAnalysis?.place || zone?.pointAnalysis?.place || null;
 
-  // Convenience: pixel-level values (exact satellite pixel)
+  // exact point (pixel) values
   const pixelNdvi = pixel?.ndvi && !pixel.ndvi.nodata ? pixel.ndvi.value : null;
   const pixelLst = pixel?.lst && !pixel.lst.nodata ? pixel.lst.value_c : null;
   const pixelAqi = pixel?.aqi && !pixel.aqi.nodata ? pixel.aqi.value : null;
-  const pixelWaterHealth = pixel?.water_health && !pixel.water_health.nodata ? pixel.water_health.value : null;
+  const pixelWaterHealth =
+    pixel?.water_health && !pixel.water_health.nodata
+      ? pixel.water_health.value
+      : null;
+  const pixelComposite =
+    pixel?.composite && !pixel.composite.nodata && pixel.composite.value != null
+      ? pixel.composite.value * 100
+      : null;
+  const pixelOf = {
+    aqi: pixelAqi,
+    ndvi: pixelNdvi,
+    lst: pixelLst,
+    water_health: pixelWaterHealth,
+    all: pixelComposite,
+  };
 
-  // Convenience: cell-level aggregated values (300m grid)
+  // 300 m area (cell) values — computed on click from the map's current layers
   const cellMetrics = cell?.metrics || {};
-  const cellNdvi = cellMetrics.ndvi ?? null;
-  const cellLst = cellMetrics.lst ?? null;
-  const cellAqi = cellMetrics.aqi ?? null;
-  const cellWater = cellMetrics.water_health_score ?? null;
+  const cellComposite =
+    cellMetrics.composite != null ? cellMetrics.composite * 100 : null;
+  const cellOf = {
+    aqi: cellMetrics.aqi ?? metrics?.aqi ?? null,
+    ndvi: cellMetrics.ndvi_land ?? cellMetrics.ndvi ?? metrics?.ndvi ?? null, // land only (water excluded)
+    lst: cellMetrics.lst ?? metrics?.lst ?? null,
+    water_health:
+      cellMetrics.water_health_score ?? metrics?.water_health_score ?? null,
+    all: cellComposite,
+  };
   const cellAnomaly = cell?.anomaly || null;
+  const breakdown = cellMetrics.composite_breakdown || null;
 
-  // Extract unit for LST display
-  let panelValue, panelUnit = "";
-  if (isCompositeView) {
-    panelValue = zone?.composite?.score == null ? "N/A" : zone.composite.score.toFixed(1);
-  } else if (activeLayerId === "water_health") {
-    panelValue = metrics?.water_health_score == null ? "N/A" : `${(metrics.water_health_score * 100).toFixed(0)}%`;
-  } else if (activeLayerId === "lst") {
-    panelValue = metrics?.lst !== null && metrics?.lst !== undefined ? metrics.lst.toFixed(1) : "N/A";
-    panelUnit = metrics?.lst !== null && metrics?.lst !== undefined ? "°C" : "";
-  } else {
-    panelValue = getMetricDisplay(activeLayerId, metrics);
-  }
+  // Main number: the 300 m area value; the exact point only when the area has no value.
+  const areaValue = cellOf[activeLayerId];
+  const pointValue = pixelOf[activeLayerId];
+  const mainFromPoint = areaValue == null && pointValue != null;
+  const mainValue = mainFromPoint ? pointValue : areaValue;
+  const mainText = fmt(activeLayerId, mainValue) ?? "N/A";
+  const mainUnit = activeLayerId === "lst" && mainValue != null ? "°C" : "";
+  const mainCaption =
+    mainValue == null
+      ? "No value at this location"
+      : mainFromPoint
+        ? "At this exact point · no 300 m area average"
+        : "300 m area average";
+  const mainLabel = isCompositeView
+    ? "Composite stress"
+    : activeLayerMeta.label;
+  const valueColor = isCompositeView
+    ? COMPOSITE_ACCENT_COLOR
+    : activeLayerMeta.color;
 
-  const panelLabel = isCompositeView
-    ? "Composite Risk Score (Cell-Level)"
-    : activeLayerId === "lst" && pixelLst !== null
-      ? "Cell Mean LST (see Pixel below for exact value)"
-      : `${activeLayerMeta.label} — Analytical Cell Mean`;
-  const panelValueColor = isCompositeView ? COMPOSITE_ACCENT_COLOR : activeLayerMeta.color;
+  const mainMetrics = {
+    aqi: cellOf.aqi ?? pixelAqi,
+    ndvi: cellOf.ndvi ?? pixelNdvi,
+    lst: cellOf.lst ?? pixelLst,
+    water_health_score: cellOf.water_health ?? pixelWaterHealth,
+  };
   const stressValue = isCompositeView
-    ? zone?.composite?.score ?? null
-    : normalizeMetric(activeLayerId, metrics);
-  const stressLabel = isCompositeView ? "Stress Index" : `${activeLayerMeta.label} Intensity`;
-  const breakdownLabel = isCompositeView
-    ? "Root Cause Breakdown"
-    : `${activeLayerMeta.label} Breakdown`;
-  const trendLabel = isCompositeView
-    ? "14-Day Trend"
-    : `14-Day ${activeLayerMeta.label} Trend`;
-  const severityScore = isCompositeView ? (zone?.severity ?? 0) : stressValue;
+    ? mainValue
+    : normalizeMetric(activeLayerId, mainMetrics);
+  const whPct = waterPercentileFromExplanation(explanationData);
+  const severityScore = isCompositeView
+    ? (mainValue ?? 0)
+    : activeLayerId === "water_health" && whPct != null
+      ? 100 - whPct
+      : stressValue;
   const severityLabel = (() => {
-    if (activeLayerId === "aqi") return getAqiCpcbBand(metrics?.aqi);
-    if (activeLayerId === "ndvi") return getNdviBand(metrics?.ndvi);
-    if (activeLayerId === "water_health") return getWaterHealthBand(metrics?.water_health_score);
-    if (activeLayerId === "lst") return getLstBand(metrics?.lst);
+    if (mainValue == null) return "NO DATA";
+    if (activeLayerId === "aqi") return getAqiCpcbBand(mainValue);
+    if (activeLayerId === "ndvi") return getNdviBand(mainValue);
+    if (activeLayerId === "water_health")
+      return waterBandFromPercentile(whPct) || "LOADING…";
+    if (activeLayerId === "lst") return getLstBand(mainValue);
     return getSeverityLabel(severityScore);
   })();
-  const severityColor = getSeverityColor(severityScore);
-  const severityScopeLabel = isCompositeView ? "Composite" : activeLayerId === "aqi" ? "CPCB AQI" : activeLayerMeta.label;
-  const zoneDisplayName = cityLabel ? `${zone?.name}, ${cityLabel}` : zone?.name;
+  const severityColor =
+    mainValue == null ? "var(--text-dim)" : getSeverityColor(severityScore);
+  const severityScopeLabel = isCompositeView
+    ? "Composite"
+    : activeLayerId === "aqi"
+      ? "AQI"
+      : activeLayerMeta.label;
 
-  // Real backend classification if available
+  const placeName =
+    place?.label || zone?.name || municipality?.name || "Selected location";
+  const placeTitle =
+    cityLabel && !municipality?.name && !zone?.municipality_name
+      ? `${placeName}, ${cityLabel}`
+      : placeName;
+  const muniName = municipality?.name || zone?.municipality_name || null;
+
   const classification = explanationData?.classification
     ? explanationData.classification.toUpperCase()
-    : cellAnomaly?.flag
+    : isCompositeView && (cellAnomaly?.flag || zone?.is_anomaly)
       ? "ANOMALY"
-      : zone?.is_anomaly
-        ? "ANOMALY"
-        : "INLIER";
+      : null;
+  const pixelSource = isCompositeView
+    ? pixel?.ndvi?.source || pixel?.lst?.source
+    : pixel?.[activeLayerId]?.source;
+  const gridCols = isCompositeView ? "1fr 1fr" : "1fr";
 
   return (
     <div
@@ -116,7 +218,8 @@ export default function InsightPanel({ zone, pointAnalysis, cityLabel, explanati
         width: 380,
         transform: isOpen ? "translateX(0)" : "translateX(100%)",
         opacity: isOpen ? 1 : 0,
-        transition: "transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease",
+        transition:
+          "transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease",
         display: "flex",
         flexDirection: "column",
         pointerEvents: isOpen ? "auto" : "none",
@@ -134,577 +237,591 @@ export default function InsightPanel({ zone, pointAnalysis, cityLabel, explanati
       >
         {zone ? (
           <>
-            {/* ── Header ─────────────────────────────────────────────────── */}
+            {/* ── Top: place + main value ───────────────────────────────── */}
             <div
               style={{
-                padding: "16px 18px",
+                padding: "16px 18px 14px",
                 borderBottom: "1px solid rgba(0,229,255,0.1)",
                 position: "relative",
                 flexShrink: 0,
               }}
             >
-              {/* Close button */}
-              <button
-                onClick={onClose}
-                style={{
-                  position: "absolute",
-                  top: 14,
-                  right: 14,
-                  background: "none",
-                  border: "1px solid rgba(0,229,255,0.18)",
-                  borderRadius: 4,
-                  color: "var(--text-dim)",
-                  width: 24,
-                  height: 24,
-                  cursor: "pointer",
-                  fontSize: "11px",
-                  fontFamily: "inherit",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--cyan)";
-                  e.currentTarget.style.borderColor = "rgba(0,229,255,0.4)";
-                  e.currentTarget.style.boxShadow = "0 0 8px rgba(0,229,255,0.2)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-dim)";
-                  e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-              >
-                ✕
-              </button>
+              <CloseButton onClick={onClose} />
 
               <div
                 style={{
                   fontSize: "0.52rem",
                   letterSpacing: "0.2em",
-                  color: classification === "ANOMALY" ? "rgba(255,59,59,0.7)" : "rgba(0,229,255,0.5)",
                   textTransform: "uppercase",
+                  marginTop: 4,
                   marginBottom: 6,
-                  marginTop: 6,
+                  color:
+                    classification === "ANOMALY"
+                      ? "rgba(255,59,59,0.75)"
+                      : "rgba(0,229,255,0.5)",
                 }}
               >
-                {classification === "ANOMALY" ? "ANOMALY DETECTED" : "ROOT CAUSE ANALYSIS"}
+                {classification === "ANOMALY"
+                  ? "● Anomaly detected"
+                  : `${mainLabel} · location scan`}
               </div>
 
               <div
                 style={{
                   fontFamily: "'Syne', sans-serif",
-                  fontSize: "0.95rem",
+                  fontSize: "1.02rem",
                   fontWeight: 600,
-                  color: "rgba(255,255,255,0.9)",
-                  letterSpacing: "0.04em",
-                  lineHeight: 1.45,
-                  paddingBottom: 2,
+                  color: "rgba(255,255,255,0.94)",
+                  letterSpacing: "0.03em",
+                  lineHeight: 1.35,
                   paddingRight: 28,
                 }}
               >
-                {zoneDisplayName}
+                {placeTitle}
               </div>
-
-              <div
-                style={{
-                  marginTop: 5,
-                  fontSize: "0.55rem",
-                  color: "var(--text-dim)",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                SEVERITY ({severityScopeLabel.toUpperCase()}):{" "}
-                <span style={{ color: severityColor }}>
-                  {severityLabel}
-                </span>
-                {"  ·  "}
-                {municipality?.name
-                  ? `Within ${municipality.name}`
-                  : zone.coords ? `${zone.coords[1].toFixed(4)}°N ${zone.coords[0].toFixed(4)}°E`
-                    : ""}
-              </div>
-            </div>
-
-            {/* ── Body ───────────────────────────────────────────────────── */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
-
-              {/* ══════════════════════════════════════════════
-                 SPATIAL HIERARCHY — THREE DISTINCT LEVELS
-                 ══════════════════════════════════════════════ */}
-
-              {(pixel || cell || municipality) && (
-                <div style={{ marginBottom: 14 }}>
-                  <SectionLabel>▣  CLICKED LOCATION</SectionLabel>
-                  <div style={{
-                    padding: "10px 12px",
-                    background: "rgba(0,229,255,0.04)",
-                    border: "1px solid rgba(0,229,255,0.12)",
-                    borderRadius: 6,
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "0.85rem", color: "rgba(255,255,255,0.9)" }}>
-                        {(pixel?.latitude ?? zone?.coords?.[1]) != null
-                          ? `${(pixel?.latitude ?? zone?.coords?.[1]).toFixed(5)}°N`
-                          : "—"}
-                      </span>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "0.85rem", color: "rgba(255,255,255,0.9)" }}>
-                        {(pixel?.longitude ?? zone?.coords?.[0]) != null
-                          ? `${(pixel?.longitude ?? zone?.coords?.[0]).toFixed(5)}°E`
-                          : "—"}
-                      </span>
-                    </div>
-                    {cell?.resolution_m && (
-                      <div style={{ fontSize: "0.56rem", color: "var(--text-dim)", marginTop: 6, letterSpacing: "0.1em" }}>
-                        HIERARCHY: 10m Sentinel-2 pixel  →  {cell.resolution_m}m analytical cell  →  Municipality boundary
-                      </div>
-                    )}
-                  </div>
+              {muniName && !placeTitle.includes(muniName) && (
+                <div
+                  style={{
+                    marginTop: 3,
+                    fontSize: "0.62rem",
+                    color: "var(--text-dim)",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Within {muniName}
                 </div>
               )}
 
-              {/* ── 1. PIXEL LEVEL (exact satellite pixel) */}
-              {(pixelNdvi != null || pixelLst != null || pixelAqi != null || pixelWaterHealth != null || pixel) && (
-                <div style={{ marginBottom: 14 }}>
-                  <SpatialLevelHeader
-                    level="1"
-                    label="PIXEL"
-                    sublabel="Exact satellite pixel · scientific source"
-                    accent="#ff5f57"
-                  />
-                  <div style={{
-                    padding: "10px 12px",
-                    background: "rgba(255, 95, 87, 0.04)",
-                    border: "1px solid rgba(255, 95, 87, 0.15)",
-                    borderLeft: "3px solid #ff5f57",
-                    borderRadius: 4,
-                  }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 12px" }}>
-                      <MetricRow
-                        label="NDVI"
-                        value={pixelNdvi != null
-                          ? pixelNdvi.toFixed(3)
-                          : (pixel?.ndvi?.nodata ? "No valid NDVI observation at this location." : "N/A")}
-                        unit=""
-                        color="#1dd1a1"
-                        nodata={pixel?.ndvi?.nodata}
-                      />
-                      <MetricRow
-                        label="LST"
-                        value={pixelLst != null ? pixelLst.toFixed(1) : (pixel?.lst?.nodata ? "NoData" : "N/A")}
-                        unit="°C"
-                        color="#ff5f57"
-                        nodata={pixel?.lst?.nodata}
-                      />
-                      <MetricRow
-                        label="AQI"
-                        value={pixelAqi != null ? String(pixelAqi) : (pixel?.aqi?.nodata ? "NoData" : "N/A")}
-                        unit=""
-                        color="#ff8c00"
-                        nodata={pixel?.aqi?.nodata}
-                      />
-                      <MetricRow
-                        label="Water Health"
-                        value={pixelWaterHealth != null
-                          ? `${(pixelWaterHealth * 100).toFixed(0)}%`
-                          : (pixel?.water_health?.nodata ? "No valid water pixel at this location." : "N/A")}
-                        unit=""
-                        color="#00b4d8"
-                        nodata={pixel?.water_health?.nodata}
-                      />
-                    </div>
-                    {(pixel?.ndvi?.source || pixel?.lst?.source) && (
-                      <div style={{ fontSize: "0.54rem", color: "var(--text-dim)", marginTop: 8, letterSpacing: "0.08em", lineHeight: 1.5 }}>
-                        Source: {pixel?.ndvi?.source || pixel?.lst?.source}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ── 2. CELL LEVEL (300m analytical grid) */}
-              {cell && (
-                <div style={{ marginBottom: 14 }}>
-                  <SpatialLevelHeader
-                    level="2"
-                    label="LOCAL ANALYTICAL CELL"
-                    sublabel={`${cell.resolution_m || 300}m grid · zonal aggregates`}
-                    accent="#1dd1a1"
-                  />
-                  <div style={{
-                    padding: "10px 12px",
-                    background: "rgba(29, 209, 161, 0.04)",
-                    border: "1px solid rgba(29, 209, 161, 0.15)",
-                    borderLeft: "3px solid #1dd1a1",
-                    borderRadius: 4,
-                  }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 12px", marginBottom: cellAnomaly?.flag ? 10 : 0 }}>
-                      <MetricRow label="AQI" value={cellAqi != null ? String(cellAqi) : "N/A"} color="#ff8c00" />
-                      <MetricRow label="NDVI" value={cellNdvi != null ? cellNdvi.toFixed(2) : "N/A"} color="#1dd1a1" />
-                      <MetricRow label="LST" value={cellLst != null ? cellLst.toFixed(1) : "N/A"} unit="°C" color="#ff5f57" />
-                      <MetricRow label="Water" value={cellWater != null ? `${(cellWater * 100).toFixed(0)}%` : "N/A"} color="#00b4d8" />
-                    </div>
-                    {cellAnomaly?.flag && (
-                      <div style={{
-                        marginTop: 8,
-                        padding: "6px 10px",
-                        background: "rgba(255, 59, 59, 0.08)",
-                        border: "1px solid rgba(255, 59, 59, 0.25)",
-                        borderRadius: 4,
-                      }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "0.6rem", color: "#ff3b3b", letterSpacing: "0.15em", fontWeight: 600 }}>
-                            ANOMALY DETECTED
-                          </span>
-                          {cellAnomaly.score != null && (
-                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "0.7rem", color: "#ff3b3b" }}>
-                              Score {cellAnomaly.score.toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                        {cellAnomaly.anomaly_type && (
-                          <div style={{ fontSize: "0.6rem", color: "var(--text-dim)", marginTop: 3 }}>
-                            Type: {cellAnomaly.anomaly_type}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {cell.centroid && (
-                      <div style={{ fontSize: "0.54rem", color: "var(--text-dim)", marginTop: 8, letterSpacing: "0.08em" }}>
-                        Cell ID: {cell.id}  ·  Centroid: {cell.centroid.latitude.toFixed(4)}°N, {cell.centroid.longitude.toFixed(4)}°E
-                        {cell.match_type === "nearest" ? `  ·  ${cell.distance_to_centroid_m}m from click` : ""}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ── 3. MUNICIPALITY LEVEL (admin boundary) */}
-              {municipality && (
-                <div style={{ marginBottom: 14 }}>
-                  <SpatialLevelHeader
-                    level="3"
-                    label="MUNICIPALITY"
-                    sublabel="Administrative boundary · context only"
-                    accent="#00b4d8"
-                  />
-                  <div style={{
-                    padding: "10px 12px",
-                    background: "rgba(0, 180, 216, 0.04)",
-                    border: "1px solid rgba(0, 180, 216, 0.15)",
-                    borderLeft: "3px solid #00b4d8",
-                    borderRadius: 4,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}>
-                    <div>
-                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: "0.95rem", fontWeight: 600, color: "rgba(255,255,255,0.92)" }}>
-                        {municipality.name}
-                      </div>
-                      <div style={{ fontSize: "0.56rem", color: "var(--text-dim)", marginTop: 2, letterSpacing: "0.08em" }}>
-                        {municipality.source || "Administrative containment"}
-                      </div>
-                    </div>
-                    <div style={{
-                      padding: "3px 8px",
-                      fontSize: "0.55rem",
-                      letterSpacing: "0.15em",
-                      color: "#00b4d8",
-                      background: "rgba(0, 180, 216, 0.12)",
-                      border: "1px solid rgba(0, 180, 216, 0.25)",
-                      borderRadius: 3,
-                    }}>
-                      ADMIN
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Divider after hierarchy sections */}
-              {(pixel || cell || municipality) && <Divider />}
-
-              {/* Active score */}
               <div
                 style={{
                   display: "flex",
-                  alignItems: "baseline",
+                  alignItems: "flex-end",
                   justifyContent: "space-between",
-                  marginBottom: 14,
+                  marginTop: 14,
+                  gap: 12,
                 }}
               >
-                <span
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: "0.56rem",
+                      color: "var(--text-dim)",
+                      letterSpacing: "0.16em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {mainLabel}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.56rem",
+                      color: "rgba(255,255,255,0.5)",
+                      letterSpacing: "0.06em",
+                      marginTop: 3,
+                    }}
+                  >
+                    {mainCaption}
+                  </div>
+                </div>
+                <div
                   style={{
-                    fontSize: "0.58rem",
-                    color: "var(--text-dim)",
-                    letterSpacing: "0.18em",
-                    textTransform: "uppercase",
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 4,
+                    flexShrink: 0,
                   }}
                 >
-                  {panelLabel}
-                </span>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
                   <span
                     style={{
                       fontFamily: "'DM Mono', monospace",
-                      fontSize: "2.2rem",
+                      fontSize: "2.6rem",
                       fontWeight: 600,
-                      color: panelValueColor,
-                      textShadow: `0 0 24px ${panelValueColor}66`,
+                      color: valueColor,
+                      textShadow: `0 0 26px ${valueColor}66`,
                       lineHeight: 1,
                       letterSpacing: "-0.02em",
                     }}
                   >
-                    {panelValue}
+                    {mainText}
                   </span>
-                  {panelUnit && (
+                  {mainUnit && (
                     <span
                       style={{
                         fontFamily: "'DM Mono', monospace",
-                        fontSize: "0.9rem",
+                        fontSize: "0.95rem",
                         fontWeight: 600,
-                        color: panelValueColor,
-                        textShadow: `0 0 24px ${panelValueColor}66`,
-                        lineHeight: 1,
-                        letterSpacing: "-0.02em",
+                        color: valueColor,
                       }}
                     >
-                      {panelUnit}
+                      {mainUnit}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Stress index bar */}
-              <div style={{ marginBottom: 18 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "0.58rem",
-                    color: "var(--text-dim)",
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    marginBottom: 6,
-                  }}
-                >
-                  <span>{stressLabel}</span>
-                  <span style={{ color: panelValueColor, fontFamily: "'DM Mono', monospace", fontWeight: 400, fontSize: "0.58rem" }}>{stressValue == null ? "N/A" : `${Math.round(stressValue)}%`}</span>
-                </div>
-                <div
-                  style={{
-                    height: 3,
-                    background: "rgba(255,255,255,0.06)",
-                    borderRadius: 2,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${stressValue == null ? 0 : Math.max(0, Math.min(100, stressValue))}%`,
-                      background: panelValueColor,
-                      boxShadow: `0 0 10px ${panelValueColor}88`,
-                      borderRadius: 2,
-                      transition: "width 1s cubic-bezier(0.22,1,0.36,1)",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Divider */}
-              <Divider />
-
-              {/* Root cause breakdown */}
-              {isCompositeView && (
-                <>
-                  <SectionLabel>{breakdownLabel}</SectionLabel>
-                  <RootCauseBar
-                    icon="○"
-                    label="AQI"
-                    value={metrics.aqi}
-                    normalizedValue={zone.composite?.contributions?.aqi == null ? null : zone.composite.contributions.aqi * 100}
-                    displayValue={getMetricDisplay("aqi", metrics)}
-                    color="#ff8c00"
-                  />
-                  <RootCauseBar
-                    icon="◇"
-                    label="NDVI"
-                    value={metrics.ndvi}
-                    normalizedValue={zone.composite?.contributions?.ndvi == null ? null : zone.composite.contributions.ndvi * 100}
-                    displayValue={getMetricDisplay("ndvi", metrics)}
-                    color="#1dd1a1"
-                  />
-                  <RootCauseBar
-                    icon="◈"
-                    label="Water"
-                    value={metrics.water_health_score}
-                    normalizedValue={zone.composite?.contributions?.water_health == null ? null : zone.composite.contributions.water_health * 100}
-                    displayValue={metrics.water_health_score == null ? "N/A" : `${(metrics.water_health_score * 100).toFixed(0)}%`}
-                    color="#00b4d8"
-                  />
-                  <RootCauseBar
-                    icon="▣"
-                    label="LST"
-                    value={metrics.lst}
-                    normalizedValue={zone.composite?.contributions?.lst == null ? null : zone.composite.contributions.lst * 100}
-                    displayValue={getMetricDisplay("lst", metrics)}
-                    color="#ff5f57"
-                  />
-                  {/* Divider */}
-                  <Divider />
-                </>
-              )}
-
-              {/* Trend / Explanation */}
-              <SectionLabel>Insight Summary</SectionLabel>
               <div
                 style={{
-                  minHeight: 62,
-                  borderLeft: "1px solid rgba(0,229,255,0.14)",
-                  marginBottom: 16,
-                  paddingLeft: 12,
-                  position: "relative",
+                  marginTop: 10,
+                  fontSize: "0.58rem",
                   color: "var(--text-dim)",
-                  fontSize: "0.75rem",
-                  lineHeight: 1.5,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
+                  letterSpacing: "0.1em",
                 }}
               >
-                {explanationData ? (
-                  explanationData._unavailable ? (
-                    <span style={{ fontStyle: "italic", opacity: 0.7 }}>Temporal data: insufficient history.</span>
-                  ) : (
-                    explanationData.deterministic_explanation && (
-                      <span>
-                        {explanationData.deterministic_explanation.split('\n')[0]}
-                      </span>
-                    )
-                  )
-                ) : (
-                  <span style={{ opacity: 0.5 }}>Loading analysis...</span>
-                )}
-
-                {(pixel || cell || municipality) && (
-                  <div
-                    style={{
-                      marginTop: explanationData ? 2 : 0,
-                      padding: "8px 10px",
-                      background: "rgba(0,229,255,0.03)",
-                      border: "1px solid rgba(0,229,255,0.08)",
-                      borderRadius: 4,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                    }}
-                  >
-                    {(pixelNdvi != null || pixelWaterHealth != null) && (
-                      <div>
-                        <span style={{ color: "#ff5f57", fontFamily: "'DM Mono', monospace", fontSize: "0.6rem", letterSpacing: "0.12em", fontWeight: 600 }}>PIXEL · </span>
-                        <span style={{ color: "rgba(255,255,255,0.78)" }}>
-                          At the clicked location, satellite-derived
-                          {pixelNdvi != null && <> NDVI is <b style={{ color: "#1dd1a1" }}>{pixelNdvi.toFixed(3)}</b></>}
-                          {pixelNdvi != null && pixelWaterHealth != null && <>, </>}
-                          {pixelWaterHealth != null && <> Water Health is <b style={{ color: "#00b4d8" }}>{(pixelWaterHealth * 100).toFixed(0)}%</b></>}
-                          {pixelLst != null && <> and LST is <b style={{ color: "#ff5f57" }}>{pixelLst.toFixed(1)}°C</b></>}.
-                        </span>
-                      </div>
-                    )}
-                    {(cellNdvi != null || cellLst != null || cellAqi != null) && (
-                      <div>
-                        <span style={{ color: "#1dd1a1", fontFamily: "'DM Mono', monospace", fontSize: "0.6rem", letterSpacing: "0.12em", fontWeight: 600 }}>CELL · </span>
-                        <span style={{ color: "rgba(255,255,255,0.78)" }}>
-                          Surrounding {cell?.resolution_m || 300}m analytical cell
-                          {cellAqi != null && <> — AQI <b style={{ color: "#ff8c00" }}>{cellAqi}</b></>}
-                          {cellNdvi != null && <> — NDVI avg <b style={{ color: "#1dd1a1" }}>{cellNdvi.toFixed(2)}</b></>}
-                          {cellLst != null && <> — LST avg <b style={{ color: "#ff5f57" }}>{cellLst.toFixed(1)}°C</b></>}.
-                        </span>
-                      </div>
-                    )}
-                    {municipality?.name && (
-                      <div>
-                        <span style={{ color: "#00b4d8", fontFamily: "'DM Mono', monospace", fontSize: "0.6rem", letterSpacing: "0.12em", fontWeight: 600 }}>MUNICIPALITY · </span>
-                        <span style={{ color: "rgba(255,255,255,0.78)" }}>
-                          Clicked location falls within <b style={{ color: "#00b4d8" }}>{municipality.name}</b>.
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {severityScopeLabel.toUpperCase()}:{" "}
+                <span style={{ color: severityColor, fontWeight: 600 }}>
+                  {severityLabel}
+                </span>
+              </div>
+              <div
+                style={{
+                  marginTop: 7,
+                  height: 3,
+                  background: "rgba(255,255,255,0.06)",
+                  borderRadius: 2,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${stressValue == null ? 0 : Math.max(0, Math.min(100, stressValue))}%`,
+                    background: valueColor,
+                    boxShadow: `0 0 10px ${valueColor}88`,
+                    borderRadius: 2,
+                    transition: "width 1s cubic-bezier(0.22,1,0.36,1)",
+                  }}
+                />
               </div>
 
-              {/* CTA (for non-composite, scrolls with content) */}
-              {!isCompositeView && (
-                <button
-                  onClick={onDeepAnalysis}
+              {!mainFromPoint && (
+                <div
                   style={{
-                    width: "100%",
-                    padding: "10px 0",
-                    background: "transparent",
-                    border: "1px solid rgba(0,229,255,0.28)",
-                    borderRadius: 6,
-                    color: "rgba(0,229,255,0.8)",
-                    fontFamily: "'DM Mono', monospace",
+                    marginTop: 9,
                     fontSize: "0.62rem",
-                    letterSpacing: "0.18em",
-                    cursor: "pointer",
-                    textTransform: "uppercase",
-                    transition: "all 0.22s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(0,229,255,0.08)";
-                    e.currentTarget.style.boxShadow = "0 0 20px rgba(0,229,255,0.18)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.boxShadow = "none";
+                    color: "rgba(255,255,255,0.62)",
                   }}
                 >
-                  ▶ View Deep Analysis
-                </button>
+                  At this exact point:{" "}
+                  <span
+                    style={{
+                      fontFamily: "'DM Mono', monospace",
+                      color:
+                        pointValue == null ? "var(--text-dim)" : valueColor,
+                    }}
+                  >
+                    {pointValue == null
+                      ? "no value"
+                      : `${fmt(activeLayerId, pointValue)}${activeLayerId === "lst" ? " °C" : ""}`}
+                  </span>
+                </div>
               )}
             </div>
 
-            {/* ── Deep Analysis CTA (Fixed Footer, Only for Composite) ─────── */}
-            {isCompositeView && (
+            {/* ── Body ─────────────────────────────────────────────────── */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+              <SectionLabel>Insight summary</SectionLabel>
               <div
                 style={{
-                  padding: "12px 18px",
-                  borderTop: "1px solid rgba(0,229,255,0.1)",
-                  flexShrink: 0,
+                  borderLeft: "1px solid rgba(0,229,255,0.14)",
+                  marginBottom: 16,
+                  paddingLeft: 12,
+                  color: "var(--text-dim)",
+                  fontSize: "0.75rem",
+                  lineHeight: 1.5,
                 }}
               >
-                <button
-                  onClick={onDeepAnalysis}
-                  style={{
-                    width: "100%",
-                    padding: "10px 0",
-                    background: "transparent",
-                    border: "1px solid rgba(0,229,255,0.28)",
-                    borderRadius: 6,
-                    color: "rgba(0,229,255,0.8)",
-                    fontFamily: "'DM Mono', monospace",
-                    fontSize: "0.62rem",
-                    letterSpacing: "0.18em",
-                    cursor: "pointer",
-                    textTransform: "uppercase",
-                    transition: "all 0.22s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(0,229,255,0.08)";
-                    e.currentTarget.style.boxShadow = "0 0 20px rgba(0,229,255,0.18)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                >
-                  ▶ View Deep Analysis
-                </button>
+                <AIInsightSection explanationData={explanationData} compact />
               </div>
-            )}
+
+              {isCompositeView && (
+                <>
+                  <Divider />
+                  <SectionLabel>
+                    What drives the composite here (300 m area)
+                  </SectionLabel>
+                  {breakdown?.components &&
+                  Object.keys(breakdown.components).length > 0 ? (
+                    <>
+                      {["heat", "surface", "air"]
+                        .filter((k) => breakdown.components[k])
+                        .map((k) => {
+                          const c = breakdown.components[k];
+                          const meta = COMPONENT_META[k];
+                          return (
+                            <RootCauseBar
+                              key={k}
+                              icon={meta.icon}
+                              label={meta.label}
+                              value={c ? c.value * 100 : null}
+                              normalizedValue={c ? c.value * 100 : 0}
+                              displayValue={
+                                c ? `${Math.round(c.share_pct)}%` : "—"
+                              }
+                              color={meta.color}
+                            />
+                          );
+                        })}
+                      <div
+                        style={{
+                          fontSize: "0.54rem",
+                          color: "var(--text-dim)",
+                          lineHeight: 1.5,
+                          marginTop: 2,
+                        }}
+                      >
+                        Bar = how stressed each part is (0–100) · % = its share
+                        of the score. Heat = LST · Surface = vegetation on land,
+                        Water Health on water · Air = AQI.{" "}
+                        {breakdown.coverage
+                          ? `${breakdown.coverage} parts available here.`
+                          : ""}
+                      </div>
+                    </>
+                  ) : (
+                    ["aqi", "ndvi", "water_health", "lst"]
+                      .filter((k) => cellOf[k] != null)
+                      .map((k) => (
+                        <RootCauseBar
+                          key={k}
+                          icon={LAYER_META[k].icon}
+                          label={
+                            LAYER_META[k].label === "Water Health"
+                              ? "Water"
+                              : LAYER_META[k].label
+                          }
+                          value={cellOf[k]}
+                          normalizedValue={
+                            cellOf[k] == null
+                              ? 0
+                              : normalizeMetric(k, {
+                                  aqi: cellOf.aqi,
+                                  ndvi: cellOf.ndvi,
+                                  lst: cellOf.lst,
+                                  water_health_score: cellOf.water_health,
+                                })
+                          }
+                          displayValue={
+                            fmt(k, cellOf[k]) == null
+                              ? "N/A"
+                              : `${fmt(k, cellOf[k])}${k === "lst" ? "°C" : ""}`
+                          }
+                          color={LAYER_META[k].color}
+                        />
+                      ))
+                  )}
+                </>
+              )}
+
+              <Divider />
+              <SectionLabel>Details</SectionLabel>
+
+              {/* At this point (exact pixel of the map layer) */}
+              {pixel && (
+                <div style={{ marginBottom: 12 }}>
+                  <SpatialLevelHeader
+                    level="1"
+                    label="At this point"
+                    sublabel="Exact value from the map layer (10–30 m)"
+                    accent="#ff5f57"
+                  />
+                  <div style={boxStyle("255, 95, 87", "#ff5f57")}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: gridCols,
+                        gap: "8px 12px",
+                      }}
+                    >
+                      {showPoint("ndvi", pixelNdvi) && (
+                        <MetricRow
+                          label="NDVI"
+                          value={
+                            pixelNdvi != null
+                              ? pixelNdvi.toFixed(3)
+                              : pixel?.ndvi?.nodata
+                                ? "No valid NDVI here"
+                                : "N/A"
+                          }
+                          color="#1dd1a1"
+                          nodata={pixel?.ndvi?.nodata}
+                        />
+                      )}
+                      {showPoint("lst", pixelLst) && (
+                        <MetricRow
+                          label="LST"
+                          value={
+                            pixelLst != null
+                              ? pixelLst.toFixed(1)
+                              : pixel?.lst?.nodata
+                                ? "No data"
+                                : "N/A"
+                          }
+                          unit="°C"
+                          color="#ff5f57"
+                          nodata={pixel?.lst?.nodata}
+                        />
+                      )}
+                      {showPoint("aqi", pixelAqi) && (
+                        <MetricRow
+                          label="AQI"
+                          value={
+                            pixelAqi != null
+                              ? String(pixelAqi)
+                              : pixel?.aqi?.nodata
+                                ? "No data"
+                                : "N/A"
+                          }
+                          color="#ff8c00"
+                          nodata={pixel?.aqi?.nodata}
+                        />
+                      )}
+                      {showPoint("water_health", pixelWaterHealth) && (
+                        <MetricRow
+                          label="Water Health"
+                          value={
+                            pixelWaterHealth != null
+                              ? pixelWaterHealth.toFixed(3)
+                              : pixel?.water_health?.nodata
+                                ? "No water at this point"
+                                : "N/A"
+                          }
+                          color="#00b4d8"
+                          nodata={pixel?.water_health?.nodata}
+                        />
+                      )}
+                    </div>
+                    {pixelSource && (
+                      <div
+                        style={{
+                          fontSize: "0.54rem",
+                          color: "var(--text-dim)",
+                          marginTop: 8,
+                          letterSpacing: "0.06em",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Source: {pixelSource}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Surrounding 300 m area (analytical cell) */}
+              {cell && (
+                <div style={{ marginBottom: 12 }}>
+                  <SpatialLevelHeader
+                    level="2"
+                    label={`Surrounding ${cell.resolution_m || 300} m area`}
+                    sublabel="Average over the grid square the models analyse"
+                    accent="#1dd1a1"
+                  />
+                  <div style={boxStyle("29, 209, 161", "#1dd1a1")}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: gridCols,
+                        gap: "8px 12px",
+                        marginBottom:
+                          isCompositeView && cellAnomaly?.flag ? 10 : 0,
+                      }}
+                    >
+                      {showPoint("aqi", cellOf.aqi) && (
+                        <MetricRow
+                          label="AQI"
+                          value={
+                            cellOf.aqi != null ? String(cellOf.aqi) : "N/A"
+                          }
+                          color="#ff8c00"
+                        />
+                      )}
+                      {showPoint("ndvi", cellOf.ndvi) && (
+                        <MetricRow
+                          label="NDVI"
+                          value={
+                            cellOf.ndvi != null ? cellOf.ndvi.toFixed(2) : "N/A"
+                          }
+                          color="#1dd1a1"
+                        />
+                      )}
+                      {showPoint("lst", cellOf.lst) && (
+                        <MetricRow
+                          label="LST"
+                          value={
+                            cellOf.lst != null ? cellOf.lst.toFixed(1) : "N/A"
+                          }
+                          unit="°C"
+                          color="#ff5f57"
+                        />
+                      )}
+                      {showPoint("water_health", cellOf.water_health) && (
+                        <MetricRow
+                          label="Water Health"
+                          value={
+                            cellOf.water_health != null
+                              ? cellOf.water_health.toFixed(3)
+                              : "No water in area"
+                          }
+                          color="#00b4d8"
+                          nodata={cellOf.water_health == null}
+                        />
+                      )}
+                    </div>
+                    {isCompositeView && cellAnomaly?.flag && (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          padding: "6px 10px",
+                          background: "rgba(255, 59, 59, 0.08)",
+                          border: "1px solid rgba(255, 59, 59, 0.25)",
+                          borderRadius: 4,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "0.6rem",
+                              color: "#ff3b3b",
+                              letterSpacing: "0.15em",
+                              fontWeight: 600,
+                            }}
+                          >
+                            ANOMALY (ALL LAYERS)
+                          </span>
+                          {cellAnomaly.score != null && (
+                            <span
+                              style={{
+                                fontFamily: "'DM Mono', monospace",
+                                fontSize: "0.7rem",
+                                color: "#ff3b3b",
+                              }}
+                            >
+                              Score {cellAnomaly.score.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        {cellAnomaly.anomaly_type && (
+                          <div
+                            style={{
+                              fontSize: "0.6rem",
+                              color: "var(--text-dim)",
+                              marginTop: 3,
+                            }}
+                          >
+                            Type: {cellAnomaly.anomaly_type}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        fontSize: "0.54rem",
+                        color: "var(--text-dim)",
+                        marginTop: 8,
+                        letterSpacing: "0.06em",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Cell {cell.cell_code || cell.id}
+                      {cell.match_type === "nearest"
+                        ? ` · ${cell.distance_to_centroid_m} m from click`
+                        : ""}
+                      {cellMetrics.basis?.startsWith("live")
+                        ? " · values from the current map layers"
+                        : ""}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Municipality (context) */}
+              {municipality && (
+                <div style={{ marginBottom: 14 }}>
+                  <SpatialLevelHeader
+                    level="3"
+                    label="Municipality"
+                    sublabel="Administrative boundary · context only"
+                    accent="#00b4d8"
+                  />
+                  <div
+                    style={{
+                      ...boxStyle("0, 180, 216", "#00b4d8"),
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "'Syne', sans-serif",
+                        fontSize: "0.92rem",
+                        fontWeight: 600,
+                        color: "rgba(255,255,255,0.92)",
+                      }}
+                    >
+                      {municipality.name}
+                    </div>
+                    <div
+                      style={{
+                        padding: "3px 8px",
+                        fontSize: "0.55rem",
+                        letterSpacing: "0.15em",
+                        color: "#00b4d8",
+                        background: "rgba(0, 180, 216, 0.12)",
+                        border: "1px solid rgba(0, 180, 216, 0.25)",
+                        borderRadius: 3,
+                      }}
+                    >
+                      ADMIN
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Deep Analysis ─────────────────────────────────────────── */}
+            <div
+              style={{
+                padding: "12px 18px",
+                borderTop: "1px solid rgba(0,229,255,0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <button
+                onClick={onDeepAnalysis}
+                style={{
+                  width: "100%",
+                  padding: "10px 0",
+                  background: "transparent",
+                  border: "1px solid rgba(0,229,255,0.28)",
+                  borderRadius: 6,
+                  color: "rgba(0,229,255,0.8)",
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: "0.62rem",
+                  letterSpacing: "0.18em",
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  transition: "all 0.22s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(0,229,255,0.08)";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 20px rgba(0,229,255,0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                ▶ View Deep Analysis
+              </button>
+            </div>
           </>
         ) : null}
       </div>
@@ -714,9 +831,65 @@ export default function InsightPanel({ zone, pointAnalysis, cityLabel, explanati
 
 // ── Small helpers ──────────────────────────────────────────────────────────
 
+function boxStyle(rgb, accent) {
+  return {
+    padding: "10px 12px",
+    background: `rgba(${rgb}, 0.04)`,
+    border: `1px solid rgba(${rgb}, 0.15)`,
+    borderLeft: `3px solid ${accent}`,
+    borderRadius: 4,
+  };
+}
+
+function CloseButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="Close"
+      style={{
+        position: "absolute",
+        top: 14,
+        right: 14,
+        background: "none",
+        border: "1px solid rgba(0,229,255,0.18)",
+        borderRadius: 4,
+        color: "var(--text-dim)",
+        width: 24,
+        height: 24,
+        cursor: "pointer",
+        fontSize: "11px",
+        fontFamily: "inherit",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "all 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = "var(--cyan)";
+        e.currentTarget.style.borderColor = "rgba(0,229,255,0.4)";
+        e.currentTarget.style.boxShadow = "0 0 8px rgba(0,229,255,0.2)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = "var(--text-dim)";
+        e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      ✕
+    </button>
+  );
+}
+
 function SpatialLevelHeader({ level, label, sublabel, accent }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 8,
+      }}
+    >
       <div
         style={{
           width: 22,
@@ -767,7 +940,13 @@ function SpatialLevelHeader({ level, label, sublabel, accent }) {
   );
 }
 
-function MetricRow({ label, value, unit = "", color = "rgba(255,255,255,0.88)", nodata = false }) {
+function MetricRow({
+  label,
+  value,
+  unit = "",
+  color = "rgba(255,255,255,0.88)",
+  nodata = false,
+}) {
   const displayColor = nodata ? "rgba(255,255,255,0.32)" : color;
   const isLongMsg = typeof value === "string" && value.length > 12;
   return (
@@ -832,7 +1011,8 @@ function Divider() {
       style={{
         height: 1,
         margin: "14px 0",
-        background: "linear-gradient(to right, rgba(0,229,255,0.12), transparent)",
+        background:
+          "linear-gradient(to right, rgba(0,229,255,0.12), transparent)",
       }}
     />
   );

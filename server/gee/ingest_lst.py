@@ -46,6 +46,10 @@ def fetch_cells_as_fc(db) -> ee.FeatureCollection:
     return ee.FeatureCollection(features)
 
 
+# older name, still imported by the gee/ diagnostic scripts
+fetch_zones_as_fc = fetch_cells_as_fc
+
+
 def mask_landsat_l2(image: ee.Image) -> ee.Image:
     # QA_PIXEL bits (Landsat C2): 0=fill, 3=cloud, 4=cloud shadow
     # Keep masking conservative but not overly strict to retain usable thermal pixels.
@@ -127,7 +131,7 @@ def run_ingest(start_date: str, end_date: str) -> Dict:
 
         if not features:
             # No usable imagery in window: write null LST values (no fabrication)
-            features = zones_fc.getInfo().get("features", [])
+            features = cells_fc.getInfo().get("features", [])
 
         zones_processed = 0
         valid_lst = 0
@@ -161,7 +165,7 @@ def run_ingest(start_date: str, end_date: str) -> Dict:
                     """
                 ),
                 {
-                    "z": zid,
+                    "c": zid,
                     "obs": observed_at,
                     "lst": lst_val,
                     "metadata": metadata_payload("lst", metadata_context),

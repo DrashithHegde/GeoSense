@@ -25,7 +25,7 @@ from openaq.derive_aqi_grid import (
     collect_station_aqi_points,
     run_openaq_derivation as run_derivation,
 )
-from app.services.surfaces.aqi_surface import AqiSurfaceConfig, generate_aqi_surface
+from app.services.surfaces.aqi_surface import generate_aqi_surface
 from gee.ingest_lst import COMPOSITE_WINDOW_DAYS as LST_WINDOW_DAYS
 from gee.ingest_lst import run_ingest as run_lst_ingest
 from app.services.surfaces.lst_surface import generate_lst_surface
@@ -52,30 +52,39 @@ def run_aqi_cycle() -> dict:
         "power": 2.0,
         "station_assign_distance_m": 8000,
     }
-    station_points, stations_fetched, cpcb_failures = collect_station_aqi_points()
-    derivation = run_derivation(
-        **configuration,
-        station_points=station_points,
-        stations_fetched=stations_fetched,
-        cpcb_aqi_failures=cpcb_failures,
-    )
-    # Derived surface failure must never invalidate the canonical raw/zone AQI
-    # ingestion that already succeeded.  It is retried at the next AQI cycle.
+    from app.services.surfaces.aqi_station_surface import build_aqi_surface
+
     try:
-        surface = generate_aqi_surface(
-            station_points,
-            source_timestamp=max(point["observed_at"] for point in station_points),
-            config=AqiSurfaceConfig(
-                k=configuration["k"], min_stations=configuration["min_stations"],
-                power=configuration["power"],
-                max_interpolation_distance_m=configuration["max_interp_distance_m"],
-            ),
+        station_points, stations_fetched, cpcb_failures = collect_station_aqi_points()
+    except RuntimeError as exc:
+        # Record an honest 'insufficient coverage' state; never fall back to a proxy.
+        record = build_aqi_surface([])
+        return {"aqi_derivation": {"status": "skipped", "error": str(exc)},
+                "aqi_surface": {"generation_status": record["generation_status"]}}
+
+    # Station-based CPCB AQI surface (OpenAQ -> CPCB AQI -> IDW). The old
+    # Sentinel-5P NO2 "AQI proxy" is retired and is no longer generated here.
+    record = build_aqi_surface(station_points)
+    surface_result = {"generation_status": record["generation_status"], "reason": record.get("reason")}
+    try:
+        derivation = run_derivation(
+            **configuration,
+            station_points=station_points,
+            stations_fetched=stations_fetched,
+            cpcb_aqi_failures=cpcb_failures,
         )
-        surface_result = {"generation_status": "generated", "png": surface["png_filename"]}
-    except Exception as exc:
-        logger.exception("AQI surface generation failed after successful AQI derivation")
-        surface_result = {"generation_status": "failed", "error": str(exc)}
+    except RuntimeError as exc:
+        derivation = {"status": "skipped", "error": str(exc)}
     return {"aqi_derivation": derivation, "aqi_surface": surface_result}
+
+
+def _rerender_heatmaps(*metrics: str) -> None:
+    """Re-render smooth, boundary-clipped PNGs from the freshly written GeoTIFFs."""
+    import subprocess
+    args = [sys.executable, str(SERVER_ROOT / "scripts" / "render_heatmaps.py")]
+    for m in metrics:
+        args += ["--only", m]
+    subprocess.run(args, cwd=str(SERVER_ROOT), check=False)
 
 
 def _run_s2_for_today(today) -> dict:
@@ -89,7 +98,15 @@ def _run_s2_for_today(today) -> dict:
     except Exception as exc:
         logger.exception("NDVI surface generation failed after successful Sentinel-2 ingestion")
         surface = {"generation_status": "failed", "error": str(exc)}
-    return {"ingestion": ingestion, "surface": surface}
+    _rerender_heatmaps("ndvi")
+    # keep the supporting moisture index on the same window as NDVI (NDBI = -NDMI is derived)
+    try:
+        from app.services.surfaces.index_surfaces import generate_index_surface
+        ndmi = generate_index_surface("ndmi", start_date=start, end_date=end)
+    except Exception as exc:
+        logger.exception("NDMI surface generation failed")
+        ndmi = {"generation_status": "failed", "error": str(exc)}
+    return {"ingestion": ingestion, "surface": surface, "ndmi": ndmi.get("generation_status")}
 
 
 def _run_lst_for_today(today) -> dict:
@@ -101,6 +118,7 @@ def _run_lst_for_today(today) -> dict:
     except Exception as exc:
         logger.exception("LST surface generation failed after successful Landsat ingestion")
         surface = {"generation_status": "failed", "error": str(exc)}
+    _rerender_heatmaps("lst")
     return {"ingestion": ingestion, "surface": surface}
 
 
@@ -196,7 +214,10 @@ def run_scheduler() -> None:
         ):
             try:
                 logger.info("Running Phase 2 snapshot for %s", today.isoformat())
-                logger.info("Feature/anomaly report: %s", run_feature_anomaly_pipeline(today))
+                from app.database import get_db as _get_db
+                from app.services.ml.pipeline import run_cell_ml_pipeline
+                with _get_db() as _db:
+                    logger.info("Cell ML report: %s", run_cell_ml_pipeline(_db))
                 analysis_completed_date = today
             except ValueError as exc:
                 logger.warning("No valid same-day analytical snapshot: %s", exc)

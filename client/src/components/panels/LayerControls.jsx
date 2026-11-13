@@ -1,15 +1,18 @@
 import { LAYER_CONFIG } from "../../constants/layers";
+import ProvenanceBadge, { provFor } from "./ProvenanceBadge";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LayerChip — click-style pill button (no toggle switch)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function LayerChip({ config, active, onClick }) {
+function LayerChip({ config, active, onClick, prov }) {
   return (
     <button
       onClick={onClick}
       style={{
         width: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
         textAlign: "left",
         padding: "8px 10px",
         background: active ? "rgba(0,229,255,0.1)" : "rgba(11,15,20,0.72)",
@@ -37,12 +40,14 @@ function LayerChip({ config, active, onClick }) {
         >
           {config.icon}
         </span>
-        <div>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
               fontSize: "0.62rem",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
+              whiteSpace: "normal",
+              overflowWrap: "anywhere",
             }}
           >
             {config.label}
@@ -57,6 +62,9 @@ function LayerChip({ config, active, onClick }) {
           >
             {config.desc}
           </div>
+          {prov && (
+            <ProvenanceBadge prov={prov} compact style={{ marginTop: 3 }} />
+          )}
         </div>
       </div>
 
@@ -86,6 +94,8 @@ export default function LayerControls({
   activeLayers,
   onToggleLayer,
   aqiSurfaceStatus,
+  aqiSurfaceInfo = null,
+  provenance = null,
 }) {
   return (
     <div
@@ -100,6 +110,10 @@ export default function LayerControls({
         display: "flex",
         flexDirection: "column",
         gap: 8,
+        maxHeight: "calc(100vh - 170px)",
+        overflowY: "auto",
+        overflowX: "hidden",
+        boxSizing: "border-box",
         animationDelay: "0.1s",
       }}
     >
@@ -135,6 +149,7 @@ export default function LayerControls({
               config={cfg}
               active={activeLayers[cfg.id]}
               onClick={() => onToggleLayer(cfg.id)}
+              prov={provFor(provenance, cfg.id)}
             />
           ))}
         </div>
@@ -159,8 +174,15 @@ export default function LayerControls({
                 AQI surface unavailable
               </strong>
               {aqiSurfaceStatus === "unavailable"
-                ? "No current real-data raster is published."
+                ? aqiSurfaceInfo?.reason ||
+                  "Not enough fresh CPCB/MPCB stations for a real AQI surface."
                 : "The AQI surface source could not be read."}
+              {aqiSurfaceInfo?.audit?.stations_eligible != null && (
+                <span style={{ display: "block", marginTop: 4, opacity: 0.8 }}>
+                  Fresh stations: {aqiSurfaceInfo.audit.stations_eligible} /
+                  needed {aqiSurfaceInfo.audit.minimum_stations}
+                </span>
+              )}
             </div>
           )}
       </div>

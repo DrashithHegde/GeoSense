@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 import json
+import unittest
 from unittest.mock import patch
 
 import requests
@@ -412,6 +413,19 @@ def test_sensor_history_honors_retry_after_header():
     sleep.assert_called_once_with(12.0)
 
 
+def test_429_waits_for_openaq_rate_limit_reset():
+    """OpenAQ sends x-ratelimit-reset (seconds); without any header a 429 waits out the minute window."""
+    from openaq.client import _retry_delay
+    assert _retry_delay(_http_response(429, headers={"x-ratelimit-reset": "20"}), 0) == 21.0
+    assert _retry_delay(_http_response(429), 0) == 61.0
+    assert _retry_delay(_http_response(503), 0) == 0.5          # other errors keep the short backoff
+
+
+def test_requests_are_paced_under_60_per_minute():
+    from openaq.client import SENSOR_REQUEST_INTERVAL_SECONDS
+    assert 60.0 / SENSOR_REQUEST_INTERVAL_SECONDS <= 60.0
+
+
 def test_sensor_history_retry_exhaustion_is_bounded():
     start = datetime(2026, 9, 30, 0, tzinfo=timezone.utc)
     end = start + timedelta(hours=24)
@@ -448,3 +462,36 @@ def test_sensor_history_returns_parsed_data_after_transient_retry():
         f"{OPENAQ_BASE}/sensors/123/measurements",
     )
     assert sleep.call_count == 1
+
+
+class CpcbBreakpointTests(unittest.TestCase):
+    """Official CPCB (2014) band edges, NH3, and the open-ended Severe band."""
+
+    def test_band_edges_match_cpcb_table(self):
+        from openaq.cpcb_aqi import compute_pollutant_sub_indices as si
+        edges = [("pm25", 30, 50), ("pm25", 60, 100), ("pm25", 90, 200), ("pm25", 120, 300), ("pm25", 250, 400),
+                 ("pm10", 50, 50), ("pm10", 100, 100), ("pm10", 250, 200), ("pm10", 350, 300), ("pm10", 430, 400),
+                 ("no2", 40, 50), ("no2", 80, 100), ("no2", 180, 200), ("no2", 280, 300), ("no2", 400, 400),
+                 ("so2", 80, 100), ("so2", 380, 200), ("so2", 800, 300), ("so2", 1600, 400),
+                 ("o3", 100, 100), ("o3", 168, 200), ("o3", 208, 300), ("o3", 748, 400),
+                 ("nh3", 200, 50), ("nh3", 400, 100), ("nh3", 800, 200), ("nh3", 1200, 300), ("nh3", 1800, 400),
+                 ("co", 1000, 50), ("co", 2000, 100), ("co", 10000, 200), ("co", 17000, 300), ("co", 34000, 400)]
+        for p, c, expected in edges:
+            self.assertEqual(round(si({p: c})[p]), expected, (p, c))
+
+    def test_above_the_table_is_severe_not_dropped(self):
+        from openaq.cpcb_aqi import compute_pollutant_sub_indices as si
+        self.assertEqual(si({"pm25": 620})["pm25"], 500.0)
+        self.assertEqual(si({"nh3": 3000})["nh3"], 500.0)
+
+    def test_nh3_can_be_the_dominant_pollutant(self):
+        from openaq.cpcb_aqi import compute_station_cpcb_aqi
+        aqi, dom, _ = compute_station_cpcb_aqi({"pm10": 60, "no2": 30, "nh3": 900})
+        self.assertEqual(dom, "nh3")
+        self.assertEqual(aqi, 226)
+
+    def test_ammonia_sensor_name_is_recognised(self):
+        from openaq.client import AQI_POLLUTANTS, _build_sensor_map
+        m = _build_sensor_map([{"id": 1, "parameter": {"name": "Ammonia", "units": "µg/m³"}}])
+        self.assertEqual(m[1]["param_name"], "nh3")
+        self.assertIn("nh3", AQI_POLLUTANTS)

@@ -118,20 +118,15 @@ def calculate_water_health_score(
     return float(max(0.0, min(1.0, sum(health_components) / len(health_components))))
 
 
-def fetch_cells_as_feature_collection(db) -> ee.FeatureCollection:
-    # Pull zones as GeoJSON from PostGIS
+def fetch_cells_as_list(db) -> list:
     sql = text("SELECT id, ST_AsGeoJSON(geometry) AS geojson FROM spatial_cells;")
     result = db.execute(sql)
     features = []
     for row in result:
         cell_id = int(row[0])
-        geojson_text = row[1]
-        geom = json.loads(geojson_text)
-        props = {"cell_id": cell_id}
-        feat = ee.Feature(geom, props)
-        features.append(feat)
-    fc = ee.FeatureCollection(features)
-    return fc
+        geom = json.loads(row[1])
+        features.append(ee.Feature(geom, {"cell_id": cell_id}))
+    return features
 
 
 def mask_s2_sr(image: ee.Image) -> ee.Image:
@@ -188,45 +183,61 @@ def run_ingest(start_date: str, end_date: str, cloud_threshold: Optional[float] 
     observed_at = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
 
     with get_db() as db:
-        cells_fc = fetch_cells_as_feature_collection(db)
+        all_features = fetch_cells_as_list(db)
+        # We must chunk to avoid the 5000 element limit in Earth Engine's getInfo
+        chunk_size = 2000
+        
+        processed = 0
+        ndvi_count = 0
+        ndwi_count = 0
+        mndwi_count = 0
+        ndci_count = 0
+        turbidity_count = 0
+        water_extent_count = 0
+        water_health_score_count = 0
 
-        # Filter S2 harmonized
-        collection = (
-            ee.ImageCollection(S2_DATASET)
-            .filterDate(start_date, end_date)
-            .filterBounds(cells_fc.geometry())
-        )
+        for i in range(0, len(all_features), chunk_size):
+            chunk_features = all_features[i : i + chunk_size]
+            cells_fc = ee.FeatureCollection(chunk_features)
 
-        n_images = int(collection.size().getInfo())
-        logger.info("Images found in window: %s", n_images)
+            # Filter S2 harmonized
+            collection = (
+                ee.ImageCollection(S2_DATASET)
+                .filterDate(start_date, end_date)
+                .filterBounds(cells_fc.geometry())
+            )
 
-        if n_images == 0:
-            logger.warning("No Sentinel-2 images found in the given window.")
+            n_images = int(collection.size().getInfo())
+            if i == 0:
+                logger.info("Images found in window: %s", n_images)
+                if n_images == 0:
+                    logger.warning("No Sentinel-2 images found in the given window.")
+                    break
 
-        # Apply QA mask and compute indices per image
-        collection = collection.map(mask_s2_sr).map(add_indices)
+            # Apply QA mask and compute indices per image
+            collection = collection.map(mask_s2_sr).map(add_indices)
 
-        # Median composite
-        composite = collection.median().select(["NDVI", "NDWI", "MNDWI", "NDCI_PROXY", "TURBIDITY_PROXY"])
+            # Median composite
+            composite = collection.median().select(["NDVI", "NDWI", "MNDWI", "NDCI_PROXY", "TURBIDITY_PROXY"])
 
-        # Reduce over the feature collection (zones)
-        reducer = ee.Reducer.mean()
-        reduced = composite.reduceRegions(collection=cells_fc, reducer=reducer, scale=10)
+            # Reduce over the feature collection (zones)
+            reducer = ee.Reducer.mean()
+            reduced = composite.reduceRegions(collection=cells_fc, reducer=reducer, scale=10)
 
-        water_extent_reduced = (
-            ee.Image.pixelArea()
-            .updateMask(composite.select("MNDWI").gte(DEFAULT_MNDWI_THRESHOLD))
-            .reduceRegions(collection=cells_fc, reducer=ee.Reducer.sum(), scale=10)
-        )
+            water_extent_reduced = (
+                ee.Image.pixelArea()
+                .updateMask(composite.select("MNDWI").gte(DEFAULT_MNDWI_THRESHOLD))
+                .reduceRegions(collection=cells_fc, reducer=ee.Reducer.sum(), scale=10)
+            )
 
-        water_extent_lookup = {
-            int(feature["properties"].get("zone_id")): float(feature["properties"].get("sum", 0.0))
-            for feature in water_extent_reduced.getInfo().get("features", [])
-            if feature.get("properties", {}).get("zone_id") is not None
-        }
+            water_extent_lookup = {
+                int(feature["properties"].get("cell_id")): float(feature["properties"].get("sum", 0.0))
+                for feature in water_extent_reduced.getInfo().get("features", [])
+                if feature.get("properties", {}).get("cell_id") is not None
+            }
 
-        # Get results
-        features = reduced.getInfo().get("features", [])
+            # Get results
+            features = reduced.getInfo().get("features", [])
 
         processed = 0
         ndvi_count = 0
@@ -239,7 +250,7 @@ def run_ingest(start_date: str, end_date: str, cloud_threshold: Optional[float] 
 
         for feat in features:
             props = feat.get("properties", {})
-            zone_id = props.get("zone_id")
+            cell_id = props.get("cell_id")
             # reduceRegions produced band keys 'NDVI' and 'NDWI' (median composite values)
             ndvi = props.get("NDVI")
             ndwi = props.get("NDWI")
@@ -266,7 +277,7 @@ def run_ingest(start_date: str, end_date: str, cloud_threshold: Optional[float] 
                 turbidity_count += 1
 
             water_applicable = water_health_applicable(mndwi_val, threshold=DEFAULT_MNDWI_THRESHOLD)
-            water_extent_m2 = water_extent_lookup.get(zone_id)
+            water_extent_m2 = water_extent_lookup.get(cell_id)
             if water_extent_m2 is not None and not water_applicable:
                 water_extent_m2 = None
 

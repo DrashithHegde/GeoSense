@@ -1,0 +1,613 @@
+{
+  "generated_at": "2026-11-08T22:11:02.825735+00:00",
+  "retrieval_mode": "hybrid BM25 + bge-small-en-v1.5 embeddings (pgvector (HNSW, cosine)), fused with RRF, over 51 notes + 1342 passages from 12 documents",
+  "knowledge_notes": 51,
+  "document_passages": 1342,
+  "documents": 12,
+  "store": {
+    "embedder": "bge-small-en-v1.5",
+    "dim": 384,
+    "items": 1393,
+    "notes": 51,
+    "passages": 1342,
+    "store": "pgvector (HNSW, cosine)"
+  },
+  "results": {
+    "bm25": {
+      "mode": "bm25",
+      "corpus": "notes only",
+      "questions": 49,
+      "recall_at_5": 0.837,
+      "mrr": 0.646,
+      "first_hit_is_document_passage": 0,
+      "misses": [
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": [
+            "mumbai_air_seasonality",
+            "idw_method",
+            "aqi_cpcb_scale"
+          ]
+        },
+        {
+          "question": "Why does the city look greener after the rains?",
+          "expected": [
+            "ndvi_season_mumbai"
+          ],
+          "got": [
+            "mumbai_climate",
+            "water_quality_insitu",
+            "ndmi_moisture"
+          ]
+        },
+        {
+          "question": "Which satellite gives the 10 m vegetation images?",
+          "expected": [
+            "sentinel2"
+          ],
+          "got": [
+            "mitigate_greening",
+            "history_method",
+            "turbidity_proxy"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "water_health_geosense",
+            "composite_method",
+            "mitigate_heat"
+          ]
+        },
+        {
+          "question": "How would you confirm water pollution on the ground?",
+          "expected": [
+            "water_quality_insitu"
+          ],
+          "got": [
+            "mumbai_air_sources",
+            "mitigate_water",
+            "layer_isolation_forest"
+          ]
+        },
+        {
+          "question": "What can be done to clean up a polluted lake?",
+          "expected": [
+            "mitigate_water"
+          ],
+          "got": [
+            "powai_lake",
+            "ncap",
+            "thane_lakes"
+          ]
+        },
+        {
+          "question": "Why is there no data at some places on the map?",
+          "expected": [
+            "cloud_gaps"
+          ],
+          "got": [
+            "ndvi_season_mumbai",
+            "mumbai_climate",
+            "vegetation_cooling"
+          ]
+        },
+        {
+          "question": "How is a water body judged worse than others?",
+          "expected": [
+            "robust_z",
+            "water_health_geosense"
+          ],
+          "got": [
+            "mitigate_air",
+            "mitigate_water",
+            "composite_method"
+          ]
+        }
+      ]
+    },
+    "embed": {
+      "mode": "embed",
+      "corpus": "notes only",
+      "questions": 49,
+      "recall_at_5": 0.776,
+      "mrr": 0.741,
+      "first_hit_is_document_passage": 0,
+      "misses": [
+        {
+          "question": "What does an AQI of 150 mean for health?",
+          "expected": [
+            "aqi_health_statements",
+            "aqi_cpcb_scale"
+          ],
+          "got": []
+        },
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": []
+        },
+        {
+          "question": "Nitrogen dioxide is high at this station, what does that suggest?",
+          "expected": [
+            "pollutant_signatures"
+          ],
+          "got": [
+            "station_isolation_forest"
+          ]
+        },
+        {
+          "question": "Where does the air quality data come from?",
+          "expected": [
+            "openaq_caaqms"
+          ],
+          "got": []
+        },
+        {
+          "question": "Which satellite gives the 10 m vegetation images?",
+          "expected": [
+            "sentinel2"
+          ],
+          "got": [
+            "ndmi_moisture"
+          ]
+        },
+        {
+          "question": "How can a satellite see algae in a lake?",
+          "expected": [
+            "ndci"
+          ],
+          "got": [
+            "cloud_gaps",
+            "turbidity_proxy"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "isolation_forest",
+            "cloud_gaps"
+          ]
+        },
+        {
+          "question": "Where do flamingos come in Thane?",
+          "expected": [
+            "thane_creek"
+          ],
+          "got": []
+        },
+        {
+          "question": "How does the model say which factor made a place hotter?",
+          "expected": [
+            "xgboost_shap"
+          ],
+          "got": [
+            "lst_vegetation_relationship",
+            "ndbi_builtup"
+          ]
+        },
+        {
+          "question": "How was the temperature model's accuracy tested fairly?",
+          "expected": [
+            "spatial_cv"
+          ],
+          "got": []
+        },
+        {
+          "question": "How is a water body judged worse than others?",
+          "expected": [
+            "robust_z",
+            "water_health_geosense"
+          ],
+          "got": []
+        }
+      ]
+    },
+    "hybrid": {
+      "mode": "hybrid",
+      "corpus": "notes only",
+      "questions": 49,
+      "recall_at_5": 0.939,
+      "mrr": 0.726,
+      "first_hit_is_document_passage": 0,
+      "misses": [
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": [
+            "lst_vs_air",
+            "mitigate_air",
+            "mumbai_air_seasonality"
+          ]
+        },
+        {
+          "question": "Which satellite gives the 10 m vegetation images?",
+          "expected": [
+            "sentinel2"
+          ],
+          "got": [
+            "ndmi_moisture",
+            "mitigate_greening",
+            "history_method"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "water_health_geosense",
+            "water_quality_insitu",
+            "mndwi"
+          ]
+        }
+      ]
+    },
+    "bm25+docs": {
+      "mode": "bm25",
+      "corpus": "notes + documents",
+      "questions": 49,
+      "recall_at_5": 0.776,
+      "mrr": 0.628,
+      "first_hit_is_document_passage": 6,
+      "misses": [
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": [
+            "mcap_2022:p166:0",
+            "mcap_2022:p77:0",
+            "lundberg_2020_treeshap:p24:3"
+          ]
+        },
+        {
+          "question": "Nitrogen dioxide is high at this station, what does that suggest?",
+          "expected": [
+            "pollutant_signatures"
+          ],
+          "got": [
+            "mcap_2022:p58:2",
+            "mcap_2022:p59:3",
+            "lundberg_2020_treeshap:p9:2"
+          ]
+        },
+        {
+          "question": "Where does the air quality data come from?",
+          "expected": [
+            "openaq_caaqms"
+          ],
+          "got": [
+            "mcap_2022:p224:1",
+            "mcap_2022:p225:0",
+            "station_isolation_forest"
+          ]
+        },
+        {
+          "question": "Why does the city look greener after the rains?",
+          "expected": [
+            "ndvi_season_mumbai"
+          ],
+          "got": [
+            "mcap_2022:p223:1",
+            "mcap_2022:p226:1",
+            "lundberg_2020_treeshap:p42:0"
+          ]
+        },
+        {
+          "question": "Which satellite gives the 10 m vegetation images?",
+          "expected": [
+            "sentinel2"
+          ],
+          "got": [
+            "nasa_measuring_vegetation:p2:2",
+            "nasa_measuring_vegetation:p1:2",
+            "santamouris_2013_pavements:p2:8"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "water_health_geosense",
+            "worldcover_pum_v2:p5:0",
+            "roberts_2017_cv:p4:0"
+          ]
+        },
+        {
+          "question": "How would you confirm water pollution on the ground?",
+          "expected": [
+            "water_quality_insitu"
+          ],
+          "got": [
+            "mumbai_air_sources",
+            "mitigate_water",
+            "mcap_2022:p33:0"
+          ]
+        },
+        {
+          "question": "What can be done to clean up a polluted lake?",
+          "expected": [
+            "mitigate_water"
+          ],
+          "got": [
+            "mcap_2022:p224:1",
+            "powai_lake",
+            "mcap_2022:p224:2"
+          ]
+        },
+        {
+          "question": "How was the temperature model's accuracy tested fairly?",
+          "expected": [
+            "spatial_cv"
+          ],
+          "got": [
+            "lundberg_2020_treeshap:p24:4",
+            "santamouris_2013_pavements:p12:4",
+            "santamouris_2013_pavements:p12:3"
+          ]
+        },
+        {
+          "question": "Why is there no data at some places on the map?",
+          "expected": [
+            "cloud_gaps"
+          ],
+          "got": [
+            "worldcover_pvr_v2:p13:0",
+            "worldcover_pum_v2:p9:3",
+            "mcap_2022:p226:0"
+          ]
+        },
+        {
+          "question": "How is a water body judged worse than others?",
+          "expected": [
+            "robust_z",
+            "water_health_geosense"
+          ],
+          "got": [
+            "mitigate_air",
+            "mitigate_water",
+            "santamouris_2013_pavements:p13:2"
+          ]
+        }
+      ]
+    },
+    "embed+docs": {
+      "mode": "embed",
+      "corpus": "notes + documents",
+      "questions": 49,
+      "recall_at_5": 0.796,
+      "mrr": 0.721,
+      "first_hit_is_document_passage": 5,
+      "misses": [
+        {
+          "question": "What does an AQI of 150 mean for health?",
+          "expected": [
+            "aqi_health_statements",
+            "aqi_cpcb_scale"
+          ],
+          "got": [
+            "knowlton_2014_ahmedabad:p9:0"
+          ]
+        },
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": [
+            "knowlton_2014_ahmedabad:p3:0",
+            "knowlton_2014_ahmedabad:p16:3"
+          ]
+        },
+        {
+          "question": "Nitrogen dioxide is high at this station, what does that suggest?",
+          "expected": [
+            "pollutant_signatures"
+          ],
+          "got": [
+            "station_isolation_forest",
+            "mcap_2022:p59:3"
+          ]
+        },
+        {
+          "question": "Where does the air quality data come from?",
+          "expected": [
+            "openaq_caaqms"
+          ],
+          "got": [
+            "usgs_landsat_c2l2_guide:p25:0",
+            "mcap_2022:p153:3",
+            "usgs_landsat_c2l2_guide:p26:0"
+          ]
+        },
+        {
+          "question": "Which satellite gives the 10 m vegetation images?",
+          "expected": [
+            "sentinel2"
+          ],
+          "got": [
+            "nasa_measuring_vegetation:p1:2",
+            "nasa_measuring_vegetation:p4:1",
+            "usgs_landsat_c2l2_guide:p38:0"
+          ]
+        },
+        {
+          "question": "How can a satellite see algae in a lake?",
+          "expected": [
+            "ndci"
+          ],
+          "got": [
+            "cloud_gaps",
+            "nasa_measuring_vegetation:p1:3",
+            "usgs_landsat_c2l2_guide:p21:1"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "isolation_forest",
+            "usgs_landsat_c2l2_guide:p21:1",
+            "cloud_gaps"
+          ]
+        },
+        {
+          "question": "Where do flamingos come in Thane?",
+          "expected": [
+            "thane_creek"
+          ],
+          "got": []
+        },
+        {
+          "question": "How does the model say which factor made a place hotter?",
+          "expected": [
+            "xgboost_shap"
+          ],
+          "got": [
+            "santamouris_2013_pavements:p2:0",
+            "santamouris_2013_pavements:p14:2",
+            "lst_vegetation_relationship"
+          ]
+        },
+        {
+          "question": "How is a water body judged worse than others?",
+          "expected": [
+            "robust_z",
+            "water_health_geosense"
+          ],
+          "got": []
+        }
+      ]
+    },
+    "hybrid+docs": {
+      "mode": "hybrid",
+      "corpus": "notes + documents",
+      "questions": 49,
+      "recall_at_5": 0.816,
+      "mrr": 0.697,
+      "first_hit_is_document_passage": 4,
+      "misses": [
+        {
+          "question": "What does an AQI of 150 mean for health?",
+          "expected": [
+            "aqi_health_statements",
+            "aqi_cpcb_scale"
+          ],
+          "got": [
+            "knowlton_2014_ahmedabad:p6:0",
+            "lundberg_2020_treeshap:p14:0",
+            "knowlton_2014_ahmedabad:p9:0"
+          ]
+        },
+        {
+          "question": "Who should avoid going outside when the air is bad?",
+          "expected": [
+            "aqi_health_statements"
+          ],
+          "got": [
+            "knowlton_2014_ahmedabad:p3:0",
+            "mcap_2022:p77:0",
+            "knowlton_2014_ahmedabad:p10:1"
+          ]
+        },
+        {
+          "question": "Where does the air quality data come from?",
+          "expected": [
+            "openaq_caaqms"
+          ],
+          "got": [
+            "mcap_2022:p163:1",
+            "mcap_2022:p153:3",
+            "usgs_landsat_c2l2_guide:p25:0"
+          ]
+        },
+        {
+          "question": "Which satellite gives the 10 m vegetation images?",
+          "expected": [
+            "sentinel2"
+          ],
+          "got": [
+            "nasa_measuring_vegetation:p1:2",
+            "nasa_measuring_vegetation:p3:3",
+            "worldcover_pvr_v2:p23:1"
+          ]
+        },
+        {
+          "question": "How can a satellite see algae in a lake?",
+          "expected": [
+            "ndci"
+          ],
+          "got": [
+            "nasa_measuring_vegetation:p2:0",
+            "nasa_measuring_vegetation:p1:2",
+            "turbidity_proxy"
+          ]
+        },
+        {
+          "question": "How is muddy or murky water detected from space?",
+          "expected": [
+            "turbidity_proxy"
+          ],
+          "got": [
+            "water_health_geosense",
+            "water_quality_insitu",
+            "nasa_measuring_vegetation:p1:2"
+          ]
+        },
+        {
+          "question": "How would you confirm water pollution on the ground?",
+          "expected": [
+            "water_quality_insitu"
+          ],
+          "got": [
+            "mitigate_water",
+            "layer_isolation_forest",
+            "nasa_measuring_vegetation:p4:1"
+          ]
+        },
+        {
+          "question": "How does the model say which factor made a place hotter?",
+          "expected": [
+            "xgboost_shap"
+          ],
+          "got": [
+            "residual_interpretation",
+            "mcap_2022:p53:0",
+            "santamouris_2013_pavements:p14:2"
+          ]
+        },
+        {
+          "question": "How was the temperature model's accuracy tested fairly?",
+          "expected": [
+            "spatial_cv"
+          ],
+          "got": [
+            "lundberg_2020_treeshap:p24:4",
+            "lundberg_2017_shap:p1:2",
+            "lundberg_2020_treeshap:p24:3"
+          ]
+        }
+      ]
+    }
+  }
+}

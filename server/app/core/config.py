@@ -22,6 +22,18 @@ class Settings(BaseSettings):
     openaq_aqi_key: str | None = None
     gee_project: str | None = None
     gemini_api_key: str | None = None
+    anthropic_api_key: str | None = None
+    openai_api_key: str | None = None
+    groq_api_key: str | None = None
+    groq_model: str | None = None
+    gemini_model: str | None = None
+    llm_model: str | None = None
+    # summary = AI writes only a short, checked plain-words summary + answers Ask GeoSense
+    # off     = no AI calls at all (evidence write-up and knowledge-base answers only)
+    ai_mode: str = "summary"
+    # place names for clicked points (reverse geocoding); the frontend's token is reused
+    mapbox_token: str | None = None
+    vite_mapbox_token: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=ROOT_ENV_FILE,

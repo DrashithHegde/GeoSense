@@ -95,10 +95,11 @@ def _load_snapshot(db, snapshot_date: date, is_legacy_zone: bool = False) -> tup
         .order_by(EnvironmentData.observed_at.asc(), EnvironmentData.id.asc())
     ).mappings()
     for row in rows:
+        loc_id = row["zone_id"] if is_legacy_zone else row["cell_id"]
         for field in fields:
             value = row[field]
             if value is not None:
-                selected[row[1]][field] = {
+                selected[loc_id][field] = {
                     "value": float(value),
                     "environment_data_id": int(row["id"]),
                     "observed_at": row["observed_at"],
@@ -380,7 +381,7 @@ def run_feature_anomaly_pipeline(snapshot_date: date | None = None, is_legacy_zo
                         :zone_id, :environment_data_id, :engineered_feature_id, :observed_at, :detected_at,
                         :anomaly_score, :is_anomaly, :model_name, :anomaly_type, :root_cause, NULL, CAST(:evidence AS jsonb)
                     )
-                    ON CONFLICT (zone_id, observed_at, model_name, is_legacy_zone=is_legacy_zone) DO UPDATE SET
+                    ON CONFLICT (zone_id, observed_at, model_name) DO UPDATE SET
                         environment_data_id = EXCLUDED.environment_data_id,
                         engineered_feature_id = EXCLUDED.engineered_feature_id,
                         detected_at = EXCLUDED.detected_at,

@@ -1,9 +1,12 @@
 """Indian CPCB AQI calculation from pollutant concentrations.
 
-Implements CPCB National Air Quality Index (2014) breakpoints.
-Station AQI = max of all computable pollutant sub-indices.
+Implements CPCB National Air Quality Index (2014) breakpoints for the 7 pollutants available in
+near-real time: PM2.5, PM10, NO2, SO2, O3, CO, NH3. Lead (Pb), the 8th, is sampled manually and
+analysed in a lab with about a week's lag, so CPCB itself leaves it out of the real-time AQI.
+Station AQI = max of all computable pollutant sub-indices (CPCB: >= 3 pollutants, one of them PM).
 No fabrication: if averaging period data is unavailable, that pollutant is skipped.
-Units: pm25/pm10/no2/so2/o3 in ug/m3; co in ug/m3 (internally converted to mg/m3).
+Units: pm25/pm10/no2/so2/o3/nh3 in ug/m3; co in ug/m3 (internally converted to mg/m3).
+Source: CPCB (2014) National Air Quality Index, Control of Urban Pollution Series CUPS/82/2014-15.
 """
 from __future__ import annotations
 
@@ -38,6 +41,12 @@ CPCB_BREAKPOINTS: Dict[str, list] = {
         (101, 168,  101,  200), (169, 208,  201,  300),
         (209, 748,  301,  400), (749, 1000, 401,  500),
     ],
+    # NH3, 24-hour average (CPCB Table: 0-200 Good ... >1800 Severe)
+    "nh3": [
+        (0,    200,   0,   50), (201,  400,  51,  100),
+        (401,  800, 101,  200), (801, 1200, 201,  300),
+        (1201, 1800, 301, 400), (1801, 2400, 401, 500),
+    ],
     # CO breakpoints use mg/m3 in CPCB standard
     "co": [
         (0,    1.0,   0,   50), (1.1,  2.0,  51,  100),
@@ -60,10 +69,15 @@ def _round_cpcb_concentration(param: str, concentration: float) -> float:
 
 
 def _sub_index(concentration: float, breakpoints: list) -> Optional[float]:
-    """Linear interpolation within CPCB breakpoint table."""
+    """Linear interpolation within CPCB breakpoint table.
+
+    The top CPCB band is open-ended ("PM2.5 250+" = Severe), so anything above the last listed
+    concentration is the maximum index, 500 — not dropped."""
     for c_low, c_high, i_low, i_high in breakpoints:
         if c_low <= concentration <= c_high:
             return i_low + (concentration - c_low) * (i_high - i_low) / (c_high - c_low)
+    if breakpoints and concentration > breakpoints[-1][1]:
+        return float(breakpoints[-1][3])
     return None
 
 

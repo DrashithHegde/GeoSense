@@ -18,7 +18,8 @@ from app.services.feature_anomaly_pipeline import _missing_core_metrics, _select
 
 
 def _row(zone_id: int, *, aqi=85.0, lst=32.0, ndvi=0.3, ndwi=-0.1) -> dict:
-    return {"zone_id": zone_id, "values": {"aqi": aqi, "lst": lst, "ndvi": ndvi, "ndwi": ndwi}}
+    # rows as the pipeline builds them: keyed by loc_id (a zone id or a 300 m cell id)
+    return {"loc_id": zone_id, "zone_id": zone_id, "values": {"aqi": aqi, "lst": lst, "ndvi": ndvi, "ndwi": ndwi}}
 
 
 class FeatureAnomalyGuardTests(unittest.TestCase):

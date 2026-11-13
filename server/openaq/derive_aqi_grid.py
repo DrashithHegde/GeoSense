@@ -126,7 +126,7 @@ def collect_station_aqi_points(
     station_points: List[Dict] = []
     cpcb_failures = 0
     for s in raw_stations:
-        aqi_val, dominant, _sub_indices = compute_station_cpcb_aqi(s["pollutants"])
+        aqi_val, dominant, sub_indices = compute_station_cpcb_aqi(s["pollutants"])
         if aqi_val is None:
             cpcb_failures += 1
             continue
@@ -142,6 +142,7 @@ def collect_station_aqi_points(
             "observed_at": s["observed_at"],
             "freshness": freshness_label(s["observed_at"]),
             "pollutant_metadata": s.get("pollutant_metadata", {}),
+            "sub_indices": {k: (None if v is None else round(float(v), 1)) for k, v in sub_indices.items()},
         })
         logger.info(
             "Station %s: CPCB AQI=%d dominant=%s freshness=%s provider=%s",

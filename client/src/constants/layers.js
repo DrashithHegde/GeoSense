@@ -5,17 +5,17 @@
 export const LAYER_CONFIG = {
   aqi: {
     id: "aqi",
-    label: "CPCB AQI",
+    label: "AQI",
     icon: "○",
-    desc: "National AQI (CPCB)",
+    desc: "Air Quality Index (India national scale)",
     gradient: {
       0.0: "rgba(0,0,0,0)",
-      0.2: "#00E400", // Green
-      0.45: "#FFFF00", // Light Green
-      0.6: "#FF7E00", // Orange
-      0.8: "#FF0000", // Red
-      0.9: "#8F3F97", // Purple
-      1.0: "#7E0023", // Maroon
+      0.1: "#00A859", // Good
+      0.2: "#8CC63F", // Satisfactory
+      0.4: "#FFF200", // Moderate
+      0.6: "#F7931E", // Poor
+      0.8: "#ED1C24", // Very Poor
+      1.0: "#9E0B0F", // Severe
     },
     blobColors: [
       "rgba(255,59,59,0.28)",
@@ -30,14 +30,13 @@ export const LAYER_CONFIG = {
     icon: "◇",
     desc: "Satellite normalised difference vegetation index",
     gradient: {
-      0.0: "rgba(0,0,0,0)", // transparent (urban/water/bare)
-      0.05: "#d62781", // magenta  — very low
-      0.15: "#ff5e28", // orange   — low
-      0.3: "#ffcd32", // yellow   — moderate
-      0.5: "#a8e635", // lime     — moderate-high
-      0.7: "#29d967", // green    — high
-      0.9: "#14c8b4", // teal     — very high
-      1.0: "#14c8b4",
+      0.0: "rgba(0,0,0,0)",
+      0.05: "#564234", // bare / built
+      0.2: "#b08c4c", // sparse
+      0.4: "#dac860", // light vegetation
+      0.6: "#96d04c", // moderate
+      0.8: "#3cbc54", // dense
+      1.0: "#18964e", // very dense
     },
     blobColors: [
       "rgba(41,217,103,0.28)",
@@ -53,17 +52,16 @@ export const LAYER_CONFIG = {
     desc: "Water condition index 0..1 (MNDWI water pixels)",
     gradient: {
       0.0: "rgba(0,0,0,0)",
-      0.05: "#dd269a", // magenta  — degraded
-      0.18: "#ff3b3b", // red
-      0.38: "#ff8c00", // orange   — fair
-      0.58: "#ffd23c", // yellow   — good
-      0.78: "#5cd648", // lime/green very good
-      1.0: "#12c8d4", // teal/cyan healthy
+      0.05: "#052a3a", // dark teal — low
+      0.3: "#04527e", // blue
+      0.55: "#008ab8", // mid blue
+      0.78: "#00c0dc", // cyan
+      1.0: "#1ee8ee", // turquoise — high
     },
     blobColors: [
-      "rgba(18,200,212,0.25)",
-      "rgba(92,214,72,0.18)",
-      "rgba(255,61,61,0.12)",
+      "rgba(0,192,220,0.25)",
+      "rgba(4,82,126,0.20)",
+      "rgba(30,232,238,0.12)",
     ],
   },
 
@@ -73,13 +71,14 @@ export const LAYER_CONFIG = {
     icon: "▣",
     desc: "Resolution: 30 m · Unit: °C",
     gradient: {
-      0.0: "rgba(0,0,0,0)", // 20C (Black/Transparent)
-      0.1: "#12081c", // 23C (Very deep purple)
-      0.3: "#581c76", // 29C (Purple)
-      0.46: "#bc2a6c", // 34C (Hot magenta)
-      0.6: "#ff6230", // 38C (Red-orange)
-      0.76: "#ffebc3", // 43C (Near-white)
-      1.0: "#ffffff", // 50C (White)
+      0.0: "rgba(0,0,0,0)",
+      0.1: "#342696", // coolest
+      0.3: "#621ea2",
+      0.45: "#982296",
+      0.6: "#ce3a70",
+      0.75: "#ee6548",
+      0.9: "#fa9d34",
+      1.0: "#fdde5e", // hottest
     },
     blobColors: [
       "rgba(255,98,48,0.28)",
@@ -95,11 +94,13 @@ export const LAYER_CONFIG = {
     desc: "Combined multi-metric overlay",
     gradient: {
       0.0: "rgba(0,0,0,0)",
-      0.15: "rgba(29,209,161,0.6)",
-      0.35: "rgba(255,211,42,0.75)",
-      0.6: "rgba(255,140,0,0.85)",
-      0.85: "rgba(255,59,59,0.95)",
-      1.0: "rgba(255,255,255,0.9)",
+      0.1: "#205c78", // low stress
+      0.3: "#268c8a",
+      0.45: "#6eaa78",
+      0.6: "#d6c45c",
+      0.75: "#f4903e",
+      0.9: "#e2463c",
+      1.0: "#b01e60", // critical
     },
     blobColors: [
       "rgba(255,59,59,0.30)",

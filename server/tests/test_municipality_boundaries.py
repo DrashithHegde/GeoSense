@@ -36,11 +36,17 @@ class MunicipalityBoundaryTests(unittest.TestCase):
 
     def test_study_region_is_the_union_of_municipality_assets(self) -> None:
         loaded = boundaries.load_municipality_boundaries()
-        expected = loaded[0]["shapely_geom"].union(loaded[1]["shapely_geom"]).union(loaded[2]["shapely_geom"])
+        union = loaded[0]["shapely_geom"].union(loaded[1]["shapely_geom"]).union(loaded[2]["shapely_geom"])
+        # the study region is that union with its holes filled (enclaves such as Sanjay Gandhi
+        # National Park belong to the study area even where no municipality boundary covers them)
+        from shapely.geometry import MultiPolygon, Polygon
+        expected = (Polygon(union.exterior) if union.geom_type == "Polygon"
+                    else MultiPolygon([Polygon(g.exterior) for g in union.geoms]))
         study_region = boundaries.load_study_region_geometry()
 
         self.assertTrue(study_region.is_valid)
         self.assertTrue(study_region.equals(expected))
+        self.assertTrue(study_region.buffer(1e-9).contains(union))
         self.assertEqual(boundaries.get_study_region_bounds(), tuple(float(value) for value in expected.bounds))
 
     def test_missing_asset_has_clear_error(self) -> None:

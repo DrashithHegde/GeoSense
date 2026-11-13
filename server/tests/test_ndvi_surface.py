@@ -44,7 +44,8 @@ class NdviSurfaceTests(unittest.TestCase):
                 self.assertEqual(output.crs.to_string(), CRS)
                 self.assertEqual(output.nodata, NODATA_VALUE)
             alpha = ndvi_to_rgba(values)[:, :, 3]
-            self.assertEqual(int((alpha == 0).sum()), 1)
+            # NoData and NDVI < 0 (open water: no vegetation signal) are both transparent
+            self.assertEqual(int((alpha == 0).sum()), 2)
             self.assertTrue((root / report["png_filename"]).exists())
             manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["surfaces"]["ndvi"]["metric"], "ndvi")
@@ -67,4 +68,5 @@ class NdviSurfaceTests(unittest.TestCase):
         with patch("app.api.routes.load_latest_ndvi_surface", return_value=record):
             response = client.get("/api/surfaces/ndvi/latest")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["image_url"], "/surface-assets/ndvi/test.png")
+        # ?v=<checksum or timestamp> busts the browser cache when the image is re-rendered
+        self.assertEqual(response.json()["image_url"].split("?v=")[0], "/surface-assets/ndvi/test.png")

@@ -1,0 +1,2433 @@
+{
+  "snapshot_at": "2026-10-07T00:00:00+00:00",
+  "generated_at": "2026-11-08T20:29:05.089625+00:00",
+  "cells_total": 8287,
+  "city_percentiles": {
+    "ndvi_mean": [
+      -0.98601,
+      -0.26734,
+      -0.20382,
+      -0.12666,
+      -5e-05,
+      0.04425,
+      0.09029,
+      0.11892,
+      0.13904,
+      0.15387,
+      0.16597,
+      0.17576,
+      0.18609,
+      0.19359,
+      0.20156,
+      0.20885,
+      0.21538,
+      0.22134,
+      0.22871,
+      0.23462,
+      0.24024,
+      0.24609,
+      0.25225,
+      0.25692,
+      0.26343,
+      0.26939,
+      0.27489,
+      0.28057,
+      0.28606,
+      0.29137,
+      0.29698,
+      0.30248,
+      0.30812,
+      0.31352,
+      0.31831,
+      0.32407,
+      0.3291,
+      0.33482,
+      0.34028,
+      0.34484,
+      0.35096,
+      0.35691,
+      0.36252,
+      0.36738,
+      0.37284,
+      0.37898,
+      0.38411,
+      0.38999,
+      0.39642,
+      0.40248,
+      0.40816,
+      0.41481,
+      0.42151,
+      0.42885,
+      0.43587,
+      0.4429,
+      0.44961,
+      0.45802,
+      0.46647,
+      0.47435,
+      0.48229,
+      0.4909,
+      0.49991,
+      0.50837,
+      0.51672,
+      0.52688,
+      0.53448,
+      0.54212,
+      0.55069,
+      0.55838,
+      0.56575,
+      0.57639,
+      0.5843,
+      0.59303,
+      0.60312,
+      0.61157,
+      0.6202,
+      0.63002,
+      0.63941,
+      0.64788,
+      0.65671,
+      0.66375,
+      0.67184,
+      0.6801,
+      0.68799,
+      0.69686,
+      0.70573,
+      0.71645,
+      0.72864,
+      0.73947,
+      0.75012,
+      0.76242,
+      0.77451,
+      0.79246,
+      0.81326,
+      0.83013,
+      0.8469,
+      0.86345,
+      0.87757,
+      0.88825,
+      0.92025
+    ],
+    "veg_frac": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.00171,
+      0.0043,
+      0.00833,
+      0.01183,
+      0.01828,
+      0.02366,
+      0.02917,
+      0.03646,
+      0.04375,
+      0.05,
+      0.05729,
+      0.06561,
+      0.07187,
+      0.07808,
+      0.08646,
+      0.09482,
+      0.10312,
+      0.11146,
+      0.1196,
+      0.12903,
+      0.13753,
+      0.14584,
+      0.15484,
+      0.1625,
+      0.17188,
+      0.18114,
+      0.19044,
+      0.20025,
+      0.20974,
+      0.21979,
+      0.22917,
+      0.23854,
+      0.24711,
+      0.25611,
+      0.2659,
+      0.2781,
+      0.2875,
+      0.29583,
+      0.30729,
+      0.31667,
+      0.32604,
+      0.33673,
+      0.34896,
+      0.35938,
+      0.37489,
+      0.38646,
+      0.40106,
+      0.41354,
+      0.42694,
+      0.44167,
+      0.46148,
+      0.47813,
+      0.49685,
+      0.51699,
+      0.53646,
+      0.55438,
+      0.57303,
+      0.59065,
+      0.61042,
+      0.62813,
+      0.64778,
+      0.66979,
+      0.69271,
+      0.71354,
+      0.73226,
+      0.7537,
+      0.77373,
+      0.79583,
+      0.8125,
+      0.82917,
+      0.84839,
+      0.86876,
+      0.88542,
+      0.90162,
+      0.91702,
+      0.92812,
+      0.94063,
+      0.95433,
+      0.96354,
+      0.97204,
+      0.98021,
+      0.98646,
+      0.99151,
+      0.99479,
+      0.99792,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "built_frac": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.00104,
+      0.00208,
+      0.00333,
+      0.00535,
+      0.00833,
+      0.01042,
+      0.0129,
+      0.01562,
+      0.01979,
+      0.025,
+      0.03021,
+      0.03516,
+      0.04063,
+      0.04622,
+      0.05305,
+      0.05964,
+      0.06771,
+      0.07466,
+      0.08021,
+      0.08706,
+      0.09271,
+      0.10215,
+      0.11042,
+      0.11771,
+      0.12708,
+      0.13542,
+      0.14409,
+      0.15208,
+      0.16022,
+      0.16875,
+      0.17708,
+      0.18602,
+      0.19479,
+      0.20417,
+      0.2125,
+      0.21875,
+      0.22604,
+      0.23333,
+      0.24271,
+      0.25,
+      0.25625,
+      0.26458,
+      0.27187,
+      0.27917,
+      0.28854,
+      0.29792,
+      0.30833,
+      0.31667,
+      0.32604,
+      0.33333,
+      0.34167,
+      0.35104,
+      0.36354,
+      0.37292,
+      0.38289,
+      0.39355,
+      0.40313,
+      0.41497,
+      0.42673,
+      0.4375,
+      0.45208,
+      0.4625,
+      0.47604,
+      0.49167,
+      0.50625,
+      0.52187,
+      0.53542,
+      0.55411,
+      0.57192,
+      0.59182,
+      0.61667,
+      0.64271,
+      0.66637,
+      0.69788,
+      0.73543,
+      0.78241,
+      0.84409,
+      1.0
+    ],
+    "lst_mean": [
+      20.39686,
+      24.31542,
+      25.39843,
+      26.28434,
+      26.9269,
+      27.44431,
+      27.9005,
+      28.29147,
+      28.59469,
+      28.84764,
+      29.11299,
+      29.33374,
+      29.48979,
+      29.68863,
+      29.86813,
+      30.04109,
+      30.22945,
+      30.40699,
+      30.55583,
+      30.68012,
+      30.80576,
+      30.93212,
+      31.06818,
+      31.20202,
+      31.34043,
+      31.46777,
+      31.59336,
+      31.70875,
+      31.82145,
+      31.91887,
+      32.02719,
+      32.15826,
+      32.2821,
+      32.41918,
+      32.53257,
+      32.67538,
+      32.81251,
+      32.91185,
+      33.03506,
+      33.15952,
+      33.25726,
+      33.35301,
+      33.45681,
+      33.5577,
+      33.6536,
+      33.75606,
+      33.85998,
+      33.96779,
+      34.07162,
+      34.20259,
+      34.32722,
+      34.42078,
+      34.52473,
+      34.61409,
+      34.7249,
+      34.8265,
+      34.94371,
+      35.06271,
+      35.16992,
+      35.27453,
+      35.37573,
+      35.49055,
+      35.59492,
+      35.71101,
+      35.80997,
+      35.94222,
+      36.06053,
+      36.15525,
+      36.31334,
+      36.43718,
+      36.55708,
+      36.67342,
+      36.78322,
+      36.91287,
+      37.03377,
+      37.17897,
+      37.29596,
+      37.4476,
+      37.57004,
+      37.70039,
+      37.8208,
+      37.95573,
+      38.1102,
+      38.25753,
+      38.40977,
+      38.54021,
+      38.68191,
+      38.86978,
+      39.05035,
+      39.21225,
+      39.38918,
+      39.58015,
+      39.80121,
+      40.04272,
+      40.37565,
+      40.76892,
+      41.19433,
+      41.83644,
+      42.70734,
+      44.00809,
+      48.14952
+    ],
+    "wh_mean": [
+      0.37065,
+      0.39503,
+      0.40275,
+      0.40544,
+      0.40849,
+      0.41276,
+      0.41532,
+      0.4185,
+      0.42091,
+      0.4233,
+      0.42488,
+      0.42651,
+      0.42824,
+      0.42981,
+      0.43159,
+      0.43283,
+      0.43368,
+      0.43497,
+      0.43621,
+      0.43722,
+      0.43837,
+      0.43946,
+      0.4401,
+      0.44106,
+      0.44194,
+      0.44263,
+      0.44387,
+      0.44479,
+      0.44537,
+      0.44641,
+      0.44732,
+      0.44804,
+      0.449,
+      0.44964,
+      0.45021,
+      0.45085,
+      0.45169,
+      0.45231,
+      0.45291,
+      0.4534,
+      0.4541,
+      0.4547,
+      0.4551,
+      0.45581,
+      0.45643,
+      0.45695,
+      0.4574,
+      0.45812,
+      0.45869,
+      0.45905,
+      0.45954,
+      0.4602,
+      0.46081,
+      0.46135,
+      0.46184,
+      0.46243,
+      0.46289,
+      0.46334,
+      0.46372,
+      0.46431,
+      0.46478,
+      0.46546,
+      0.46602,
+      0.46648,
+      0.4671,
+      0.46772,
+      0.46823,
+      0.46865,
+      0.46908,
+      0.46964,
+      0.47024,
+      0.4708,
+      0.47132,
+      0.47186,
+      0.47236,
+      0.47269,
+      0.47312,
+      0.4736,
+      0.47404,
+      0.47469,
+      0.4753,
+      0.47597,
+      0.47658,
+      0.47729,
+      0.47808,
+      0.47891,
+      0.47962,
+      0.48015,
+      0.48072,
+      0.48155,
+      0.48231,
+      0.48316,
+      0.48382,
+      0.48451,
+      0.48558,
+      0.48662,
+      0.48783,
+      0.49014,
+      0.493,
+      0.49908,
+      0.52866
+    ],
+    "aqi_idw": [
+      54.21397,
+      88.88803,
+      93.93213,
+      96.73578,
+      100.23449,
+      103.51631,
+      105.01277,
+      106.27161,
+      107.82198,
+      109.91263,
+      112.07122,
+      113.5915,
+      114.6456,
+      115.59977,
+      116.49451,
+      117.33585,
+      118.01962,
+      118.91937,
+      119.89783,
+      121.13315,
+      122.27005,
+      123.32445,
+      124.41757,
+      125.44948,
+      126.50278,
+      127.30615,
+      127.75204,
+      128.13999,
+      128.60061,
+      129.12881,
+      129.70513,
+      130.34438,
+      131.02128,
+      131.71999,
+      132.43178,
+      133.0501,
+      133.65767,
+      134.15449,
+      134.59721,
+      135.06297,
+      135.57943,
+      135.9979,
+      136.37236,
+      136.74543,
+      137.14393,
+      137.57407,
+      138.3325,
+      139.26977,
+      140.56279,
+      142.03127,
+      143.9454,
+      146.36405,
+      148.56133,
+      150.70943,
+      153.13885,
+      155.69002,
+      158.01671,
+      159.99491,
+      161.6407,
+      163.45099,
+      165.32399,
+      167.29596,
+      169.25314,
+      171.86119,
+      174.49864,
+      177.21867,
+      179.54178,
+      181.22845,
+      183.38428,
+      185.67424,
+      190.05716,
+      194.57022,
+      199.92766,
+      204.06985,
+      207.75932,
+      209.99441,
+      211.41052,
+      213.9835,
+      215.91289,
+      217.26934,
+      218.61614,
+      219.77868,
+      220.94173,
+      222.94249,
+      225.09475,
+      227.59749,
+      229.96945,
+      233.81767,
+      238.51088,
+      242.62647,
+      245.48692,
+      248.33955,
+      251.62492,
+      256.27957,
+      262.35958,
+      267.84276,
+      274.96809,
+      283.54099,
+      288.55348,
+      295.85229,
+      321.06787
+    ],
+    "dist_water_m": [
+      0.0,
+      0.0,
+      0.0,
+      2.99737,
+      11.6867,
+      18.75838,
+      26.29422,
+      31.47996,
+      37.17971,
+      41.77412,
+      45.94715,
+      49.12403,
+      52.60534,
+      55.78647,
+      58.93559,
+      61.96567,
+      65.24148,
+      68.47611,
+      71.60709,
+      74.32174,
+      77.13408,
+      80.22772,
+      83.81515,
+      86.50039,
+      89.50263,
+      93.09449,
+      96.29743,
+      99.23824,
+      102.21519,
+      105.09455,
+      107.75837,
+      110.8524,
+      113.60065,
+      117.10953,
+      120.83353,
+      124.5117,
+      128.68752,
+      133.03972,
+      137.47668,
+      140.99292,
+      145.68137,
+      150.31402,
+      154.90072,
+      159.92874,
+      164.33794,
+      169.03447,
+      173.88778,
+      178.2335,
+      184.25599,
+      190.96157,
+      197.69499,
+      204.88271,
+      212.12792,
+      219.31636,
+      226.0011,
+      233.15629,
+      240.43565,
+      247.39841,
+      255.96428,
+      264.43608,
+      272.39222,
+      280.93415,
+      290.34871,
+      300.50252,
+      310.77912,
+      319.42185,
+      330.91189,
+      340.52447,
+      352.81142,
+      364.47031,
+      373.84737,
+      384.52538,
+      396.1444,
+      407.6402,
+      421.12675,
+      434.12149,
+      448.09021,
+      467.2905,
+      489.08528,
+      506.22863,
+      524.19043,
+      542.56418,
+      561.52791,
+      579.91476,
+      602.61074,
+      624.44359,
+      649.50935,
+      680.75449,
+      719.89436,
+      752.97232,
+      792.94481,
+      833.45687,
+      896.08542,
+      964.9866,
+      1072.51107,
+      1211.05269,
+      1379.88755,
+      1612.46771,
+      1931.32682,
+      2361.61855,
+      3351.49403
+    ],
+    "ndmi_veg_mean": [
+      -0.25548,
+      -0.00648,
+      0.02829,
+      0.04916,
+      0.06423,
+      0.07375,
+      0.08216,
+      0.0892,
+      0.09645,
+      0.10319,
+      0.10906,
+      0.11467,
+      0.12099,
+      0.12686,
+      0.13095,
+      0.13548,
+      0.13948,
+      0.14387,
+      0.14787,
+      0.15249,
+      0.15632,
+      0.15992,
+      0.16361,
+      0.16729,
+      0.17041,
+      0.17379,
+      0.17746,
+      0.1813,
+      0.18465,
+      0.18829,
+      0.19103,
+      0.19425,
+      0.19822,
+      0.20198,
+      0.20505,
+      0.20895,
+      0.21243,
+      0.21586,
+      0.21895,
+      0.22234,
+      0.22557,
+      0.22911,
+      0.23309,
+      0.23642,
+      0.23957,
+      0.24343,
+      0.24683,
+      0.25055,
+      0.25369,
+      0.25645,
+      0.2598,
+      0.26317,
+      0.26646,
+      0.26967,
+      0.27336,
+      0.27629,
+      0.27873,
+      0.28154,
+      0.2833,
+      0.28536,
+      0.28781,
+      0.29007,
+      0.2921,
+      0.29431,
+      0.29641,
+      0.29855,
+      0.30059,
+      0.30268,
+      0.30469,
+      0.30675,
+      0.30898,
+      0.31131,
+      0.3135,
+      0.31589,
+      0.31826,
+      0.3202,
+      0.32265,
+      0.3249,
+      0.32782,
+      0.33033,
+      0.33389,
+      0.33776,
+      0.34237,
+      0.34572,
+      0.34911,
+      0.3538,
+      0.35868,
+      0.3638,
+      0.36755,
+      0.37286,
+      0.37777,
+      0.38229,
+      0.38785,
+      0.39282,
+      0.3985,
+      0.40593,
+      0.41093,
+      0.4207,
+      0.43101,
+      0.44942,
+      0.54282
+    ],
+    "ndbi_land_mean": [
+      -0.5619,
+      -0.43781,
+      -0.41856,
+      -0.40733,
+      -0.39783,
+      -0.39117,
+      -0.38537,
+      -0.37869,
+      -0.37217,
+      -0.36562,
+      -0.35926,
+      -0.35269,
+      -0.34625,
+      -0.34111,
+      -0.33574,
+      -0.33127,
+      -0.32727,
+      -0.3234,
+      -0.32025,
+      -0.31713,
+      -0.31387,
+      -0.3115,
+      -0.30896,
+      -0.30621,
+      -0.30362,
+      -0.30125,
+      -0.29868,
+      -0.29563,
+      -0.29256,
+      -0.28948,
+      -0.28559,
+      -0.28278,
+      -0.27981,
+      -0.27641,
+      -0.27165,
+      -0.26759,
+      -0.26284,
+      -0.25663,
+      -0.25104,
+      -0.2456,
+      -0.23881,
+      -0.23302,
+      -0.22566,
+      -0.21909,
+      -0.21361,
+      -0.20716,
+      -0.20009,
+      -0.19359,
+      -0.18485,
+      -0.17788,
+      -0.17222,
+      -0.16562,
+      -0.16073,
+      -0.15442,
+      -0.14949,
+      -0.14426,
+      -0.13831,
+      -0.13261,
+      -0.1279,
+      -0.12363,
+      -0.11804,
+      -0.11312,
+      -0.10895,
+      -0.10461,
+      -0.10036,
+      -0.09591,
+      -0.09179,
+      -0.08793,
+      -0.0841,
+      -0.0798,
+      -0.07579,
+      -0.07237,
+      -0.06862,
+      -0.06473,
+      -0.0611,
+      -0.05751,
+      -0.05384,
+      -0.05013,
+      -0.04639,
+      -0.04228,
+      -0.03783,
+      -0.03384,
+      -0.03002,
+      -0.02577,
+      -0.02178,
+      -0.01818,
+      -0.01354,
+      -0.00891,
+      -0.0046,
+      0.00257,
+      0.00793,
+      0.01491,
+      0.02238,
+      0.03013,
+      0.0386,
+      0.04986,
+      0.05981,
+      0.07392,
+      0.09351,
+      0.11969,
+      0.22738
+    ],
+    "composite_cell": [
+      0.086,
+      0.12977,
+      0.147,
+      0.161,
+      0.171,
+      0.18,
+      0.188,
+      0.197,
+      0.205,
+      0.216,
+      0.225,
+      0.233,
+      0.242,
+      0.25001,
+      0.261,
+      0.269,
+      0.276,
+      0.285,
+      0.293,
+      0.301,
+      0.307,
+      0.314,
+      0.32,
+      0.328,
+      0.333,
+      0.339,
+      0.346,
+      0.352,
+      0.358,
+      0.36333,
+      0.37,
+      0.378,
+      0.385,
+      0.391,
+      0.397,
+      0.402,
+      0.409,
+      0.415,
+      0.423,
+      0.42803,
+      0.435,
+      0.439,
+      0.445,
+      0.45,
+      0.455,
+      0.461,
+      0.466,
+      0.472,
+      0.478,
+      0.483,
+      0.488,
+      0.495,
+      0.5,
+      0.505,
+      0.511,
+      0.516,
+      0.521,
+      0.526,
+      0.531,
+      0.537,
+      0.542,
+      0.547,
+      0.553,
+      0.558,
+      0.563,
+      0.568,
+      0.573,
+      0.578,
+      0.583,
+      0.58713,
+      0.593,
+      0.598,
+      0.603,
+      0.608,
+      0.613,
+      0.618,
+      0.623,
+      0.629,
+      0.636,
+      0.642,
+      0.647,
+      0.652,
+      0.658,
+      0.66591,
+      0.672,
+      0.679,
+      0.686,
+      0.693,
+      0.7,
+      0.707,
+      0.714,
+      0.722,
+      0.73,
+      0.74,
+      0.749,
+      0.76,
+      0.77292,
+      0.791,
+      0.812,
+      0.846,
+      0.953
+    ]
+  },
+  "sources": {
+    "ndvi": {
+      "file": "ndvi_20261007T000000Z.tif",
+      "period": {
+        "end": "2026-10-07",
+        "start": "2026-09-23"
+      },
+      "scale_m": 10,
+      "dataset": "COPERNICUS/S2_SR_HARMONIZED"
+    },
+    "ndmi": {
+      "file": "ndmi_20261007T000000Z.tif",
+      "period": {
+        "end": "2026-10-07",
+        "start": "2026-09-23"
+      },
+      "scale_m": 20,
+      "ndbi": "derived as -NDMI over land pixels"
+    },
+    "water_health": {
+      "file": "wh_20260925T000000Z.tif",
+      "period": {
+        "days": 14,
+        "end": "2026-09-25",
+        "start": "2026-09-11"
+      },
+      "scale_m": 10
+    },
+    "lst": {
+      "file": "lst_20261007T000000Z.tif",
+      "period": {
+        "days": 45,
+        "end": "2026-10-07",
+        "start": "2026-08-23"
+      },
+      "scale_m": 30,
+      "qc_min_c": 20.0
+    },
+    "aqi": {
+      "file": "aqi_cpcb_idw_20261108T180000Z.tif",
+      "source_timestamp": "2026-11-08T18:00:00+00:00",
+      "method": "OpenAQ v3 CPCB/MPCB stations \u2192 CPCB National AQI (2014) \u2192 IDW"
+    },
+    "composite": {
+      "file": "composite_components_20261108T202654Z.tif",
+      "weights": {
+        "air": 0.25,
+        "heat": 0.4,
+        "surface": 0.35
+      },
+      "version": 2
+    }
+  },
+  "isolation_forest": {
+    "status": "ok",
+    "eligible": 6805,
+    "excluded": 1482,
+    "features": [
+      "ndvi_land_mean",
+      "ndvi_std",
+      "veg_land_frac",
+      "built_land_frac",
+      "lst_mean",
+      "lst_std",
+      "aqi_idw"
+    ],
+    "excluded_water_cells": 375,
+    "anomalies": 341,
+    "contamination": 0.05,
+    "excluded_reason": "water-dominated (> 50% open water; assessed by the Water Health model), missing LST (cloud) or NDVI coverage < 30% of cell",
+    "model": "isolation_forest_cell_v2",
+    "sklearn": "1.8.0"
+  },
+  "xgboost_lst": {
+    "status": "ok",
+    "metrics": {
+      "r2_spatial_cv": 0.5281467492107319,
+      "rmse_c": 2.831863830320598,
+      "mae_c": 2.1809193427927664,
+      "n_cells": 7427,
+      "cv": "GroupKFold(5) on ~3 km spatial blocks",
+      "baseline_std_c": 4.122578090172578,
+      "feature_set": "land cover + NDBI",
+      "linear_baseline_r2": 0.45200792742832496,
+      "linear_baseline_rmse_c": 3.0517997195502224
+    },
+    "feature_importance_gain": {
+      "NDVI (mean)": 0.0483,
+      "NDVI variability": 0.0703,
+      "dense-vegetation share": 0.0504,
+      "built/bare share": 0.1382,
+      "open-water share": 0.0739,
+      "detected water share": 0.0478,
+      "distance to open water": 0.0655,
+      "built-up index (NDBI) of land": 0.5057
+    },
+    "features": [
+      "ndvi_mean",
+      "ndvi_std",
+      "veg_frac",
+      "built_frac",
+      "openwater_frac",
+      "water_frac",
+      "dist_water_m",
+      "ndbi_land_mean"
+    ],
+    "model_comparison": {
+      "linear_baseline": {
+        "r2_spatial_cv": 0.45200792742832496,
+        "rmse_c": 3.0517997195502224,
+        "mae_c": 2.3832164830521245
+      },
+      "xgboost_land_cover": {
+        "r2_spatial_cv": 0.49475278228984465,
+        "rmse_c": 2.930359181232914,
+        "mae_c": 2.2572123772895214
+      },
+      "xgboost+ NDBI": {
+        "r2_spatial_cv": 0.5281467492107319,
+        "rmse_c": 2.831863830320598,
+        "mae_c": 2.1809193427927664
+      },
+      "xgboost+ NDBI + NDMI": {
+        "r2_spatial_cv": 0.5250568304969794,
+        "rmse_c": 2.841120893380639,
+        "mae_c": 2.185938540946943
+      }
+    },
+    "flags": {
+      "unexplained_heat": 116,
+      "unexplained_cooling": 265,
+      "explained": 7046
+    },
+    "xgboost_version": "3.2.0",
+    "model": "xgboost_lst_residual_v1",
+    "xgboost": "3.2.0"
+  },
+  "water_health": {
+    "status": "ok",
+    "eligible": 2419,
+    "median": 0.45954297800533106,
+    "mad_scaled": 0.021248661053161536,
+    "flags": {
+      "low_water_condition": 160,
+      "typical": 2239,
+      "high_water_condition": 20
+    },
+    "model": "water_health_robust_z_v1"
+  },
+  "layer_isolation_forest": {
+    "ndvi": {
+      "status": "ok",
+      "model": "isolation_forest_ndvi_v1",
+      "name": "NDVI (vegetation)",
+      "features": [
+        "ndvi_land_mean",
+        "ndvi_std",
+        "ndvi_local_diff"
+      ],
+      "feature_labels": [
+        "NDVI of land (mean)",
+        "NDVI variability",
+        "NDVI vs surrounding 1 km"
+      ],
+      "eligible": 7912,
+      "anomalies": 396,
+      "unusually_high": 142,
+      "unusually_low": 141,
+      "unusual_pattern": 113,
+      "contamination": 0.05,
+      "local_radius_m": 1000.0
+    },
+    "lst": {
+      "status": "ok",
+      "model": "isolation_forest_lst_v1",
+      "name": "LST (surface temperature)",
+      "features": [
+        "lst_mean",
+        "lst_std",
+        "lst_local_diff"
+      ],
+      "feature_labels": [
+        "LST (mean)",
+        "LST variability",
+        "LST vs surrounding 1 km"
+      ],
+      "eligible": 7427,
+      "anomalies": 372,
+      "unusually_high": 141,
+      "unusually_low": 148,
+      "unusual_pattern": 83,
+      "contamination": 0.05,
+      "local_radius_m": 1000.0
+    },
+    "water_health": {
+      "status": "ok",
+      "model": "isolation_forest_water_health_v1",
+      "name": "Water Health",
+      "features": [
+        "wh_mean",
+        "wh_std",
+        "wh_local_diff"
+      ],
+      "feature_labels": [
+        "Water Health index",
+        "Water Health variability",
+        "Water Health vs nearby water"
+      ],
+      "eligible": 2374,
+      "anomalies": 119,
+      "unusually_high": 23,
+      "unusually_low": 69,
+      "unusual_pattern": 27,
+      "contamination": 0.05,
+      "local_radius_m": 1000.0
+    },
+    "aqi": {
+      "status": "ok",
+      "model": "isolation_forest_aqi_v1",
+      "name": "CPCB AQI (interpolated)",
+      "features": [
+        "aqi_idw"
+      ],
+      "feature_labels": [
+        "CPCB AQI (IDW)"
+      ],
+      "eligible": 7922,
+      "anomalies": 396,
+      "unusually_high": 264,
+      "unusually_low": 132,
+      "unusual_pattern": 0,
+      "contamination": 0.05,
+      "local_radius_m": 1000.0
+    }
+  },
+  "station_isolation_forest": {
+    "status": "ok",
+    "model": "isolation_forest_aqi_station_v1",
+    "pollutants": [
+      "PM2.5",
+      "PM10",
+      "NO\u2082",
+      "SO\u2082",
+      "O\u2083",
+      "CO"
+    ],
+    "eligible": 16,
+    "anomalies": 2,
+    "contamination": 0.125,
+    "stations": [
+      {
+        "station_id": 11611,
+        "station_name": "Malad West, Mumbai - IITM",
+        "lat": 19.19709,
+        "lon": 72.82204,
+        "aqi": 218,
+        "is_anomaly": true,
+        "score_percentile": 87.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 102.7,
+            "z": 2.2,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 105.0,
+            "z": 1.33,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 48.0,
+            "z": 0.91,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 12039,
+        "station_name": "Khindipada-Bhandup West, Mumbai - IITM",
+        "lat": 19.164394,
+        "lon": 72.928297,
+        "aqi": 105,
+        "is_anomaly": false,
+        "score_percentile": 56.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 59.4,
+            "z": -1.7,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 105.0,
+            "z": -1.11,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 52.3,
+            "z": -0.29,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409323,
+        "station_name": "Worli, Mumbai - MPCB",
+        "lat": 18.9936162,
+        "lon": 72.8128113,
+        "aqi": 101,
+        "is_anomaly": false,
+        "score_percentile": 75.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM10",
+            "sub_index": 90.0,
+            "z": -1.64,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 101.0,
+            "z": -1.23,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 98.7,
+            "z": 1.14,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409329,
+        "station_name": "Deonar, Mumbai - IITM",
+        "lat": 19.04946,
+        "lon": 72.923,
+        "aqi": 300,
+        "is_anomaly": false,
+        "score_percentile": 25.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 53.0,
+            "z": 1.37,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 300.0,
+            "z": 1.04,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 20.0,
+            "z": -0.74,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409469,
+        "station_name": "Kasarvadavali, Thane - MPCB",
+        "lat": 19.26777,
+        "lon": 72.97182,
+        "aqi": 115,
+        "is_anomaly": false,
+        "score_percentile": 6.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 104.4,
+            "z": -1.19,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 93.7,
+            "z": 0.98,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 64.8,
+            "z": 0.85,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409472,
+        "station_name": "Upvan Fort, Thane - MPCB",
+        "lat": 19.222279,
+        "lon": 72.957979,
+        "aqi": 142,
+        "is_anomaly": false,
+        "score_percentile": 12.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 69.8,
+            "z": 1.03,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 109.6,
+            "z": -0.95,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 142.0,
+            "z": -0.76,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409476,
+        "station_name": "CBD Belapur, Belapur - MPCB",
+        "lat": 19.0243902,
+        "lon": 73.0406721,
+        "aqi": 190,
+        "is_anomaly": false,
+        "score_percentile": 37.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM10",
+            "sub_index": 175.4,
+            "z": 1.38,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 69.8,
+            "z": 1.03,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 89.9,
+            "z": 0.87,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409478,
+        "station_name": "Bhayandar West, Mira-Bhayandar - MPCB",
+        "lat": 19.296481,
+        "lon": 72.840923,
+        "aqi": 132,
+        "is_anomaly": false,
+        "score_percentile": 43.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 21.2,
+            "z": -1.25,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 114.7,
+            "z": -1.07,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 22.5,
+            "z": -0.65,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409483,
+        "station_name": "Chembur, Mumbai - MPCB",
+        "lat": 19.0364585,
+        "lon": 72.8954371,
+        "aqi": 269,
+        "is_anomaly": false,
+        "score_percentile": 0.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 93.7,
+            "z": 0.98,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 269.3,
+            "z": 0.69,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 43.0,
+            "z": 0.45,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409485,
+        "station_name": "Gokul Nagar, Bhiwandi - MPCB",
+        "lat": 19.309073,
+        "lon": 73.057223,
+        "aqi": 332,
+        "is_anomaly": false,
+        "score_percentile": 18.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 332.5,
+            "z": 1.41,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 12.5,
+            "z": -1.01,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 160.1,
+            "z": 0.84,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409486,
+        "station_name": "Kherwadi_Bandra East, Mumbai - MPCB",
+        "lat": 19.0632143,
+        "lon": 72.8456324,
+        "aqi": 325,
+        "is_anomaly": true,
+        "score_percentile": 93.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 7.0,
+            "z": -2.84,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 178.1,
+            "z": 1.47,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 18.8,
+            "z": -1.32,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409487,
+        "station_name": "Sanpada, Navi Mumbai - MPCB",
+        "lat": 19.0575752,
+        "lon": 73.0151367,
+        "aqi": 211,
+        "is_anomaly": false,
+        "score_percentile": 62.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 23.8,
+            "z": -1.17,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 107.0,
+            "z": -1.04,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 47.0,
+            "z": 0.82,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409510,
+        "station_name": "Byculla, Mumbai - BMC",
+        "lat": 18.9767,
+        "lon": 72.838,
+        "aqi": 183,
+        "is_anomaly": false,
+        "score_percentile": 50.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 102.0,
+            "z": 1.24,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 105.7,
+            "z": -1.09,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 12.5,
+            "z": -1.01,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409511,
+        "station_name": "Shivaji Nagar, Mumbai - BMC",
+        "lat": 19.060498,
+        "lon": 72.923356,
+        "aqi": 322,
+        "is_anomaly": false,
+        "score_percentile": 81.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM10",
+            "sub_index": 180.1,
+            "z": 1.54,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 15.0,
+            "z": -1.44,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 321.7,
+            "z": 1.28,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409512,
+        "station_name": "Kandivali West, Mumbai - BMC",
+        "lat": 19.215859,
+        "lon": 72.831718,
+        "aqi": 304,
+        "is_anomaly": false,
+        "score_percentile": 68.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 21.0,
+            "z": -1.56,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 304.1,
+            "z": 1.08,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 160.1,
+            "z": 0.84,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409514,
+        "station_name": "Ghatkopar, Mumbai - BMC",
+        "lat": 19.083694,
+        "lon": 72.920967,
+        "aqi": 166,
+        "is_anomaly": false,
+        "score_percentile": 31.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 5.0,
+            "z": -1.27,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 32.5,
+            "z": -0.9,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 165.9,
+            "z": -0.49,
+            "direction": "below"
+          }
+        ]
+      }
+    ]
+  },
+  "relationships": {
+    "pairs": [
+      {
+        "x": "ndvi_mean",
+        "y": "lst_mean",
+        "label": "NDVI \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 7055,
+          "pearson_r": -0.55,
+          "spearman_rho": -0.55,
+          "strength": "moderate",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 837,
+            "pearson_r": -0.482,
+            "spearman_rho": -0.464,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "Mumbai": {
+            "n": 4812,
+            "pearson_r": -0.519,
+            "spearman_rho": -0.506,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "Thane": {
+            "n": 1406,
+            "pearson_r": -0.596,
+            "spearman_rho": -0.614,
+            "strength": "strong",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 2842,
+            "pearson_r": -0.302,
+            "spearman_rho": -0.294,
+            "strength": "weak",
+            "direction": "negative"
+          },
+          "mixed": {
+            "n": 3160,
+            "pearson_r": -0.12,
+            "spearman_rho": -0.135,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "built-up-dominated": {
+            "n": 1053,
+            "pearson_r": 0.097,
+            "spearman_rho": 0.061,
+            "strength": "negligible",
+            "direction": "positive"
+          }
+        }
+      },
+      {
+        "x": "veg_frac",
+        "y": "lst_mean",
+        "label": "dense-vegetation share \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 7055,
+          "pearson_r": -0.588,
+          "spearman_rho": -0.579,
+          "strength": "moderate",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 837,
+            "pearson_r": -0.489,
+            "spearman_rho": -0.503,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "Mumbai": {
+            "n": 4812,
+            "pearson_r": -0.564,
+            "spearman_rho": -0.532,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "Thane": {
+            "n": 1406,
+            "pearson_r": -0.634,
+            "spearman_rho": -0.663,
+            "strength": "strong",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 2842,
+            "pearson_r": -0.44,
+            "spearman_rho": -0.481,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "mixed": {
+            "n": 3160,
+            "pearson_r": -0.151,
+            "spearman_rho": -0.147,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "built-up-dominated": {
+            "n": 1053,
+            "pearson_r": -0.001,
+            "spearman_rho": 0.02,
+            "strength": "negligible",
+            "direction": "positive"
+          }
+        }
+      },
+      {
+        "x": "built_frac",
+        "y": "lst_mean",
+        "label": "built/bare share \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 7055,
+          "pearson_r": 0.531,
+          "spearman_rho": 0.602,
+          "strength": "strong",
+          "direction": "positive"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 837,
+            "pearson_r": 0.485,
+            "spearman_rho": 0.523,
+            "strength": "moderate",
+            "direction": "positive"
+          },
+          "Mumbai": {
+            "n": 4812,
+            "pearson_r": 0.503,
+            "spearman_rho": 0.552,
+            "strength": "moderate",
+            "direction": "positive"
+          },
+          "Thane": {
+            "n": 1406,
+            "pearson_r": 0.539,
+            "spearman_rho": 0.655,
+            "strength": "strong",
+            "direction": "positive"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 2842,
+            "pearson_r": 0.321,
+            "spearman_rho": 0.464,
+            "strength": "moderate",
+            "direction": "positive"
+          },
+          "mixed": {
+            "n": 3160,
+            "pearson_r": 0.28,
+            "spearman_rho": 0.243,
+            "strength": "weak",
+            "direction": "positive"
+          },
+          "built-up-dominated": {
+            "n": 1053,
+            "pearson_r": 0.059,
+            "spearman_rho": 0.061,
+            "strength": "negligible",
+            "direction": "positive"
+          }
+        }
+      },
+      {
+        "x": "ndbi_land_mean",
+        "y": "lst_mean",
+        "label": "NDBI \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 7053,
+          "pearson_r": 0.649,
+          "spearman_rho": 0.678,
+          "strength": "strong",
+          "direction": "positive"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 837,
+            "pearson_r": 0.613,
+            "spearman_rho": 0.615,
+            "strength": "strong",
+            "direction": "positive"
+          },
+          "Mumbai": {
+            "n": 4810,
+            "pearson_r": 0.629,
+            "spearman_rho": 0.646,
+            "strength": "strong",
+            "direction": "positive"
+          },
+          "Thane": {
+            "n": 1406,
+            "pearson_r": 0.697,
+            "spearman_rho": 0.728,
+            "strength": "strong",
+            "direction": "positive"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 2842,
+            "pearson_r": 0.325,
+            "spearman_rho": 0.337,
+            "strength": "weak",
+            "direction": "positive"
+          },
+          "mixed": {
+            "n": 3160,
+            "pearson_r": 0.521,
+            "spearman_rho": 0.5,
+            "strength": "moderate",
+            "direction": "positive"
+          },
+          "built-up-dominated": {
+            "n": 1051,
+            "pearson_r": 0.433,
+            "spearman_rho": 0.362,
+            "strength": "weak",
+            "direction": "positive"
+          }
+        }
+      },
+      {
+        "x": "ndmi_veg_mean",
+        "y": "lst_mean",
+        "label": "NDMI (vegetation moisture) \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 6527,
+          "pearson_r": -0.55,
+          "spearman_rho": -0.6,
+          "strength": "moderate",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 791,
+            "pearson_r": -0.528,
+            "spearman_rho": -0.531,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "Mumbai": {
+            "n": 4376,
+            "pearson_r": -0.533,
+            "spearman_rho": -0.575,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "Thane": {
+            "n": 1360,
+            "pearson_r": -0.593,
+            "spearman_rho": -0.638,
+            "strength": "strong",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 2832,
+            "pearson_r": -0.205,
+            "spearman_rho": -0.217,
+            "strength": "weak",
+            "direction": "negative"
+          },
+          "mixed": {
+            "n": 3092,
+            "pearson_r": -0.436,
+            "spearman_rho": -0.429,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "built-up-dominated": {
+            "n": 603,
+            "pearson_r": -0.305,
+            "spearman_rho": -0.264,
+            "strength": "weak",
+            "direction": "negative"
+          }
+        }
+      },
+      {
+        "x": "ndvi_mean",
+        "y": "aqi_idw",
+        "label": "NDVI \u2194 AQI (interpolated)",
+        "scope": "land",
+        "all": {
+          "n": 7644,
+          "pearson_r": -0.142,
+          "spearman_rho": -0.156,
+          "strength": "negligible",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 922,
+            "pearson_r": 0.095,
+            "spearman_rho": 0.078,
+            "strength": "negligible",
+            "direction": "positive"
+          },
+          "Mumbai": {
+            "n": 5204,
+            "pearson_r": -0.114,
+            "spearman_rho": -0.102,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "Thane": {
+            "n": 1518,
+            "pearson_r": -0.038,
+            "spearman_rho": -0.005,
+            "strength": "negligible",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 3287,
+            "pearson_r": -0.234,
+            "spearman_rho": -0.21,
+            "strength": "weak",
+            "direction": "negative"
+          },
+          "mixed": {
+            "n": 3330,
+            "pearson_r": -0.035,
+            "spearman_rho": -0.056,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "built-up-dominated": {
+            "n": 1027,
+            "pearson_r": -0.022,
+            "spearman_rho": -0.034,
+            "strength": "negligible",
+            "direction": "negative"
+          }
+        },
+        "caution": "AQI between stations is interpolated from 30 stations; the effective sample size is the station count, so treat this as indicative only."
+      },
+      {
+        "x": "lst_mean",
+        "y": "aqi_idw",
+        "label": "LST \u2194 AQI (interpolated)",
+        "scope": "land",
+        "all": {
+          "n": 6805,
+          "pearson_r": 0.199,
+          "spearman_rho": 0.225,
+          "strength": "weak",
+          "direction": "positive"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 826,
+            "pearson_r": 0.224,
+            "spearman_rho": 0.19,
+            "strength": "negligible",
+            "direction": "positive"
+          },
+          "Mumbai": {
+            "n": 4616,
+            "pearson_r": 0.132,
+            "spearman_rho": 0.136,
+            "strength": "negligible",
+            "direction": "positive"
+          },
+          "Thane": {
+            "n": 1363,
+            "pearson_r": 0.017,
+            "spearman_rho": 0.028,
+            "strength": "negligible",
+            "direction": "positive"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 2757,
+            "pearson_r": 0.291,
+            "spearman_rho": 0.35,
+            "strength": "weak",
+            "direction": "positive"
+          },
+          "mixed": {
+            "n": 3077,
+            "pearson_r": 0.148,
+            "spearman_rho": 0.178,
+            "strength": "negligible",
+            "direction": "positive"
+          },
+          "built-up-dominated": {
+            "n": 971,
+            "pearson_r": 0.203,
+            "spearman_rho": 0.219,
+            "strength": "weak",
+            "direction": "positive"
+          }
+        },
+        "caution": "AQI between stations is interpolated from 30 stations; the effective sample size is the station count, so treat this as indicative only."
+      },
+      {
+        "x": "wh_mean",
+        "y": "lst_mean",
+        "label": "Water Health \u2194 LST",
+        "scope": "water",
+        "all": {
+          "n": 2224,
+          "pearson_r": 0.306,
+          "spearman_rho": 0.288,
+          "strength": "weak",
+          "direction": "positive"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 389,
+            "pearson_r": 0.007,
+            "spearman_rho": -0.077,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "Mumbai": {
+            "n": 1318,
+            "pearson_r": 0.374,
+            "spearman_rho": 0.396,
+            "strength": "weak",
+            "direction": "positive"
+          },
+          "Thane": {
+            "n": 517,
+            "pearson_r": 0.221,
+            "spearman_rho": 0.147,
+            "strength": "negligible",
+            "direction": "positive"
+          }
+        },
+        "by_land_class": {}
+      },
+      {
+        "x": "wh_mean",
+        "y": "aqi_idw",
+        "label": "Water Health \u2194 AQI (interpolated)",
+        "scope": "water",
+        "all": {
+          "n": 2319,
+          "pearson_r": 0.122,
+          "spearman_rho": 0.13,
+          "strength": "negligible",
+          "direction": "positive"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 390,
+            "pearson_r": -0.109,
+            "spearman_rho": -0.172,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "Mumbai": {
+            "n": 1405,
+            "pearson_r": 0.083,
+            "spearman_rho": 0.063,
+            "strength": "negligible",
+            "direction": "positive"
+          },
+          "Thane": {
+            "n": 524,
+            "pearson_r": -0.007,
+            "spearman_rho": -0.055,
+            "strength": "negligible",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {},
+        "caution": "AQI between stations is interpolated from 30 stations; the effective sample size is the station count, so treat this as indicative only."
+      },
+      {
+        "x": "wh_mean",
+        "y": "ndvi_land_mean",
+        "label": "Water Health \u2194 NDVI of surrounding land",
+        "scope": "water",
+        "all": {
+          "n": 2278,
+          "pearson_r": -0.412,
+          "spearman_rho": -0.447,
+          "strength": "moderate",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Mira-Bhayandar": {
+            "n": 337,
+            "pearson_r": -0.323,
+            "spearman_rho": -0.359,
+            "strength": "weak",
+            "direction": "negative"
+          },
+          "Mumbai": {
+            "n": 1399,
+            "pearson_r": -0.372,
+            "spearman_rho": -0.419,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "Thane": {
+            "n": 542,
+            "pearson_r": -0.541,
+            "spearman_rho": -0.554,
+            "strength": "moderate",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {}
+      }
+    ],
+    "notes": [
+      "Effect sizes only: neighbouring cells are spatially autocorrelated, so p-values are not reported.",
+      "Association, not causation."
+    ]
+  },
+  "validation": {
+    "worldcover": {
+      "status": "ok",
+      "reference": "ESA WorldCover 2021 v200 (10 m), independent of GeoSense",
+      "cells_compared": 8287,
+      "vegetation_dense_vs_tree_mangrove": {
+        "n": 8287,
+        "spearman_rho": 0.81,
+        "mean_abs_diff": 0.127
+      },
+      "vegetation_any_vs_wc_vegetation": {
+        "n": 8287,
+        "spearman_rho": 0.89,
+        "mean_abs_diff": 0.181
+      },
+      "built_bare_share": {
+        "n": 8287,
+        "spearman_rho": 0.813,
+        "mean_abs_diff": 0.185
+      },
+      "ndbi_vs_built_bare": {
+        "n": 7982,
+        "spearman_rho": 0.888,
+        "mean_abs_diff": 0.531
+      },
+      "open_water_share": {
+        "n": 8287,
+        "spearman_rho": 0.43,
+        "mean_abs_diff": 0.046
+      },
+      "dominant_class_agreement_pct": 68.1,
+      "dominant_class_confusion": {
+        "built/bare": {
+          "built/bare": 942,
+          "mixed": 19,
+          "vegetation": 65,
+          "water": 87
+        },
+        "mixed": {
+          "built/bare": 76,
+          "mixed": 14,
+          "vegetation": 14,
+          "water": 56
+        },
+        "vegetation": {
+          "built/bare": 2115,
+          "mixed": 75,
+          "vegetation": 4321,
+          "water": 127
+        },
+        "water": {
+          "built/bare": 6,
+          "mixed": 0,
+          "vegetation": 6,
+          "water": 364
+        }
+      },
+      "lst_by_worldcover_class": {
+        "mangrove": {
+          "n": 837,
+          "median_c": 32.1,
+          "iqr_c": [
+            31.0,
+            33.4
+          ]
+        },
+        "grass": {
+          "n": 35,
+          "median_c": 33.4,
+          "iqr_c": [
+            32.4,
+            35.2
+          ]
+        },
+        "tree": {
+          "n": 1855,
+          "median_c": 31.8,
+          "iqr_c": [
+            29.0,
+            34.3
+          ]
+        },
+        "built": {
+          "n": 2720,
+          "median_c": 37.5,
+          "iqr_c": [
+            35.3,
+            39.3
+          ]
+        },
+        "water": {
+          "n": 620,
+          "median_c": 30.6,
+          "iqr_c": [
+            29.3,
+            32.0
+          ]
+        },
+        "crop": {
+          "n": 339,
+          "median_c": 33.8,
+          "iqr_c": [
+            31.9,
+            35.5
+          ]
+        }
+      },
+      "lst_physically_plausible": true,
+      "heat_flags_in_built_bare_pct": {
+        "base_rate": 39.2,
+        "unexplained_heat": 81.9,
+        "unexplained_heat_n": 116,
+        "lst_isolation_forest_high": 97.9,
+        "lst_isolation_forest_high_n": 141
+      },
+      "caveat": "WorldCover has its own errors (about 77% overall accuracy globally) and is from 2021; agreement is evidence of consistency, not proof."
+    },
+    "aqi_idw_loso": {
+      "status": "ok",
+      "method": "leave-one-station-out, same IDW settings (k, power, max distance)",
+      "n": 30,
+      "mae": 64.0,
+      "rmse": 81.9,
+      "bias": 2.5,
+      "category_agreement_pct": 53.0,
+      "by_distance": {
+        "far": {
+          "mae": 88.3,
+          "n": 5,
+          "rmse": 107.9
+        },
+        "near": {
+          "mae": 59.2,
+          "n": 25,
+          "rmse": 75.6
+        }
+      }
+    }
+  },
+  "caveats": [
+    "Signals are statistical associations within one snapshot, not causal proof.",
+    "LST cells with <30% cloud-free Landsat pixels are excluded rather than filled.",
+    "Water Health is a satellite spectral proxy, not laboratory water quality.",
+    "AQI enters the models only when a real OpenAQ CPCB/MPCB station surface exists."
+  ]
+}

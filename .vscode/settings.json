@@ -1,0 +1,33 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/server/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.extraPaths": ["${workspaceFolder}/server"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.cwd": "${workspaceFolder}/server",
+  "python.testing.pytestArgs": ["tests/test_intelligence_layer.py"],
+  "python.envFile": "${workspaceFolder}/.env",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "client/node_modules": true
+  },
+  "search.exclude": {
+    "server/.venv": true,
+    "client/node_modules": true,
+    "server/data/surfaces/**/*.png": true,
+    "server/data/surfaces/**/*.tif": true
+  },
+  "sqltools.connections": [
+    {
+      "name": "GeoSense (local PostGIS)",
+      "driver": "PostgreSQL",
+      "server": "localhost",
+      "port": 5433,
+      "database": "geosense",
+      "username": "postgres",
+      "askForPassword": true
+    }
+  ]
+}

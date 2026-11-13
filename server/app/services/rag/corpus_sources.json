@@ -1,0 +1,322 @@
+{
+ "description": "Authoritative documents ingested into the GeoSense RAG store (passages with page numbers). Each entry: full citation, where to download it (first working URL is used), and which curated knowledge notes it supports (used by the retrieval evaluation). Only official reports and openly accessible papers are listed.",
+ "documents": [
+  {
+   "id": "cpcb_naqi_2014",
+   "type": "pdf",
+   "source_type": "government / official",
+   "citation": "Central Pollution Control Board (2014). National Air Quality Index. Control of Urban Pollution Series CUPS/82/2014-15. CPCB, New Delhi.",
+   "title": "National Air Quality Index (CPCB, 2014)",
+   "year": 2014,
+   "urls": [
+    "https://theasthmafiles.org/sites/default/files/artifacts/media/pdf/final_report_of_cpcb_on_air_quality_index_2014-15.pdf",
+    "https://smartnet.niua.org/sites/default/files/resources/Air%20Quality%20Index.pdf"
+   ],
+   "landing": "https://cpcb.nic.in/national-air-quality-index/",
+   "supports": [
+    "aqi_cpcb_scale",
+    "aqi_health_statements",
+    "pollutant_signatures"
+   ]
+  },
+  {
+   "id": "who_aqg_2021",
+   "type": "pdf",
+   "source_type": "government / official",
+   "citation": "World Health Organization (2021). WHO global air quality guidelines: particulate matter (PM2.5 and PM10), ozone, nitrogen dioxide, sulfur dioxide and carbon monoxide. WHO, Geneva. ISBN 9789240034228.",
+   "title": "WHO Global Air Quality Guidelines (2021)",
+   "year": 2021,
+   "urls": [
+    "https://iris.who.int/bitstream/handle/10665/345329/9789240034228-eng.pdf"
+   ],
+   "landing": "https://iris.who.int/handle/10665/345329",
+   "supports": [
+    "pollutant_signatures",
+    "aqi_health_statements"
+   ]
+  },
+  {
+   "id": "who_aqg_2021_summary",
+   "type": "pdf",
+   "source_type": "government / official",
+   "citation": "World Health Organization (2021). WHO global air quality guidelines — Executive summary. WHO, Geneva.",
+   "title": "WHO Global Air Quality Guidelines — Executive summary (2021)",
+   "year": 2021,
+   "urls": [
+    "https://archiv.szu.cz/uploads/documents/chzp/ovzdusi/who_guidelines/WHO_guidelines_ambient_air_2021_summary_aj.pdf"
+   ],
+   "landing": "https://iris.who.int/handle/10665/345329",
+   "supports": [
+    "pollutant_signatures",
+    "aqi_health_statements"
+   ]
+  },
+  {
+   "id": "ncap_2019",
+   "type": "pdf",
+   "source_type": "government / official",
+   "citation": "Ministry of Environment, Forest and Climate Change (2019). National Clean Air Programme (NCAP). Government of India, New Delhi.",
+   "title": "National Clean Air Programme (MoEFCC, 2019)",
+   "year": 2019,
+   "urls": [
+    "https://vvcmc.in/wp-content/uploads/2021/12/NCAP_Report-1.pdf"
+   ],
+   "landing": "https://moef.gov.in/",
+   "supports": [
+    "ncap",
+    "mitigate_air",
+    "mumbai_air_sources"
+   ]
+  },
+  {
+   "id": "mcap_2022",
+   "type": "pdf",
+   "source_type": "government / official",
+   "citation": "Brihanmumbai Municipal Corporation (2022). Mumbai Climate Action Plan 2022. BMC, Mumbai.",
+   "title": "Mumbai Climate Action Plan 2022 (BMC)",
+   "year": 2022,
+   "urls": [
+    "https://portal.mcgm.gov.in/irj/go/km/docs/documents/Environment/Climate/Mumbai%20Climate%20Action%20Plan.pdf",
+    "https://heathealth.info/wp-content/uploads/Mumbai-Climate-Action-Plan-2022.pdf"
+   ],
+   "landing": "https://mcap.mcgm.gov.in/",
+   "supports": [
+    "mumbai_climate_action_plan",
+    "mitigate_greening",
+    "mitigate_heat",
+    "uhi",
+    "mumbai_climate"
+   ]
+  },
+  {
+   "id": "ndma_heatwave_2016",
+   "type": "pdf",
+   "source_type": "government / official",
+   "citation": "National Disaster Management Authority (2016). Guidelines for Preparation of Action Plan — Prevention and Management of Heat-Wave. NDMA, Government of India, New Delhi.",
+   "title": "NDMA Heat-Wave Action Plan Guidelines (2016)",
+   "year": 2016,
+   "urls": [
+    "https://wordpress.utoledo.edu/disastermedicine/wp-content/uploads/sites/29/2016/05/India-Heat-Guide-2016-1.pdf"
+   ],
+   "landing": "https://www.preventionweb.net/quick/46321",
+   "supports": [
+    "mitigate_heat"
+   ]
+  },
+  {
+   "id": "knowlton_2014_ahmedabad",
+   "type": "pdf",
+   "source_type": "peer-reviewed",
+   "citation": "Knowlton, K. et al. (2014). Development and implementation of South Asia's first heat-health action plan in Ahmedabad (Gujarat, India). International Journal of Environmental Research and Public Health 11(4), 3473-3492.",
+   "title": "Ahmedabad Heat-Health Action Plan (Knowlton et al., 2014)",
+   "year": 2014,
+   "doi": "10.3390/ijerph110403473",
+   "urls": [
+    "https://www.mdpi.com/1660-4601/11/4/3473/pdf",
+    "https://webster.eas.gatech.edu/Papers/ijerph2014.pdf"
+   ],
+   "landing": "https://doi.org/10.3390/ijerph110403473",
+   "supports": [
+    "mitigate_heat"
+   ]
+  },
+  {
+   "id": "santamouris_2013_pavements",
+   "type": "pdf",
+   "source_type": "peer-reviewed",
+   "citation": "Santamouris, M. (2013). Using cool pavements as a mitigation strategy to fight urban heat island — a review of the actual developments. Renewable and Sustainable Energy Reviews 26, 224-240.",
+   "title": "Cool pavements review (Santamouris, 2013)",
+   "year": 2013,
+   "doi": "10.1016/j.rser.2013.05.047",
+   "urls": [
+    "https://coolrooftoolkit.org/wp-content/uploads/2016/12/satamouris-2013-cool-pavement-lit-review.pdf"
+   ],
+   "landing": "https://doi.org/10.1016/j.rser.2013.05.047",
+   "supports": [
+    "mitigate_heat",
+    "uhi"
+   ]
+  },
+  {
+   "id": "coutts_2013_wsud",
+   "type": "pdf",
+   "source_type": "peer-reviewed",
+   "citation": "Coutts, A.M., Tapper, N.J., Beringer, J., Loughnan, M. & Demuzere, M. (2013). Watering our cities: the capacity for Water Sensitive Urban Design to support urban cooling and improve human thermal comfort in the Australian context. Progress in Physical Geography 37(1), 2-28.",
+   "title": "Water Sensitive Urban Design and urban cooling (Coutts et al., 2013)",
+   "year": 2013,
+   "doi": "10.1177/0309133312461032",
+   "urls": [
+    "https://core.ac.uk/download/228176948.pdf"
+   ],
+   "landing": "https://doi.org/10.1177/0309133312461032",
+   "supports": [
+    "mitigate_greening",
+    "vegetation_cooling",
+    "water_cooling"
+   ]
+  },
+  {
+   "id": "oecd_jrc_2008",
+   "type": "pdf",
+   "source_type": "government / official",
+   "citation": "OECD & European Commission Joint Research Centre (2008). Handbook on Constructing Composite Indicators: Methodology and User Guide. OECD Publishing, Paris.",
+   "title": "Handbook on Constructing Composite Indicators (OECD/JRC, 2008)",
+   "year": 2008,
+   "doi": "10.1787/9789264043466-en",
+   "urls": [
+    "https://knowledge4policy.ec.europa.eu/sites/default/files/jrc47008_handbook_final.pdf"
+   ],
+   "landing": "https://doi.org/10.1787/9789264043466-en",
+   "supports": [
+    "composite_method"
+   ]
+  },
+  {
+   "id": "liu_2008_iforest",
+   "type": "pdf",
+   "source_type": "peer-reviewed",
+   "citation": "Liu, F.T., Ting, K.M. & Zhou, Z.-H. (2008). Isolation Forest. Proceedings of the 8th IEEE International Conference on Data Mining (ICDM), 413-422.",
+   "title": "Isolation Forest (Liu, Ting & Zhou, 2008)",
+   "year": 2008,
+   "doi": "10.1109/ICDM.2008.17",
+   "urls": [
+    "https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/icdm08b.pdf"
+   ],
+   "landing": "https://doi.org/10.1109/ICDM.2008.17",
+   "supports": [
+    "isolation_forest",
+    "layer_isolation_forest",
+    "station_isolation_forest"
+   ]
+  },
+  {
+   "id": "chen_2016_xgboost",
+   "type": "pdf",
+   "source_type": "peer-reviewed",
+   "citation": "Chen, T. & Guestrin, C. (2016). XGBoost: a scalable tree boosting system. Proceedings of KDD '16, 785-794. arXiv:1603.02754.",
+   "title": "XGBoost (Chen & Guestrin, 2016)",
+   "year": 2016,
+   "doi": "10.1145/2939672.2939785",
+   "urls": [
+    "https://arxiv.org/pdf/1603.02754"
+   ],
+   "landing": "https://doi.org/10.1145/2939672.2939785",
+   "supports": [
+    "xgboost_shap"
+   ]
+  },
+  {
+   "id": "lundberg_2017_shap",
+   "type": "pdf",
+   "source_type": "peer-reviewed",
+   "citation": "Lundberg, S.M. & Lee, S.-I. (2017). A unified approach to interpreting model predictions. Advances in Neural Information Processing Systems 30 (NeurIPS 2017). arXiv:1705.07874.",
+   "title": "SHAP (Lundberg & Lee, 2017)",
+   "year": 2017,
+   "urls": [
+    "https://arxiv.org/pdf/1705.07874"
+   ],
+   "landing": "https://arxiv.org/abs/1705.07874",
+   "supports": [
+    "xgboost_shap"
+   ]
+  },
+  {
+   "id": "lundberg_2020_treeshap",
+   "type": "pdf",
+   "source_type": "peer-reviewed",
+   "citation": "Lundberg, S.M. et al. (2020). From local explanations to global understanding with explainable AI for trees. Nature Machine Intelligence 2, 56-67. arXiv:1905.04610.",
+   "title": "TreeSHAP (Lundberg et al., 2020)",
+   "year": 2020,
+   "doi": "10.1038/s42256-019-0138-9",
+   "urls": [
+    "https://arxiv.org/pdf/1905.04610"
+   ],
+   "landing": "https://doi.org/10.1038/s42256-019-0138-9",
+   "supports": [
+    "xgboost_shap"
+   ]
+  },
+  {
+   "id": "roberts_2017_cv",
+   "type": "pdf",
+   "source_type": "peer-reviewed",
+   "citation": "Roberts, D.R. et al. (2017). Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure. Ecography 40(8), 913-929.",
+   "title": "Spatial cross-validation (Roberts et al., 2017)",
+   "year": 2017,
+   "doi": "10.1111/ecog.02881",
+   "urls": [
+    "https://www.biometrie.uni-freiburg.de/mitarbeiter/dormann/roberts-et-al-2017-ecography.pdf",
+    "https://www.vliz.be/imisdocs/publications/412280.pdf"
+   ],
+   "landing": "https://doi.org/10.1111/ecog.02881",
+   "supports": [
+    "spatial_cv",
+    "residual_interpretation"
+   ]
+  },
+  {
+   "id": "usgs_landsat_c2l2_guide",
+   "type": "pdf",
+   "source_type": "dataset / product documentation",
+   "citation": "U.S. Geological Survey. Landsat 8-9 Collection 2 (C2) Level 2 Science Product (L2SP) Guide, LSDS-1619, version 6. USGS EROS, Sioux Falls.",
+   "title": "Landsat 8-9 Collection 2 Level-2 Science Product Guide (USGS)",
+   "year": null,
+   "urls": [
+    "https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/media/files/LSDS-1619_Landsat8-9-Collection2-Level2-Science-Product-Guide-v6.pdf",
+    "https://uodsci.github.io/ds435/slides/resources/LSDS-1619_Landsat8-9-Collection2-Level2-Science-Product-Guide-v6.pdf"
+   ],
+   "landing": "https://www.usgs.gov/landsat-missions/landsat-collection-2-level-2-science-products",
+   "supports": [
+    "landsat_lst",
+    "cloud_gaps",
+    "lst_vs_air"
+   ]
+  },
+  {
+   "id": "worldcover_pvr_v2",
+   "type": "pdf",
+   "source_type": "dataset / product documentation",
+   "citation": "Tsendbazar, N. et al. (2022). ESA WorldCover 10 m 2021 v200 — Product Validation Report. ESA WorldCover consortium.",
+   "title": "ESA WorldCover 2021 v200 Product Validation Report",
+   "year": 2022,
+   "urls": [
+    "https://pure.iiasa.ac.at/18981/1/WorldCover_PVR_V2.0.pdf"
+   ],
+   "landing": "https://zenodo.org/records/7254221",
+   "supports": [
+    "pixel_cell_municipality"
+   ]
+  },
+  {
+   "id": "worldcover_pum_v2",
+   "type": "pdf",
+   "source_type": "dataset / product documentation",
+   "citation": "Zanaga, D. et al. (2022). ESA WorldCover 10 m 2021 v200 — Product User Manual. ESA WorldCover consortium.",
+   "title": "ESA WorldCover 2021 v200 Product User Manual",
+   "year": 2022,
+   "urls": [
+    "https://pure.iiasa.ac.at/18983/1/WorldCover_PUM_V2.0.pdf"
+   ],
+   "landing": "https://zenodo.org/records/7254221",
+   "supports": [
+    "pixel_cell_municipality"
+   ]
+  },
+  {
+   "id": "nasa_measuring_vegetation",
+   "type": "html",
+   "source_type": "dataset / product documentation",
+   "citation": "Weier, J. & Herring, D. (2000). Measuring Vegetation (NDVI & EVI). NASA Earth Observatory.",
+   "title": "Measuring Vegetation — NDVI & EVI (NASA Earth Observatory)",
+   "year": 2000,
+   "urls": [
+    "https://earthobservatory.nasa.gov/features/MeasuringVegetation"
+   ],
+   "landing": "https://earthobservatory.nasa.gov/features/MeasuringVegetation",
+   "supports": [
+    "ndvi_definition",
+    "ndvi_ranges"
+   ]
+  }
+ ]
+}

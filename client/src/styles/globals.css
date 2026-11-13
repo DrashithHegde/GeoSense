@@ -835,3 +835,200 @@ input[type="range"]::-webkit-slider-thumb:hover {
     opacity: 0;
   }
 }
+
+/* ── Click marker: bright white pin + place name above it (game-style) ──── */
+.geo-marker {
+  position: relative;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  /* anchor "bottom": the element's bottom edge (the ground shadow) sits on the clicked point */
+}
+.geo-marker-float {
+  position: absolute;
+  left: 0;
+  bottom: 3px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: geo-marker-bob 2.6s ease-in-out infinite;
+}
+.geo-marker-label {
+  position: relative;
+  margin-bottom: 12px;
+  padding: 5px 11px 5px 10px;
+  background: rgba(8, 12, 18, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  box-shadow:
+    0 0 14px rgba(255, 255, 255, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  max-width: 260px;
+}
+.geo-marker-label::before {
+  /* small status light, like a game waypoint */
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #00e5ff;
+  box-shadow: 0 0 6px #00e5ff;
+  vertical-align: 1px;
+}
+.geo-marker-label::after {
+  /* pointer from the label down to the pin */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 9px;
+  height: 9px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(8, 12, 18, 0.88);
+  border-right: 1px solid rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.9);
+}
+.geo-marker-label-text {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  font-family: "DM Mono", monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.45);
+}
+.geo-marker-pin {
+  /* classic map pin: white teardrop with a soft white glow, tip pointing at the clicked spot */
+  position: relative;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 2px;
+  transform: rotate(-45deg);
+  border-radius: 50% 50% 50% 0;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #ffffff 0%,
+    #f2f9ff 45%,
+    #c8e2f2 100%
+  );
+  border: 2px solid #ffffff;
+  box-shadow:
+    -2px 2px 0 1px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(255, 255, 255, 0.95),
+    0 0 34px rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.geo-marker-core {
+  /* the pin's hole */
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #0b0f14;
+  box-shadow: inset 0 0 0 2px rgba(0, 229, 255, 0.85);
+}
+.geo-marker-shadow {
+  /* glowing ring on the ground at the exact clicked point */
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 26px;
+  height: 10px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.45),
+    rgba(255, 255, 255, 0) 70%
+  );
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+}
+.geo-marker-drop .geo-marker-float {
+  animation:
+    geo-marker-drop 0.45s cubic-bezier(0.22, 1.4, 0.36, 1),
+    geo-marker-bob 2.6s ease-in-out 0.45s infinite;
+}
+@keyframes geo-marker-drop {
+  0% {
+    transform: translate(-50%, -26px);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+@keyframes geo-marker-bob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .geo-marker-float,
+  .geo-marker-drop .geo-marker-float {
+    animation: none;
+  }
+}
+
+/* Pin dropped, waiting for that spot's analysis: the label pulses "SCANNING…" */
+.geo-marker-pending .geo-marker-label {
+  animation: geo-marker-scan 1.1s ease-in-out infinite;
+}
+@keyframes geo-marker-scan {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .geo-marker-pending .geo-marker-label {
+    animation: none;
+  }
+}
+
+/* Legend pointer: where the clicked 300 m area sits on the active layer's scale */
+.legend-pointer {
+  position: absolute;
+  top: -6px;
+  width: 2px;
+  height: 17px;
+  margin-left: -1px;
+  background: #fff;
+  border-radius: 1px;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+  transition: left 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.legend-pointer::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: -5px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid #fff;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
+}
+@media (prefers-reduced-motion: reduce) {
+  .legend-pointer {
+    transition: none;
+  }
+}
