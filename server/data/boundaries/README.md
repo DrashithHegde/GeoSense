@@ -1,6 +1,7 @@
 # GeoSense municipality context boundaries
 
-`mumbai.geojson`, `thane.geojson`, and `mira_bhayandar.geojson` are local,
+`mumbai.geojson`, `thane.geojson`, and `mira_bhayandar.geojson` (Mumbai; Delhi and Bengaluru live in
+`data/cities/<city>/boundaries/`, built by `scripts/import_city_boundaries.py`) are local,
 WGS84 GeoJSON assets used by the municipality-summary API for geometry/context.
 They are deliberately loaded locally: serving the API must never issue a
 free-text Nominatim request or silently substitute another boundary.

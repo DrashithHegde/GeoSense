@@ -69,4 +69,4 @@ class NdviSurfaceTests(unittest.TestCase):
             response = client.get("/api/surfaces/ndvi/latest")
         self.assertEqual(response.status_code, 200)
         # ?v=<checksum or timestamp> busts the browser cache when the image is re-rendered
-        self.assertEqual(response.json()["image_url"].split("?v=")[0], "/surface-assets/ndvi/test.png")
+        self.assertEqual(response.json()["image_url"].split("?v=")[0], "/surface-assets/mumbai/ndvi/test.png")

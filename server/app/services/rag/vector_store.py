@@ -8,7 +8,6 @@ with an exact dot product (fine for a few thousand passages).
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
 import numpy as np

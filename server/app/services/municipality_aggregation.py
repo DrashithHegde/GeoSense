@@ -1,86 +1,59 @@
-"""
-MMR Municipality metric aggregation using spatial_cells.
+"""Municipality polygons of the current city with the mean of their 300 m cells.
+
+Values are means over the cells' latest ML snapshot (engineered_features), the same numbers the
+models were run on: NDVI, LST, Water Health (water cells only), CPCB AQI (where a station surface
+existed) and the composite score. A municipality value is a summary for context, never a value
+of any single place in it. NULL stays NULL.
 """
 from __future__ import annotations
 
-import json
-from shapely.geometry import shape
+from typing import Any
+
 from sqlalchemy import text
 
+from app.core.cities import current_city_id
 from app.services.municipality_boundaries import load_municipality_boundaries
 
-def get_municipality_metrics(db):
-    from app.services.composite_score import calculate_composite
-    boundaries = load_municipality_boundaries()
+_SQL = text("""
+    WITH latest AS (
+        SELECT DISTINCT ON (ef.cell_id) ef.cell_id, ef.feature_values -> 'raw_values' AS f
+        FROM engineered_features ef JOIN spatial_cells sc ON sc.id = ef.cell_id
+        WHERE sc.city = :city
+        ORDER BY ef.cell_id, ef.observed_at DESC, ef.id DESC
+    )
+    SELECT sc.municipality_name,
+           count(sc.id)                                           AS cell_count,
+           avg((l.f ->> 'ndvi_mean')::float)                      AS ndvi,
+           avg((l.f ->> 'lst_mean')::float)                       AS lst,
+           avg((l.f ->> 'wh_mean')::float)                        AS water_health_score,
+           avg((l.f ->> 'aqi_idw')::float)                        AS aqi,
+           avg((l.f ->> 'composite_cell')::float)                 AS composite
+    FROM spatial_cells sc LEFT JOIN latest l ON l.cell_id = sc.id
+    WHERE sc.city = :city AND sc.municipality_name IS NOT NULL
+    GROUP BY sc.municipality_name
+""")
 
-    # Pre-calculate cell metrics per municipality using the new spatial_cells grid
-    sql = text("""
-        WITH latest_aqi AS (
-            SELECT DISTINCT ON (cell_id) cell_id, aqi FROM environment_data
-            WHERE aqi IS NOT NULL AND cell_id IS NOT NULL
-            ORDER BY cell_id, observed_at DESC, id DESC
-        ), latest_ndvi AS (
-            SELECT DISTINCT ON (cell_id) cell_id, ndvi FROM environment_data
-            WHERE ndvi IS NOT NULL AND cell_id IS NOT NULL 
-            ORDER BY cell_id, observed_at DESC, id DESC
-        ), latest_lst AS (
-            SELECT DISTINCT ON (cell_id) cell_id, lst FROM environment_data
-            WHERE lst IS NOT NULL AND cell_id IS NOT NULL 
-            ORDER BY cell_id, observed_at DESC, id DESC
-        ), latest_water AS (
-            SELECT DISTINCT ON (cell_id) cell_id, water_health_score FROM environment_data
-            WHERE mndwi IS NOT NULL AND cell_id IS NOT NULL 
-            ORDER BY cell_id, observed_at DESC, id DESC
-        )
-        SELECT 
-            sc.municipality_name,
-            AVG(aqi.aqi) as aqi,
-            AVG(ndvi.ndvi) as ndvi,
-            AVG(lst.lst) as lst,
-            AVG(water.water_health_score) as water_health_score,
-            COUNT(sc.id) as cell_count,
-            MAX(sc.id) as rep_cell_id
-        FROM spatial_cells sc
-        LEFT JOIN latest_aqi   aqi   ON aqi.cell_id   = sc.id
-        LEFT JOIN latest_ndvi  ndvi  ON ndvi.cell_id  = sc.id
-        LEFT JOIN latest_lst   lst   ON lst.cell_id   = sc.id
-        LEFT JOIN latest_water water ON water.cell_id = sc.id
-        WHERE sc.municipality_name IS NOT NULL
-        GROUP BY sc.municipality_name
-    """)
-    rows = db.execute(sql).mappings().all()
-    
-    muni_data = {r["municipality_name"]: r for r in rows}
 
-    results = []
-    for muni in boundaries:
-        name = muni["name"]
-        data = muni_data.get(name, {})
-        
-        # We compute composite in Python for consistency, using the averaged values
-        aqi_val = data.get("aqi")
-        ndvi_val = data.get("ndvi")
-        lst_val = data.get("lst")
-        wh_val = data.get("water_health_score")
-        
-        comp = calculate_composite(
-            aqi=float(aqi_val) if aqi_val is not None else None,
-            ndvi=float(ndvi_val) if ndvi_val is not None else None,
-            lst=float(lst_val) if lst_val is not None else None,
-            water_health_score=float(wh_val) if wh_val is not None else None
-        )
-        
-        results.append({
-            "id": muni["id"], 
-            "name": name, 
+def _f(v) -> float | None:
+    return None if v is None else float(v)
+
+
+def get_municipality_metrics(db) -> list[dict[str, Any]]:
+    rows = {r["municipality_name"]: r for r in db.execute(_SQL, {"city": current_city_id()}).mappings().all()}
+    out = []
+    for muni in load_municipality_boundaries():
+        d = rows.get(muni["name"]) or {}
+        comp = _f(d.get("composite"))
+        out.append({
+            "id": muni["id"],
+            "name": muni["name"],
             "geometry": muni["geojson"],
-            "aqi": float(aqi_val) if aqi_val is not None else None,
-            "ndvi": float(ndvi_val) if ndvi_val is not None else None,
-            "lst": float(lst_val) if lst_val is not None else None,
-            "water_health_score": float(wh_val) if wh_val is not None else None,
-            "composite_score": comp.get("score") if comp else None,
-            "zone_count": data.get("cell_count", 0),
-            "representative_zone_id": data.get("rep_cell_id"),
+            "aqi": _f(d.get("aqi")),
+            "ndvi": _f(d.get("ndvi")),
+            "lst": _f(d.get("lst")),
+            "water_health_score": _f(d.get("water_health_score")),
+            # 0-100 (the composite surface is 0-1)
+            "composite_score": None if comp is None else round(comp * 100.0, 1),
+            "cell_count": int(d.get("cell_count") or 0),
         })
-
-    return results
+    return out

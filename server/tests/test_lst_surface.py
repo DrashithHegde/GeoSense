@@ -49,13 +49,34 @@ class LstSurfaceTests(unittest.TestCase):
         self.assertEqual(get_lst_export_bounds(), get_study_region_bounds())
 
     def test_existing_zero_coverage_artifact_is_not_published(self) -> None:
-        current_tiff = MANIFEST_PATH.parent / "lst" / "lst_20260816T000000Z.tif"
-        self.assertTrue(current_tiff.is_file())
-        with rasterio.open(current_tiff) as dataset:
-            self.assertEqual(dataset.count, 1)
-            self.assertEqual(dataset.crs.to_string(), "EPSG:4326")
+        west, south, east, north = get_study_region_bounds()
+        pixel_size = 30 / 111319.49079327358
+        width = int(np.ceil((east - west) / pixel_size))
+        height = int(np.ceil((north - south) / pixel_size))
 
         with tempfile.TemporaryDirectory() as directory:
+            # valid pixels only OUTSIDE the study region (e.g. the sea), none inside it
+            transform = from_origin(west, north, pixel_size, pixel_size)
+            inside = geometry_mask(
+                [mapping(load_study_region_geometry())], out_shape=(height, width),
+                transform=transform, invert=True, all_touched=True,
+            )
+            values = np.full((height, width), -9999.0, dtype=np.float32)
+            values[~inside] = 30.0
+            current_tiff = Path(directory) / "outside_only.tif"
+            with rasterio.open(
+                current_tiff,
+                "w",
+                driver="GTiff",
+                height=height,
+                width=width,
+                count=1,
+                dtype="float32",
+                crs="EPSG:4326",
+                transform=transform,
+                nodata=-9999.0,
+            ) as empty:
+                empty.write(values, 1)
             output_root = Path(directory) / "surfaces"
             with self.assertRaisesRegex(ValueError, "zero valid pixels inside Mumbai"):
                 publish_lst_geotiff(
@@ -148,8 +169,8 @@ class LstSurfaceTests(unittest.TestCase):
             response = TestClient(app).get("/api/surfaces/lst/latest")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["image_url"], "/surface-assets/lst/lst_test.png?v=sharp-hash")
-        self.assertEqual(response.json()["glow_url"], "/surface-assets/lst/lst_test_glow.png?v=glow-hash")
+        self.assertEqual(response.json()["image_url"], "/surface-assets/mumbai/lst/lst_test.png?v=sharp-hash")
+        self.assertEqual(response.json()["glow_url"], "/surface-assets/mumbai/lst/lst_test_glow.png?v=glow-hash")
         self.assertEqual(response.json()["visualization"], record["visualization"])
 
 

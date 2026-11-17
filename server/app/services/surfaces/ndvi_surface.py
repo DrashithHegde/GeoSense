@@ -6,11 +6,9 @@ database. The frozen zone geometry is used solely to obtain the existing study
 extent for a rectangular satellite export.
 """
 from __future__ import annotations
-
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 import hashlib
 import json
-import math
 import os
 from pathlib import Path
 import shutil
@@ -31,6 +29,7 @@ import rasterio
 from rasterio.features import rasterize as rio_rasterize
 import requests
 
+from app.core.cities import city_path
 from app.services.municipality_boundaries import (
     MunicipalityBoundaryError,
     get_study_region_bounds,
@@ -50,8 +49,8 @@ NODATA_VALUE = -9999.0
 SCALE_METERS = 10
 METHODOLOGY = "Sentinel-2 median composite NDVI"
 SERVER_ROOT = Path(__file__).resolve().parents[3]
-SURFACE_ROOT = SERVER_ROOT / "data" / "surfaces"
-MANIFEST_PATH = SURFACE_ROOT / "manifest.json"
+SURFACE_ROOT = city_path("surfaces")
+MANIFEST_PATH = city_path("surfaces", "manifest.json")
 
 
 def mapbox_coordinates(bounds: tuple[float, float, float, float]) -> list[list[float]]:
@@ -63,7 +62,7 @@ def get_study_region_mask(width: int, height: int, transform,
                            bounds: tuple[float, float, float, float]) -> np.ndarray | None:
     """Build a uint8 alpha mask (255=inside study region, 0=outside).
 
-    Union of Mumbai + Thane + Mira-Bhayandar local GeoJSON boundaries.
+    The current city's study region (union of its local municipality boundaries).
     Rasterised to the same (width, height, transform) as the target raster so
     it can be applied pixel-for-pixel to the visualised RGBA layers.
     Returns None if the local boundary assets are unavailable so the caller
@@ -211,7 +210,7 @@ def _tile_download(image: Any, tile_region: Any, destination: Path) -> Path:
 def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
     """Download and mosaic NDVI tiles at native 10 m resolution.
 
-    The horizontal split keeps each Earth Engine request below its download
+    The grid of tiles (sized from the area) keeps each Earth Engine request below its download
     limit while preserving the source image values and CRS in the mosaic.
     """
     from rasterio.merge import merge as rio_merge
@@ -221,10 +220,11 @@ def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
     ys = [coordinate[1] for coordinate in coords]
     west, east = min(xs), max(xs)
     south, north = min(ys), max(ys)
-    midpoint = (west + east) / 2.0
+    from app.services.surfaces.ee_tiles import tile_grid
+
     tile_defs = [
-        ("tile_w", ee.Geometry.Rectangle([west, south, midpoint, north], proj=CRS, geodesic=False)),
-        ("tile_e", ee.Geometry.Rectangle([midpoint, south, east, north], proj=CRS, geodesic=False)),
+        (label, ee.Geometry.Rectangle([w, s, e, n], proj=CRS, geodesic=False))
+        for label, w, s, e, n in tile_grid(west, south, east, north, SCALE_METERS)
     ]
 
     with tempfile.TemporaryDirectory(prefix="ndvi_tiles_") as temp_dir:
@@ -245,6 +245,7 @@ def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
                 "crs": CRS,
                 "nodata": NODATA_VALUE,
             })
+            destination.parent.mkdir(parents=True, exist_ok=True)     # the work folder may have been cleaned meanwhile
             with rasterio.open(destination, "w", **output_metadata) as output:
                 output.write(merged_values)
         finally:
@@ -384,7 +385,7 @@ def generate_ndvi_three_layer(
     Parameters
     ----------
     values : 2D float32 array with NODATA_VALUE for NoData.
-    study_mask : HxW uint8 or None — 255 inside Mumbai+Thane+Mira-Bhayandar, else 0.
+    study_mask : HxW uint8 or None — 255 inside the city's study region, else 0.
     """
     sharp_rgba = ndvi_to_rgba(values)
 
@@ -421,7 +422,7 @@ def publish_ndvi_geotiff(
         SHARP (pixel-exact coloured raster)
 
     All three layers are clipped/masked to the study-region union (Mumbai +
-    Thane + Mira-Bhayandar) AFTER blurring, so the glow/halo cannot bleed
+    its municipalities) AFTER blurring, so the glow/halo cannot bleed
     outside the municipal boundaries. Scientific GeoTIFF values are unchanged.
     """
     context = source_context(start_date, end_date)
@@ -508,7 +509,7 @@ def publish_ndvi_geotiff(
         "coordinates": mapbox_coordinates((west, south, east, north)),
         "width": width, "height": height, "pixel_size_degrees": {"longitude": (east - west) / width, "latitude": (north - south) / height},
         "source_scale_m": SCALE_METERS, "nodata_value": NODATA_VALUE, "nodata": True,
-        "nodata_semantics": "transparent; no valid cloud-masked satellite NDVI pixel; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries (visualisation layers only)",
+        "nodata_semantics": "transparent; no valid cloud-masked satellite NDVI pixel; study region clipped to the city's municipality boundaries (visualisation layers only)",
         "valid_pixels": int(valid.sum()), "nodata_pixels": int((~valid).sum()),
         "valid_pixel_percent": round(float(valid.mean() * 100), 3),
         "ndvi_statistics": {
@@ -568,33 +569,9 @@ def generate_ndvi_surface(*, start_date: str, end_date: str) -> dict[str, Any]:
 
 
 def load_latest_ndvi_surface(manifest_path: Path = MANIFEST_PATH) -> dict[str, Any] | None:
-    # ═══════════════════════════════════════════════════════════════════════════
-    # NDVI LOADER DIAGNOSTICS
-    # ═══════════════════════════════════════════════════════════════════════════
-    print(f"[NDVI LOADER] load_latest_ndvi_surface called")
-    print(f"[NDVI LOADER] manifest_path: {manifest_path}")
-    import sys
-    sys.stdout.flush()
-    # ═══════════════════════════════════════════════════════════════════════════
-    
+    """The current city's NDVI manifest record, or None when no NDVI surface has been generated."""
     if not manifest_path.exists():
-        print(f"[NDVI LOADER] Manifest does not exist, returning None")
-        sys.stdout.flush()
         return None
-    
-    print(f"[NDVI LOADER] Reading manifest file")
-    sys.stdout.flush()
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    print(f"[NDVI LOADER] Manifest loaded, checking for ndvi surface")
-    sys.stdout.flush()
-    
     record = data.get("surfaces", {}).get("ndvi")
-    print(f"[NDVI LOADER] NDVI record found: {record is not None}")
-    if record:
-        print(f"[NDVI LOADER] generation_status: {record.get('generation_status')}")
-    sys.stdout.flush()
-    
-    result = record if isinstance(record, dict) and record.get("generation_status") == "generated" else None
-    print(f"[NDVI LOADER] Returning: {result is not None}")
-    sys.stdout.flush()
-    return result
+    return record if isinstance(record, dict) and record.get("generation_status") == "generated" else None

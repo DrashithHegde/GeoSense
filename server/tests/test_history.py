@@ -103,8 +103,15 @@ class HistoryAnalyticsDbTests(unittest.TestCase):
             p.stop()
 
     def _load(self):
+        from sqlalchemy import text
+
         from app.services.history import store
         from app.services.history.seasons import seasons
+        # isolate from any REAL history already in this database: the cell-to-cell change spread
+        # sets what counts as "sudden", so real rows would change the result. Inside this
+        # transaction only - tearDown rolls it back and the real rows return untouched.
+        self.db.execute(text("DELETE FROM cell_history"))
+        self.db.execute(text("DELETE FROM history_seasons"))
         rng = np.random.default_rng(5)
         base_lst = rng.normal(34, 2.5, len(self.cells))
         base_ndvi = rng.uniform(0.1, 0.7, len(self.cells))

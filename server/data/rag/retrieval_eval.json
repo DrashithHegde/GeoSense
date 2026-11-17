@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-08T22:11:02.825735+00:00",
-  "retrieval_mode": "hybrid BM25 + bge-small-en-v1.5 embeddings (pgvector (HNSW, cosine)), fused with RRF, over 51 notes + 1342 passages from 12 documents",
-  "knowledge_notes": 51,
+  "generated_at": "2026-11-16T18:40:44.954277+00:00",
+  "retrieval_mode": "hybrid BM25 + bge-small-en-v1.5 embeddings (pgvector (HNSW, cosine)), fused with RRF, over 59 notes + 1342 passages from 12 documents",
+  "knowledge_notes": 59,
   "document_passages": 1342,
   "documents": 12,
   "store": {
@@ -17,8 +17,8 @@
       "mode": "bm25",
       "corpus": "notes only",
       "questions": 49,
-      "recall_at_5": 0.837,
-      "mrr": 0.646,
+      "recall_at_5": 0.796,
+      "mrr": 0.605,
       "first_hit_is_document_passage": 0,
       "misses": [
         {
@@ -27,9 +27,9 @@
             "aqi_health_statements"
           ],
           "got": [
+            "delhi_air_sources",
             "mumbai_air_seasonality",
-            "idw_method",
-            "aqi_cpcb_scale"
+            "idw_method"
           ]
         },
         {
@@ -38,9 +38,9 @@
             "ndvi_season_mumbai"
           ],
           "got": [
+            "delhi_air_seasonality",
             "mumbai_climate",
-            "water_quality_insitu",
-            "ndmi_moisture"
+            "water_quality_insitu"
           ]
         },
         {
@@ -50,8 +50,8 @@
           ],
           "got": [
             "mitigate_greening",
-            "history_method",
-            "turbidity_proxy"
+            "bengaluru_climate",
+            "history_method"
           ]
         },
         {
@@ -88,14 +88,36 @@
           ]
         },
         {
+          "question": "How can we reduce heat in a hot neighbourhood?",
+          "expected": [
+            "mitigate_heat"
+          ],
+          "got": [
+            "lst_vegetation_relationship",
+            "heat_stress_vegetation",
+            "delhi_climate"
+          ]
+        },
+        {
+          "question": "How was the temperature model's accuracy tested fairly?",
+          "expected": [
+            "spatial_cv"
+          ],
+          "got": [
+            "xgboost_shap",
+            "lst_vs_air",
+            "landsat_lst"
+          ]
+        },
+        {
           "question": "Why is there no data at some places on the map?",
           "expected": [
             "cloud_gaps"
           ],
           "got": [
+            "delhi_air_seasonality",
             "ndvi_season_mumbai",
-            "mumbai_climate",
-            "vegetation_cooling"
+            "mumbai_climate"
           ]
         },
         {
@@ -116,18 +138,10 @@
       "mode": "embed",
       "corpus": "notes only",
       "questions": 49,
-      "recall_at_5": 0.776,
-      "mrr": 0.741,
+      "recall_at_5": 0.816,
+      "mrr": 0.782,
       "first_hit_is_document_passage": 0,
       "misses": [
-        {
-          "question": "What does an AQI of 150 mean for health?",
-          "expected": [
-            "aqi_health_statements",
-            "aqi_cpcb_scale"
-          ],
-          "got": []
-        },
         {
           "question": "Who should avoid going outside when the air is bad?",
           "expected": [
@@ -149,7 +163,11 @@
           "expected": [
             "openaq_caaqms"
           ],
-          "got": []
+          "got": [
+            "pollutant_signatures",
+            "station_isolation_forest",
+            "mumbai_air_sources"
+          ]
         },
         {
           "question": "Which satellite gives the 10 m vegetation images?",
@@ -179,13 +197,6 @@
             "isolation_forest",
             "cloud_gaps"
           ]
-        },
-        {
-          "question": "Where do flamingos come in Thane?",
-          "expected": [
-            "thane_creek"
-          ],
-          "got": []
         },
         {
           "question": "How does the model say which factor made a place hotter?",
@@ -219,7 +230,7 @@
       "corpus": "notes only",
       "questions": 49,
       "recall_at_5": 0.939,
-      "mrr": 0.726,
+      "mrr": 0.77,
       "first_hit_is_document_passage": 0,
       "misses": [
         {
@@ -228,20 +239,9 @@
             "aqi_health_statements"
           ],
           "got": [
+            "mumbai_air_seasonality",
             "lst_vs_air",
-            "mitigate_air",
-            "mumbai_air_seasonality"
-          ]
-        },
-        {
-          "question": "Which satellite gives the 10 m vegetation images?",
-          "expected": [
-            "sentinel2"
-          ],
-          "got": [
-            "ndmi_moisture",
-            "mitigate_greening",
-            "history_method"
+            "mitigate_air"
           ]
         },
         {
@@ -254,6 +254,17 @@
             "water_quality_insitu",
             "mndwi"
           ]
+        },
+        {
+          "question": "How was the temperature model's accuracy tested fairly?",
+          "expected": [
+            "spatial_cv"
+          ],
+          "got": [
+            "xgboost_shap",
+            "lst_vs_air",
+            "landsat_lst"
+          ]
         }
       ]
     },
@@ -261,8 +272,8 @@
       "mode": "bm25",
       "corpus": "notes + documents",
       "questions": 49,
-      "recall_at_5": 0.776,
-      "mrr": 0.628,
+      "recall_at_5": 0.755,
+      "mrr": 0.598,
       "first_hit_is_document_passage": 6,
       "misses": [
         {
@@ -274,6 +285,18 @@
             "mcap_2022:p166:0",
             "mcap_2022:p77:0",
             "lundberg_2020_treeshap:p24:3"
+          ]
+        },
+        {
+          "question": "Where does the dust and smoke in Mumbai's air come from?",
+          "expected": [
+            "mumbai_air_sources",
+            "pollutant_signatures"
+          ],
+          "got": [
+            "bengaluru_air_sources",
+            "delhi_air_sources",
+            "mcap_2022:p224:2"
           ]
         },
         {
@@ -316,7 +339,7 @@
           ],
           "got": [
             "nasa_measuring_vegetation:p2:2",
-            "nasa_measuring_vegetation:p1:2",
+            "nasa_measuring_vegetation:p3:3",
             "santamouris_2013_pavements:p2:8"
           ]
         },
@@ -349,8 +372,8 @@
           ],
           "got": [
             "mcap_2022:p224:1",
-            "powai_lake",
-            "mcap_2022:p224:2"
+            "mcap_2022:p224:2",
+            "powai_lake"
           ]
         },
         {
@@ -393,20 +416,10 @@
       "mode": "embed",
       "corpus": "notes + documents",
       "questions": 49,
-      "recall_at_5": 0.796,
-      "mrr": 0.721,
-      "first_hit_is_document_passage": 5,
+      "recall_at_5": 0.857,
+      "mrr": 0.769,
+      "first_hit_is_document_passage": 6,
       "misses": [
-        {
-          "question": "What does an AQI of 150 mean for health?",
-          "expected": [
-            "aqi_health_statements",
-            "aqi_cpcb_scale"
-          ],
-          "got": [
-            "knowlton_2014_ahmedabad:p9:0"
-          ]
-        },
         {
           "question": "Who should avoid going outside when the air is bad?",
           "expected": [
@@ -433,9 +446,9 @@
             "openaq_caaqms"
           ],
           "got": [
+            "pollutant_signatures",
             "usgs_landsat_c2l2_guide:p25:0",
-            "mcap_2022:p153:3",
-            "usgs_landsat_c2l2_guide:p26:0"
+            "station_isolation_forest"
           ]
         },
         {
@@ -472,24 +485,6 @@
           ]
         },
         {
-          "question": "Where do flamingos come in Thane?",
-          "expected": [
-            "thane_creek"
-          ],
-          "got": []
-        },
-        {
-          "question": "How does the model say which factor made a place hotter?",
-          "expected": [
-            "xgboost_shap"
-          ],
-          "got": [
-            "santamouris_2013_pavements:p2:0",
-            "santamouris_2013_pavements:p14:2",
-            "lst_vegetation_relationship"
-          ]
-        },
-        {
           "question": "How is a water body judged worse than others?",
           "expected": [
             "robust_z",
@@ -503,22 +498,10 @@
       "mode": "hybrid",
       "corpus": "notes + documents",
       "questions": 49,
-      "recall_at_5": 0.816,
-      "mrr": 0.697,
-      "first_hit_is_document_passage": 4,
+      "recall_at_5": 0.837,
+      "mrr": 0.721,
+      "first_hit_is_document_passage": 5,
       "misses": [
-        {
-          "question": "What does an AQI of 150 mean for health?",
-          "expected": [
-            "aqi_health_statements",
-            "aqi_cpcb_scale"
-          ],
-          "got": [
-            "knowlton_2014_ahmedabad:p6:0",
-            "lundberg_2020_treeshap:p14:0",
-            "knowlton_2014_ahmedabad:p9:0"
-          ]
-        },
         {
           "question": "Who should avoid going outside when the air is bad?",
           "expected": [
@@ -531,14 +514,25 @@
           ]
         },
         {
+          "question": "Nitrogen dioxide is high at this station, what does that suggest?",
+          "expected": [
+            "pollutant_signatures"
+          ],
+          "got": [
+            "mcap_2022:p59:3",
+            "station_isolation_forest",
+            "lundberg_2020_treeshap:p9:2"
+          ]
+        },
+        {
           "question": "Where does the air quality data come from?",
           "expected": [
             "openaq_caaqms"
           ],
           "got": [
+            "station_isolation_forest",
             "mcap_2022:p163:1",
-            "mcap_2022:p153:3",
-            "usgs_landsat_c2l2_guide:p25:0"
+            "mcap_2022:p153:3"
           ]
         },
         {
@@ -575,28 +569,6 @@
           ]
         },
         {
-          "question": "How would you confirm water pollution on the ground?",
-          "expected": [
-            "water_quality_insitu"
-          ],
-          "got": [
-            "mitigate_water",
-            "layer_isolation_forest",
-            "nasa_measuring_vegetation:p4:1"
-          ]
-        },
-        {
-          "question": "How does the model say which factor made a place hotter?",
-          "expected": [
-            "xgboost_shap"
-          ],
-          "got": [
-            "residual_interpretation",
-            "mcap_2022:p53:0",
-            "santamouris_2013_pavements:p14:2"
-          ]
-        },
-        {
           "question": "How was the temperature model's accuracy tested fairly?",
           "expected": [
             "spatial_cv"
@@ -604,7 +576,19 @@
           "got": [
             "lundberg_2020_treeshap:p24:4",
             "lundberg_2017_shap:p1:2",
-            "lundberg_2020_treeshap:p24:3"
+            "lundberg_2017_shap:p1:0"
+          ]
+        },
+        {
+          "question": "How is a water body judged worse than others?",
+          "expected": [
+            "robust_z",
+            "water_health_geosense"
+          ],
+          "got": [
+            "mitigate_water",
+            "worldcover_pvr_v2:p15:0",
+            "water_cooling"
           ]
         }
       ]

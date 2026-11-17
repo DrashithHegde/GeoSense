@@ -1,6 +1,6 @@
-"""CPCB AQI spatial surface from real OpenAQ v3 CPCB/MPCB monitoring stations.
+"""CPCB AQI spatial surface from real OpenAQ v3 CPCB-network monitoring stations.
 
-    OpenAQ v3 -> fresh CPCB/MPCB stations -> CPCB AQI (2014) per station
+    OpenAQ v3 -> fresh CPCB-network stations -> CPCB AQI (2014) per station
               -> IDW (k nearest, power p, max distance) -> GeoTIFF -> heatmap PNGs
 
 Honesty rules (from the GeoSense handover):
@@ -11,6 +11,7 @@ Honesty rules (from the GeoSense handover):
   * Pixels farther than MAX_DISTANCE_M from the nearest usable station are NoData.
 """
 from __future__ import annotations
+from app.core.cities import city_path
 
 import json
 import math
@@ -35,19 +36,19 @@ from app.services.surfaces.heatmap_render import (
 )
 
 SERVER_ROOT = Path(__file__).resolve().parents[3]
-SURFACE_ROOT = SERVER_ROOT / "data" / "surfaces"
-AQI_DIR = SURFACE_ROOT / "aqi"
-MANIFEST_PATH = SURFACE_ROOT / "manifest.json"
+SURFACE_ROOT = city_path("surfaces")
+AQI_DIR = city_path("surfaces", "aqi")
+MANIFEST_PATH = city_path("surfaces", "manifest.json")
 NODATA = -9999.0
 
 GRID_DEG = 0.0025            # ~270 m display/analysis grid for an IDW surface
 IDW_K = 4
 IDW_POWER = 2.0
 MAX_DISTANCE_M = 15000.0     # beyond this the surface is NoData (no extrapolation)
-MIN_STATIONS = 3             # minimum fresh CPCB/MPCB stations for a city surface
+MIN_STATIONS = 3             # minimum fresh CPCB-network stations for a city surface
 MIN_NEIGHBOURS = 2           # each pixel needs >=2 stations within MAX_DISTANCE_M
 MAX_AGE_HOURS = 48.0
-METHODOLOGY = "OpenAQ v3 CPCB/MPCB stations → CPCB National AQI (2014) → IDW"
+METHODOLOGY = "OpenAQ v3 CPCB-network stations → CPCB National AQI (2014) → IDW"
 
 # CPCB category colours (official AQI bulletin palette)
 CPCB_CATEGORIES = (
@@ -98,7 +99,7 @@ def eligible_stations(points: list[dict], now: datetime | None = None) -> tuple[
         elif age_h > MAX_AGE_HOURS:
             rejected.append({**_public(p), "reason": f"stale ({age_h:.0f} h old)"})
         elif not p.get("is_cpcb_mpcb", False):
-            rejected.append({**_public(p), "reason": "not CPCB/MPCB-backed"})
+            rejected.append({**_public(p), "reason": "not CPCB-network-backed"})
         elif p.get("aqi") is None or not math.isfinite(float(p["aqi"])):
             rejected.append({**_public(p), "reason": "CPCB AQI not computable"})
         else:
@@ -161,6 +162,7 @@ def _write_manifest_record(record: dict, manifest_path: Path) -> None:
     if old and "S5P" in str(old.get("dataset", "")):
         surfaces["no2_s5p_column_retired"] = {**old, "retired_reason": "Satellite NO2 column is not CPCB AQI; never served as AQI."}
     surfaces["aqi"] = record
+    Path(manifest_path).parent.mkdir(parents=True, exist_ok=True)
     tmp = manifest_path.with_suffix(".tmp")
     tmp.write_text(json.dumps(current, indent=2, sort_keys=True, default=str), encoding="utf-8")
     tmp.replace(manifest_path)
@@ -245,7 +247,7 @@ def build_aqi_surface(station_points: list[dict], *, manifest_path: Path = MANIF
     base = {
         "metric": "aqi",
         "methodology": METHODOLOGY,
-        "source": "OpenAQ v3 (CPCB / MPCB continuous ambient monitoring stations)",
+        "source": "OpenAQ v3 (CPCB-network continuous ambient monitoring stations)",
         "aqi_standard": "CPCB National Air Quality Index (2014)",
         "generated_at": now.isoformat(),
         "stations": [_public(s) for s in stations],
@@ -256,9 +258,9 @@ def build_aqi_surface(station_points: list[dict], *, manifest_path: Path = MANIF
     }
     if len(stations) < MIN_STATIONS:
         record = {**base, "generation_status": "insufficient_coverage", "available": False,
-                  "reason": f"Only {len(stations)} fresh (≤48 h) CPCB/MPCB station(s) with computable CPCB AQI "
+                  "reason": f"Only {len(stations)} fresh (≤48 h) CPCB-network station(s) with computable CPCB AQI "
                             f"(need {MIN_STATIONS}). No AQI surface was produced and no proxy is shown in its place.",
-                  "operator_hint": "Run: python scripts/generate_aqi_station_surface.py --cells "
+                  "operator_hint": "Run: python scripts/generate_aqi_station_surface.py --city <city> "
                                    "(needs OPENAQ_AQI_KEY and internet)."}
         _write_manifest_record(record, manifest_path)
         return record
@@ -275,11 +277,8 @@ def build_aqi_surface(station_points: list[dict], *, manifest_path: Path = MANIF
         dst.update_tags(methodology=METHODOLOGY, stations=str(len(stations)))
 
     valid = grid != NODATA
-    knots = [25, 75, 150, 250, 350, 450]
-    from app.services.surfaces.heatmap_render import AQI_CPCB_STOPS
-    spec = RenderSpec(metric="aqi", stops_rgb=AQI_CPCB_STOPS, knot_values=knots,
-                      stop_labels=[c[2] for c in CPCB_CATEGORIES], downsample=1,
-                      **layer_style("aqi"))
+    from app.services.surfaces.heatmap_render import aqi_band_colours
+    spec = RenderSpec(metric="aqi", downsample=1, **aqi_band_colours(), **layer_style("aqi"))
     out = render_heatmap(grid, valid, transform, spec,
                          alpha_scale_fn=lambda shape, tr: station_fade(shape, tr, [_public(x) for x in stations]))
     names, sums = save_layers(out, out_dir, tif.stem)
@@ -351,7 +350,7 @@ def read_aqi_pixel(lon: float, lat: float, manifest_path: Path = MANIFEST_PATH) 
     rec = json.loads(manifest_path.read_text(encoding="utf-8")).get("surfaces", {}).get("aqi") or {}
     if rec.get("generation_status") != "generated":
         return {"value": None, "nodata": True, "available": False,
-                "reason": rec.get("reason", "AQI surface not generated (no fresh CPCB/MPCB coverage)")}
+                "reason": rec.get("reason", "AQI surface not generated (no fresh CPCB-network coverage)")}
     if aqi_expired(rec):
         return {"value": None, "nodata": True, "available": False,
                 "reason": "AQI readings are older than 48 hours; regenerate the AQI layer"}

@@ -62,9 +62,7 @@ function LayerChip({ config, active, onClick, prov }) {
           >
             {config.desc}
           </div>
-          {prov && (
-            <ProvenanceBadge prov={prov} compact style={{ marginTop: 3 }} />
-          )}
+          {prov && <ProvenanceBadge prov={prov} compact style={{ marginTop: 3 }} />}
         </div>
       </div>
 
@@ -89,6 +87,7 @@ function LayerChip({ config, active, onClick, prov }) {
 // LayerControls
 // Floating left-side panel: data layer chips
 // ─────────────────────────────────────────────────────────────────────────────
+
 
 export default function LayerControls({
   activeLayers,
@@ -173,10 +172,12 @@ export default function LayerControls({
               >
                 AQI surface unavailable
               </strong>
-              {aqiSurfaceStatus === "unavailable"
-                ? aqiSurfaceInfo?.reason ||
-                  "Not enough fresh CPCB/MPCB stations for a real AQI surface."
-                : "The AQI surface source could not be read."}
+              {aqiSurfaceStatus !== "unavailable"
+                ? "The AQI surface source could not be read."
+                : aqiSurfaceInfo?.status === "not_generated"
+                  ? "This city's AQI layer has not been generated yet."
+                  : aqiSurfaceInfo?.reason ||
+                    "Not enough fresh CPCB-network stations for a real AQI surface."}
               {aqiSurfaceInfo?.audit?.stations_eligible != null && (
                 <span style={{ display: "block", marginTop: 4, opacity: 0.8 }}>
                   Fresh stations: {aqiSurfaceInfo.audit.stations_eligible} /
@@ -186,6 +187,7 @@ export default function LayerControls({
             </div>
           )}
       </div>
+
     </div>
   );
 }

@@ -1,7 +1,0 @@
-{
-  "dataset": "ESA/WorldCover/v200 (2021), 10 m",
-  "citation": "Zanaga, D. et al. (2022). ESA WorldCover 10 m 2021 v200. Zenodo. https://doi.org/10.5281/zenodo.7254221",
-  "method": "share of each class's 10 m pixels inside each 300 m cell (Earth Engine reduceRegions, mean of one-hot bands)",
-  "cells": 8287,
-  "generated_at": "2026-11-08T20:27:56.622874+00:00"
-}

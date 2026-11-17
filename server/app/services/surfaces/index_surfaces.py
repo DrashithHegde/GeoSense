@@ -17,6 +17,7 @@ two independent model features or both counted in the composite: that would doub
 a single measurement.
 """
 from __future__ import annotations
+from app.core.cities import city_path
 
 import hashlib
 import json
@@ -31,8 +32,8 @@ import numpy as np
 import rasterio
 
 SERVER_ROOT = Path(__file__).resolve().parents[3]
-SURFACE_ROOT = SERVER_ROOT / "data" / "surfaces"
-MANIFEST_PATH = SURFACE_ROOT / "manifest.json"
+SURFACE_ROOT = city_path("surfaces")
+MANIFEST_PATH = city_path("surfaces", "manifest.json")
 CRS = "EPSG:4326"
 NODATA_VALUE = -9999.0
 SCALE_METERS = 20  # B11 native resolution
@@ -129,7 +130,7 @@ def _extract_tiff(path: Path) -> Path:
 
 
 def download_geotiff(image, region, destination: Path, scale: int = SCALE_METERS) -> None:
-    """Download in two tiles (keeps each request under the EE size limit) and mosaic."""
+    """Download in as many tiles as the area needs (each under the EE size limit) and mosaic."""
     import time
 
     import ee
@@ -139,9 +140,10 @@ def download_geotiff(image, region, destination: Path, scale: int = SCALE_METERS
     coords = region.coordinates().getInfo()[0]
     xs, ys = [c[0] for c in coords], [c[1] for c in coords]
     west, east, south, north = min(xs), max(xs), min(ys), max(ys)
-    mid = (west + east) / 2
-    tiles = [ee.Geometry.Rectangle([west, south, mid, north], proj=CRS, geodesic=False),
-             ee.Geometry.Rectangle([mid, south, east, north], proj=CRS, geodesic=False)]
+    from app.services.surfaces.ee_tiles import tile_grid
+
+    tiles = [ee.Geometry.Rectangle([w, s, e, n], proj=CRS, geodesic=False)
+             for _label, w, s, e, n in tile_grid(west, south, east, north, scale)]
     with tempfile.TemporaryDirectory(prefix="idx_tiles_") as tmp:
         paths = []
         for i, t in enumerate(tiles):
@@ -167,6 +169,7 @@ def download_geotiff(image, region, destination: Path, scale: int = SCALE_METERS
             meta = dss[0].meta.copy()
             meta.update(height=arr.shape[1], width=arr.shape[2], count=1, transform=transform, crs=CRS,
                         nodata=NODATA_VALUE, dtype="float32", compress="deflate")
+            destination.parent.mkdir(parents=True, exist_ok=True)     # the work folder may have been cleaned meanwhile
             with rasterio.open(destination, "w", **meta) as out:
                 out.write(arr[:1].astype("float32"))
         finally:

@@ -1,19 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getApiUrl } from "../utils/api";
-
-const dlog =
-  import.meta.env.VITE_DEBUG_MAP === "1" ? console.log.bind(console) : () => {};
+import { apiFetch, setApiCity } from "../utils/api";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useGeoSenseData
-// Fetches /api/metrics/latest and /api/anomalies, joins by zone_id.
-// Returns real 189-zone data for Mumbai.
-// For Bengaluru / New Delhi, returns empty zones (no fabricated data).
+// useGeoSenseData(activeCity)
+// Loads everything the map needs for one city: the study-region boundary, its municipalities,
+// and the latest NDVI / LST / Water Health / AQI / composite surfaces, plus the ML summary and
+// data provenance. A layer the city does not have yet stays null (never borrowed from another
+// city, never made up).
 // ─────────────────────────────────────────────────────────────────────────────
 export function useGeoSenseData(activeCity) {
-  const [zones, setZones] = useState([]);
   const [liveMunicipalities, setLiveMunicipalities] = useState([]);
-  const [waterBodies, setWaterBodies] = useState([]);
   const [aqiSurface, setAqiSurface] = useState(null);
   const [aqiSurfaceStatus, setAqiSurfaceStatus] = useState("idle");
   const [aqiSurfaceInfo, setAqiSurfaceInfo] = useState(null);
@@ -28,44 +24,37 @@ export function useGeoSenseData(activeCity) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // NDVI FETCH TRIGGER DIAGNOSTIC
-    // ═══════════════════════════════════════════════════════════════════════════
-    dlog("🔄 [useGeoSenseData useEffect TRIGGERED]");
-    dlog("  activeCity:", activeCity);
-    dlog("  Will fetch NDVI?", activeCity === "mumbai");
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    // Only fetch real data for Mumbai (the only city with a live backend)
-    if (activeCity !== "mumbai") {
-      setZones([]);
-      setLiveMunicipalities([]);
-      setWaterBodies([]);
-      setAqiSurface(null);
-      setAqiSurfaceStatus("unavailable");
-      setNdviSurface(null);
-      setLstSurface(null);
-      setWaterHealthSurface(null);
-      setCompositeSurface(null);
+    // clear the previous city's layers first, so nothing from another city stays on screen
+    setLiveMunicipalities([]);
+    setAqiSurface(null);
+    setAqiSurfaceInfo(null);
+    setMlSummary(null);
+    setProvenance(null);
+    setNdviSurface(null);
+    setLstSurface(null);
+    setWaterHealthSurface(null);
+    setCompositeSurface(null);
+    setBoundary(null);
+    setError(null);
+    if (!activeCity) {
+      setAqiSurfaceStatus("idle");
       setLoading(false);
-      setError(null);
-      return;
+      return undefined;
     }
+    setApiCity(activeCity);
 
     let cancelled = false;
     setLoading(true);
-    setError(null);
     setAqiSurfaceStatus("loading");
+    const q = `city=${encodeURIComponent(activeCity)}`;
 
-    // The backend can take 10–30 s to start (it loads the AI and data libraries).
+    // A hosted backend can take up to a minute to wake up (free tiers sleep when idle).
     // Wait until it answers instead of giving up on the map layers after one try.
     async function waitForBackend(maxWaitMs = 120000) {
       const started = Date.now();
       while (!cancelled && Date.now() - started < maxWaitMs) {
         try {
-          const r = await fetch(getApiUrl("/api/health"), {
-            cache: "no-store",
-          });
+          const r = await apiFetch(`/api/health?${q}`, { cache: "no-store" });
           if (r) return true; // any HTTP answer means the server is up
         } catch {
           /* not up yet */
@@ -75,350 +64,48 @@ export function useGeoSenseData(activeCity) {
       return false;
     }
 
+    // JSON of a layer endpoint; null when the city does not have that layer (404) or on error
+    const getJson = async (path) => {
+      try {
+        const res = await apiFetch(`${path}${path.includes("?") ? "&" : "?"}${q}`);
+        return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
+    };
+
     async function fetchData() {
       await waitForBackend();
       if (cancelled) return;
-      // ═══════════════════════════════════════════════════════════════════════════
-      // 🔎 FETCH FUNCTION EXECUTION DIAGNOSTIC
-      // ═══════════════════════════════════════════════════════════════════════════
-      dlog("🔎 [FETCH FUNCTION CALLED]");
-      dlog("  activeCity:", activeCity);
-      dlog("  About to fetch all Mumbai data including NDVI");
-      // ═══════════════════════════════════════════════════════════════════════════
-
-      const fetchWaterHealthSurface = async () => {
-        const res = await fetch(getApiUrl("/api/surfaces/water-health/latest"));
-        if (res.status === 404) {
-          return null;
-        }
-        if (!res.ok) {
-          throw new Error(`Water Health Surface API error: ${res.status}`);
-        }
-        const data = await res.json();
-        setWaterHealthSurface(data);
-        return data;
-      };
-
-      const fetchCompositeSurface = async () => {
-        const res = await fetch(getApiUrl("/api/surfaces/composite/latest"));
-        if (res.status === 404) {
-          return null;
-        }
-        if (!res.ok) {
-          throw new Error(`Composite Surface API error: ${res.status}`);
-        }
-        const data = await res.json();
-        setCompositeSurface(data);
-        return data;
-      };
-
-      const fetchAqiSurface = async () => {
-        try {
-          const response = await fetch(getApiUrl("/api/surfaces/aqi/latest"));
-          if (response.status === 404) {
-            return { surface: null, status: "unavailable" };
-          }
-          if (!response.ok) {
-            return { surface: null, status: "error" };
-          }
-          const surface = await response.json();
-          if (surface?.available === false) {
-            setAqiSurfaceInfo(surface);
-            return { surface: null, status: "unavailable" };
-          }
-          if (!surface?.image_url || !Array.isArray(surface.coordinates)) {
-            return { surface: null, status: "error" };
-          }
-          setAqiSurfaceInfo(surface);
-          return { surface, status: "available" };
-        } catch (surfaceError) {
-          console.warn(
-            "[useGeoSenseData] AQI surface unavailable:",
-            surfaceError,
-          );
-          return { surface: null, status: "error" };
-        }
-      };
-
       try {
-        // ═══════════════════════════════════════════════════════════════════════════
-        // NDVI FETCH DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════════════════════
-        const ndviUrl = getApiUrl("/api/surfaces/ndvi/latest");
-        dlog("🔍 [NDVI FETCH START]");
-        dlog("  Exact URL:", ndviUrl);
-        dlog("  Timestamp:", new Date().toISOString());
-        // ═══════════════════════════════════════════════════════════════════════════
-
-        // ═══════════════════════════════════════════════════════════════════════════
-        // WATER HEALTH FETCH DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════════════════════
-        const waterHealthUrl = getApiUrl("/api/surfaces/water-health/latest");
-        dlog("🔍 [WATER HEALTH FETCH START]");
-        dlog("  Exact URL:", waterHealthUrl);
-        dlog("  Timestamp:", new Date().toISOString());
-        // ═══════════════════════════════════════════════════════════════════════════
-
-        const [
-          metricsRes,
-          anomalyRes,
-          boundaryRes,
-          muniRes,
-          waterRes,
-          aqiSurfaceResult,
-          ndviSurfaceRes,
-          lstSurfaceRes,
-          waterHealthSurfaceData,
-          compositeSurfaceData,
-        ] = await Promise.all([
-          fetch(getApiUrl("/api/metrics/latest")),
-          fetch(getApiUrl("/api/anomalies?days=30&limit=200")),
-          fetch(getApiUrl("/api/zones/boundary")),
-          fetch(getApiUrl("/api/municipalities/latest")),
-          fetch(getApiUrl("/api/water-bodies/latest")),
-          fetchAqiSurface(),
-          fetch(ndviUrl),
-          fetch(getApiUrl("/api/surfaces/lst/latest")),
-          fetchWaterHealthSurface(),
-          fetchCompositeSurface(),
+        const [boundaryData, muniData, aqi, ndvi, lst, wh, composite] = await Promise.all([
+          getJson("/api/zones/boundary"),
+          getJson("/api/municipalities/latest"),
+          getJson("/api/surfaces/aqi/latest"),
+          getJson("/api/surfaces/ndvi/latest"),
+          getJson("/api/surfaces/lst/latest"),
+          getJson("/api/surfaces/water-health/latest"),
+          getJson("/api/surfaces/composite/latest"),
         ]);
-
-        // ═══════════════════════════════════════════════════════════════════════════
-        // NDVI FETCH RESPONSE DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════════════════════
-        dlog("📡 [NDVI FETCH RESPONSE]");
-        dlog("  HTTP Status:", ndviSurfaceRes.status);
-        dlog("  response.ok:", ndviSurfaceRes.ok);
-        dlog("  Content-Type:", ndviSurfaceRes.headers.get("Content-Type"));
-        dlog("  Status Text:", ndviSurfaceRes.statusText);
-        // ═══════════════════════════════════════════════════════════════════════════
-
-        // ═══════════════════════════════════════════════════════════════════════════
-        // WATER HEALTH FETCH RESPONSE DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════════════════════
-        dlog("📡 [WATER HEALTH FETCH RESPONSE]");
-        dlog(
-          "  waterHealthSurfaceData is null?",
-          waterHealthSurfaceData === null,
-        );
-        dlog(
-          "  waterHealthSurfaceData is undefined?",
-          waterHealthSurfaceData === undefined,
-        );
-        dlog("  Has data:", !!waterHealthSurfaceData);
-        if (waterHealthSurfaceData) {
-          dlog("  Has image_url:", !!waterHealthSurfaceData?.image_url);
-          dlog("  Has coordinates:", !!waterHealthSurfaceData?.coordinates);
-          dlog("  Has metric:", !!waterHealthSurfaceData?.metric);
-        }
-        // ═══════════════════════════════════════════════════════════════════════════
-
-        // Legacy zone endpoints are optional context now (pixel → cell → municipality
-        // is the primary flow), so a failure here must not blank the map.
-        const safeJson = async (res, fallback) => {
-          try {
-            return res && res.ok ? await res.json() : fallback;
-          } catch {
-            return fallback;
-          }
-        };
-        const metrics = await safeJson(metricsRes, []);
-        const anomalyData = await safeJson(anomalyRes, []);
-        const boundaryData = await safeJson(boundaryRes, null);
-        const muniData = await safeJson(muniRes, []);
-        const waterData = await safeJson(waterRes, []);
-        fetch(getApiUrl("/api/ml/summary"))
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d) => !cancelled && setMlSummary(d))
-          .catch(() => {});
-        fetch(getApiUrl("/api/provenance"))
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d) => !cancelled && setProvenance(d))
-          .catch(() => {});
-        // ═══════════════════════════════════════════════════════════════════════════
-        // NDVI DATA PARSING DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════════════════════
-        dlog("📦 [NDVI FETCH DATA PARSING]");
-        dlog("  ndviSurfaceRes.ok:", ndviSurfaceRes.ok);
-
-        let ndviSurfaceData = null;
-        if (ndviSurfaceRes.ok) {
-          try {
-            ndviSurfaceData = await ndviSurfaceRes.json();
-            dlog("  ✅ JSON parse successful");
-            dlog("  [NDVI FETCH DATA] Complete response:", ndviSurfaceData);
-            dlog("  Has image_url:", !!ndviSurfaceData?.image_url);
-            dlog("  Has coordinates:", !!ndviSurfaceData?.coordinates);
-            dlog("  Has metric:", !!ndviSurfaceData?.metric);
-          } catch (parseError) {
-            console.error("  ❌ JSON parse failed:", parseError);
-            console.error("  Response text:", await ndviSurfaceRes.text());
-          }
-        } else {
-          console.warn(
-            "  ⚠️ ndviSurfaceRes.ok is false - no data will be parsed",
-          );
-          console.warn("  Status:", ndviSurfaceRes.status);
-          console.warn("  Trying to read response body anyway...");
-          try {
-            const errorText = await ndviSurfaceRes.text();
-            console.warn("  Response body:", errorText);
-          } catch (e) {
-            console.error("  Could not read response body:", e);
-          }
-        }
-        // ═══════════════════════════════════════════════════════════════════════════
-
-        const lstSurfaceData = lstSurfaceRes.ok
-          ? await lstSurfaceRes.json()
-          : null;
-
-        dlog("📡 [LST FETCH RESPONSE]");
-        dlog("  HTTP Status:", lstSurfaceRes.status);
-        dlog("  response.ok:", lstSurfaceRes.ok);
-        dlog("  Content-Type:", lstSurfaceRes.headers.get("Content-Type"));
-        dlog("  lstSurfaceData:", lstSurfaceData);
-
-        // ═══════════════════════════════════════════════════════════════════════════
-        // WATER HEALTH DATA PARSING DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════════════════════
-        dlog("📦 [WATER HEALTH FETCH DATA PARSING]");
-        dlog(
-          "  waterHealthSurfaceData is null:",
-          waterHealthSurfaceData === null,
-        );
-        dlog(
-          "  waterHealthSurfaceData is undefined:",
-          waterHealthSurfaceData === undefined,
-        );
-
-        if (waterHealthSurfaceData === null) {
-          console.warn(
-            "  ⚠️ Water Health surface is null (404 or no data available) - silently proceeding",
-          );
-        } else if (waterHealthSurfaceData) {
-          dlog("  ✅ Data received from fetchWaterHealthSurface");
-          dlog(
-            "  [WATER HEALTH FETCH DATA] Complete response:",
-            waterHealthSurfaceData,
-          );
-          dlog("  Has image_url:", !!waterHealthSurfaceData?.image_url);
-          dlog("  Has coordinates:", !!waterHealthSurfaceData?.coordinates);
-          dlog("  Has metric:", !!waterHealthSurfaceData?.metric);
-        }
-        // ═══════════════════════════════════════════════════════════════════════════
-
         if (cancelled) return;
-
-        // Build a lookup: zone_id → anomaly info
-        const anomalyById = {};
-        for (const a of anomalyData) {
-          anomalyById[a.locality_id] = a;
-        }
-
-        // Build zone objects from the metrics response
-        const zoneObjects = metrics.map((m) => {
-          const anomaly = anomalyById[m.id] ?? null;
-          const isAnomaly = !!anomaly;
-          const anomalyScore = anomaly?.anomaly_score ?? null;
-
-          const composite = m.composite ?? null;
-          const severity = composite?.score ?? null;
-
-          return {
-            // Identifiers
-            id: m.id, // backend integer zone_id
-            name: m.name,
-            ward: m.ward,
-            // Polygon geometry from PostGIS (ST_AsGeoJSON)
-            geometry: m.geometry ?? null,
-            // Coordinates from PostGIS centroid
-            coords: [m.longitude, m.latitude],
-            // Real measured values (may be null)
-            aqi: m.aqi,
-            ndvi: m.ndvi,
-            lst: m.lst,
-            mndwi: m.mndwi,
-            ndci: m.ndci,
-            turbidity_proxy: m.turbidity_proxy,
-            water_extent_m2: m.water_extent_m2,
-            water_health_score: m.water_health_score,
-            water_health_status: m.water_health_status,
-            water_health_observed_at: m.water_health_observed_at,
-            aqi_observed_at: m.aqi_observed_at,
-            ndvi_observed_at: m.ndvi_observed_at,
-            lst_observed_at: m.lst_observed_at,
-            source_metadata: m.source_metadata,
-            composite,
-            pm25: m.pm25,
-            pm10: m.pm10,
-            no2: m.no2,
-            aqi_source_type: m.aqi_source_type,
-            aqi_nearest_station_distance_m: m.aqi_nearest_station_distance_m,
-            date: m.date,
-            // Anomaly from Isolation Forest (not recomputed in React)
-            is_anomaly: isAnomaly,
-            anomaly_score: anomalyScore,
-            // Visual severity comes from the backend Composite; NULL stays NULL.
-            severity,
-            // Type for color lookup
-            type: isAnomaly
-              ? "critical"
-              : (m.aqi ?? 0) > 200
-                ? "high"
-                : "moderate",
-          };
-        });
-
-        setZones(zoneObjects);
-        setLiveMunicipalities(muniData);
-        setWaterBodies(waterData);
-        setAqiSurface(aqiSurfaceResult.surface);
-        setAqiSurfaceStatus(aqiSurfaceResult.status);
-
-        // ═══════════════════════════════════════════════════════════════════════════
-        // NDVI STATE ASSIGNMENT DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════════════════════
-        dlog("💾 [NDVI STATE ASSIGNMENT]");
-        dlog("  About to call setNdviSurface with:", ndviSurfaceData);
-        dlog("  Is null?", ndviSurfaceData === null);
-        dlog("  Is undefined?", ndviSurfaceData === undefined);
-        dlog("  Truthy?", !!ndviSurfaceData);
-        // ═══════════════════════════════════════════════════════════════════════════
-
-        setNdviSurface(ndviSurfaceData);
-        setLstSurface(lstSurfaceData);
-
-        // ═══════════════════════════════════════════════════════════════════════════
-        // WATER HEALTH STATE ASSIGNMENT DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════════════════════
-        dlog("💾 [WATER HEALTH STATE ASSIGNMENT]");
-        dlog(
-          "  About to call setWaterHealthSurface with:",
-          waterHealthSurfaceData,
-        );
-        dlog("  Is null?", waterHealthSurfaceData === null);
-        dlog("  Is undefined?", waterHealthSurfaceData === undefined);
-        dlog("  Truthy?", !!waterHealthSurfaceData);
-        // ═══════════════════════════════════════════════════════════════════════════
-
-        setWaterHealthSurface(waterHealthSurfaceData);
-        if (compositeSurfaceData) {
-          setCompositeSurface(compositeSurfaceData);
-        }
         setBoundary(boundaryData);
+        setLiveMunicipalities(Array.isArray(muniData) ? muniData : []);
+        setAqiSurfaceInfo(aqi);
+        if (aqi?.available && aqi.image_url && Array.isArray(aqi.coordinates)) {
+          setAqiSurface(aqi);
+          setAqiSurfaceStatus("available");
+        } else {
+          setAqiSurfaceStatus(aqi ? "unavailable" : "error");
+        }
+        setNdviSurface(ndvi);
+        setLstSurface(lst);
+        setWaterHealthSurface(wh);
+        setCompositeSurface(composite);
         setLoading(false);
+        getJson("/api/ml/summary").then((d) => !cancelled && setMlSummary(d));
+        getJson("/api/provenance").then((d) => !cancelled && setProvenance(d));
       } catch (err) {
         if (!cancelled) {
-          // ═══════════════════════════════════════════════════════════════════════════
-          // NDVI FETCH ERROR DIAGNOSTICS
-          // ═══════════════════════════════════════════════════════════════════════════
-          console.error("❌ [NDVI FETCH ERROR]");
-          console.error("  Error message:", err.message);
-          console.error("  Error stack:", err.stack);
-          console.error("  Full error object:", err);
-          // ═══════════════════════════════════════════════════════════════════════════
-
           console.error("[useGeoSenseData] fetch error:", err);
           setError(err.message || "Backend unavailable");
           setAqiSurfaceStatus("error");
@@ -433,18 +120,20 @@ export function useGeoSenseData(activeCity) {
     };
   }, [activeCity]);
 
-  // The backend refreshes the AQI layer by itself (and the composite with it). Check every 10 min,
-  // or every 30 s while a refresh is running, and swap in the new images when they change, or hide
-  // the layer when its readings pass 48 h.
+  // The backend refreshes each city's AQI layer by itself (and the composite with it). Check every
+  // 10 min, or every 30 s while a refresh is running, and swap in the new images when they change,
+  // or hide the layer when its readings pass 48 h.
   const aqiKeyRef = useRef(null);
   useEffect(() => {
+    aqiKeyRef.current = null;
     if (!activeCity) return undefined;
     let stop = false;
     let timer = null;
+    const q = `city=${encodeURIComponent(activeCity)}`;
     const check = async () => {
       let next = 10 * 60 * 1000;
       try {
-        const r = await fetch(getApiUrl("/api/surfaces/aqi/latest"));
+        const r = await apiFetch(`/api/surfaces/aqi/latest?${q}`);
         if (r.ok) {
           const s = await r.json();
           if (stop) return;
@@ -456,9 +145,7 @@ export function useGeoSenseData(activeCity) {
               setAqiSurface(s);
               setAqiSurfaceStatus("available");
               // the composite's air part was rebuilt from the new AQI
-              const c = await fetch(
-                getApiUrl("/api/surfaces/composite/latest"),
-              );
+              const c = await apiFetch(`/api/surfaces/composite/latest?${q}`);
               if (c.ok && !stop) setCompositeSurface(await c.json());
             } else {
               setAqiSurface(null);
@@ -481,20 +168,8 @@ export function useGeoSenseData(activeCity) {
     };
   }, [activeCity]);
 
-  dlog("📦 [useGeoSenseData RETURN]", {
-    hasZones: zones.length,
-    aqiSurface: !!aqiSurface,
-    aqiSurfaceStatus,
-    ndviSurface: !!ndviSurface,
-    lstSurface: !!lstSurface,
-    waterHealthSurface: !!waterHealthSurface,
-    lstSurfaceValue: lstSurface,
-  });
-
   return {
-    zones,
     liveMunicipalities,
-    waterBodies,
     aqiSurface,
     aqiSurfaceStatus,
     aqiSurfaceInfo,
@@ -531,68 +206,59 @@ export function useZoneExplanation() {
   // llm=false gives the instant evidence-only write-up (~0.1 s). llm=true adds the AI summary,
   // which can take several seconds — pass { keep: true } so the panel keeps showing the evidence
   // while it is written, instead of blanking. Returns the response (or null).
-  const fetchExplanation = useCallback(
-    async (lon, lat, focus = null, llm = true, opts = {}) => {
-      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
-      const key = `${lon}|${lat}|${focus || ""}|${llm ? 1 : 0}`;
-      if (
-        inflightRef.current?.key === key &&
-        inflightRef.current.requestId === requestIdRef.current
-      ) {
-        return inflightRef.current.promise;
-      }
-      const keep = !!opts.keep;
-      const requestId = ++requestIdRef.current;
-      const promise = run(requestId, keep);
-      inflightRef.current = { key, requestId, promise };
-      return promise;
+  const fetchExplanation = useCallback(async (lon, lat, focus = null, llm = true, opts = {}) => {
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+    const key = `${lon}|${lat}|${focus || ""}|${llm ? 1 : 0}`;
+    if (inflightRef.current?.key === key && inflightRef.current.requestId === requestIdRef.current) {
+      return inflightRef.current.promise;
+    }
+    const keep = !!opts.keep;
+    const requestId = ++requestIdRef.current;
+    const promise = run(requestId, keep);
+    inflightRef.current = { key, requestId, promise };
+    return promise;
 
-      async function run(requestId, keep) {
-        if (keep) {
-          if (llm) setAiPending(true);
-        } else {
-          setExplanationLoading(true);
-          setExplanationData(null);
+    async function run(requestId, keep) {
+      if (keep) {
+        if (llm) setAiPending(true);
+      } else {
+        setExplanationLoading(true);
+        setExplanationData(null);
+        setAiPending(false);
+      }
+      setExplanationError(null);
+      try {
+        const res = await apiFetch(
+          `/api/analysis/point/explain?lon=${lon}&lat=${lat}&llm=${llm ? "true" : "false"}` +
+            (focus && focus !== "all" ? `&focus=${focus}` : ""),
+        );
+        if (requestId !== requestIdRef.current) return null;
+        if (res.status === 404) {
+          const body = await res.json().catch(() => ({}));
+          setExplanationData({ _unavailable: true, reason: typeof body.detail === "string" ? body.detail : null });
+          return null;
+        }
+        if (!res.ok) throw new Error(`Explanation API error: ${res.status}`);
+        const data = await res.json();
+        if (requestId !== requestIdRef.current) return null;
+        setExplanationData(data);
+        return data;
+      } catch (err) {
+        console.error("[useZoneExplanation] fetch error:", err);
+        if (requestId !== requestIdRef.current) return null;
+        setExplanationError(err.message || "Explanation unavailable");
+        // with keep, the evidence already on screen stays; only a fresh load shows "unavailable"
+        if (!keep) setExplanationData({ _unavailable: true, error: err.message });
+        return null;
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setExplanationLoading(false);
           setAiPending(false);
         }
-        setExplanationError(null);
-        try {
-          const res = await fetch(
-            getApiUrl(
-              `/api/analysis/point/explain?lon=${lon}&lat=${lat}&llm=${llm ? "true" : "false"}` +
-                (focus && focus !== "all" ? `&focus=${focus}` : ""),
-            ),
-          );
-          if (requestId !== requestIdRef.current) return null;
-          if (res.status === 404) {
-            setExplanationData({ _unavailable: true });
-            return null;
-          }
-          if (!res.ok) throw new Error(`Explanation API error: ${res.status}`);
-          const data = await res.json();
-          if (requestId !== requestIdRef.current) return null;
-          setExplanationData(data);
-          return data;
-        } catch (err) {
-          console.error("[useZoneExplanation] fetch error:", err);
-          if (requestId !== requestIdRef.current) return null;
-          setExplanationError(err.message || "Explanation unavailable");
-          // with keep, the evidence already on screen stays; only a fresh load shows "unavailable"
-          if (!keep)
-            setExplanationData({ _unavailable: true, error: err.message });
-          return null;
-        } finally {
-          if (requestId === requestIdRef.current) {
-            setExplanationLoading(false);
-            setAiPending(false);
-          }
-          if (inflightRef.current?.requestId === requestId)
-            inflightRef.current = null;
-        }
+        if (inflightRef.current?.requestId === requestId) inflightRef.current = null;
       }
-    },
-    [],
-  );
+    }
+  }, []);
 
   const clearExplanation = useCallback(() => {
     requestIdRef.current += 1;
@@ -614,55 +280,18 @@ export function useZoneExplanation() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useHotspots — GeoJSON of ML-flagged 300 m cells for the map overlay
-// ─────────────────────────────────────────────────────────────────────────────
-export function useHotspots(model) {
-  const [hotspots, setHotspots] = useState(null);
-  useEffect(() => {
-    if (!model) {
-      setHotspots(null);
-      return;
-    }
-    let cancelled = false;
-    fetch(getApiUrl(`/api/ml/hotspots?model=${model}`))
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => !cancelled && setHotspots(d))
-      .catch(() => !cancelled && setHotspots(null));
-    return () => {
-      cancelled = true;
-    };
-  }, [model]);
-  return hotspots;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // askAssistant — grounded Q&A (POST /api/assistant/ask)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function askAssistant(
-  question,
-  lon = null,
-  lat = null,
-  focus = null,
-  intent = null,
-) {
-  const res = await fetch(getApiUrl("/api/assistant/ask"), {
+export async function askAssistant(question, lon = null, lat = null, focus = null, intent = null) {
+  const res = await apiFetch("/api/assistant/ask", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      question,
-      lon,
-      lat,
-      focus: focus && focus !== "all" ? focus : null,
-      intent,
-    }),
+    body: JSON.stringify({ question, lon, lat, focus: focus && focus !== "all" ? focus : null, intent }),
   });
   if (res.status === 429 || res.status === 422) {
     // rate limit or a request the server's validation rejected: show the server's reason as the answer
     const body = await res.json().catch(() => ({}));
-    const detail =
-      typeof body.detail === "string"
-        ? body.detail
-        : "Please rephrase your question (it was not accepted).";
+    const detail = typeof body.detail === "string" ? body.detail : "Please rephrase your question (it was not accepted).";
     return { answer: detail, citations: [], mode: "guardrail", warnings: [] };
   }
   if (!res.ok) throw new Error(`Assistant error ${res.status}`);

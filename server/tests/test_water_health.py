@@ -200,9 +200,9 @@ class WaterHealthTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(data["sharp_url"], "/surface-assets/water-health/wh_test.png?v=sharp-hash")
-        self.assertEqual(data["glow_url"], "/surface-assets/water-health/wh_test_glow.png?v=glow-hash")
-        self.assertEqual(data["halo_url"], "/surface-assets/water-health/wh_test_halo.png?v=halo-hash")
+        self.assertEqual(data["sharp_url"], "/surface-assets/mumbai/water-health/wh_test.png?v=sharp-hash")
+        self.assertEqual(data["glow_url"], "/surface-assets/mumbai/water-health/wh_test_glow.png?v=glow-hash")
+        self.assertEqual(data["halo_url"], "/surface-assets/mumbai/water-health/wh_test_halo.png?v=halo-hash")
 
 
 if __name__ == "__main__":

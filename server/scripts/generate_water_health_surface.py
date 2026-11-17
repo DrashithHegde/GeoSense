@@ -36,4 +36,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from app.core.cities import run_script_for_city  # noqa: E402
+    raise SystemExit(run_script_for_city(main))

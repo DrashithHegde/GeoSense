@@ -5,6 +5,7 @@ composites over the season, then zonal statistics per 300 m cell computed on the
 (reduceRegions, 10 m). Cells with too few valid pixels get NULL — never a filled value.
 """
 from __future__ import annotations
+from app.core.cities import city_path
 
 import csv
 from pathlib import Path
@@ -13,7 +14,7 @@ from typing import Any
 from app.services.history.seasons import Season
 
 SERVER_ROOT = Path(__file__).resolve().parents[3]
-HISTORY_DIR = SERVER_ROOT / "data" / "history"
+HISTORY_DIR = city_path("history")
 COLUMNS = ["cell_id", "ndvi", "veg_frac", "built_frac", "openwater_frac", "ndmi_veg", "ndbi_land",
            "water_frac", "wh", "lst", "s2_valid_frac", "lst_valid_frac"]
 MIN_VALID = 0.30          # same rule as the current cell features
@@ -24,7 +25,7 @@ MIN_WATER_PX_10M = 30     # 3,000 m² of detected water for a Water Health value
 def season_image(season: Season, region) -> tuple[Any, int, int]:
     import ee
 
-    from app.services.qc import LST_QC_MIN_C
+    from app.services.qc import lst_qc_min_c
     from app.services.surfaces.water_health_surface import build_water_mask
     from gee.ingest_lst import add_lst_celsius, mask_landsat_l2
     from gee.ingest_ndvi_ndwi import S2_DATASET, add_indices, mask_s2_sr
@@ -45,7 +46,7 @@ def season_image(season: Season, region) -> tuple[Any, int, int]:
     susp = ee.Image(1).subtract(comp.select("TURBIDITY_PROXY").add(1).divide(2).clamp(0, 1))
     wh = algal.add(susp).divide(2).clamp(0, 1).updateMask(water)
     lst = ls.map(mask_landsat_l2).map(add_lst_celsius).median().select("LST")
-    lst = lst.updateMask(lst.gte(LST_QC_MIN_C))
+    lst = lst.updateMask(lst.gte(lst_qc_min_c()))
     ones = ee.Image(1)
     img = ee.Image.cat([
         ndvi.rename("ndvi"),

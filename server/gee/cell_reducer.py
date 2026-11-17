@@ -17,7 +17,10 @@ BATCH = 1000
 
 
 def load_cell_polygons(db) -> list[tuple[int, list]]:
-    rows = db.execute(text("SELECT id, ST_AsBinary(geometry) AS g FROM spatial_cells ORDER BY id")).mappings().all()
+    """The current city's cells (id, exterior ring)."""
+    from app.core.cities import current_city_id
+    rows = db.execute(text("SELECT id, ST_AsBinary(geometry) AS g FROM spatial_cells WHERE city = :city ORDER BY id"),
+                      {"city": current_city_id()}).mappings().all()
     out = []
     for r in rows:
         g = wkb.loads(bytes(r["g"]))

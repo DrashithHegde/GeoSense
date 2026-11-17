@@ -9,6 +9,7 @@ a rectangular satellite export. This does not read zone averages as pixels nor
 write to the database.
 """
 from __future__ import annotations
+from app.core.cities import city_path
 
 from datetime import datetime, timezone
 import hashlib
@@ -55,8 +56,8 @@ NODATA_VALUE = -9999.0
 SCALE_METERS = 30
 METHODOLOGY = "Landsat 8/9 Collection 2 Level-2 median composite LST"
 SERVER_ROOT = Path(__file__).resolve().parents[3]
-SURFACE_ROOT = SERVER_ROOT / "data" / "surfaces"
-MANIFEST_PATH = SURFACE_ROOT / "manifest.json"
+SURFACE_ROOT = city_path("surfaces")
+MANIFEST_PATH = city_path("surfaces", "manifest.json")
 LST_VISUAL_SMOOTHING_SIGMA = 0.8
 LST_GLOW_SMOOTHING_SIGMA = 1.4
 LST_GLOW_PERCENTILE = 90.0
@@ -100,7 +101,7 @@ def _write_manifest(record: dict[str, Any], manifest_path: Path) -> None:
 
 
 def get_lst_export_bounds() -> tuple[float, float, float, float]:
-    """Return the bounds of the validated Mumbai + Thane + Mira-Bhayandar union."""
+    """Bounds of the current city's study region."""
     return get_study_region_bounds()
 
 

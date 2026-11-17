@@ -1,6 +1,8 @@
 {
+  "city": "mumbai",
+  "region": "Mumbai, Thane and Mira-Bhayandar",
   "snapshot_at": "2026-10-07T00:00:00+00:00",
-  "generated_at": "2026-11-08T20:29:05.089625+00:00",
+  "generated_at": "2026-11-16T18:40:38.251659+00:00",
   "cells_total": 8287,
   "city_percentiles": {
     "ndvi_mean": [
@@ -519,210 +521,210 @@
       0.52866
     ],
     "aqi_idw": [
-      54.21397,
-      88.88803,
-      93.93213,
-      96.73578,
-      100.23449,
-      103.51631,
-      105.01277,
-      106.27161,
-      107.82198,
-      109.91263,
-      112.07122,
-      113.5915,
-      114.6456,
-      115.59977,
-      116.49451,
-      117.33585,
-      118.01962,
-      118.91937,
-      119.89783,
-      121.13315,
-      122.27005,
-      123.32445,
-      124.41757,
-      125.44948,
-      126.50278,
-      127.30615,
-      127.75204,
-      128.13999,
-      128.60061,
-      129.12881,
-      129.70513,
-      130.34438,
-      131.02128,
-      131.71999,
-      132.43178,
-      133.0501,
-      133.65767,
-      134.15449,
-      134.59721,
-      135.06297,
-      135.57943,
-      135.9979,
-      136.37236,
-      136.74543,
-      137.14393,
-      137.57407,
-      138.3325,
-      139.26977,
-      140.56279,
-      142.03127,
-      143.9454,
-      146.36405,
-      148.56133,
-      150.70943,
-      153.13885,
-      155.69002,
-      158.01671,
-      159.99491,
-      161.6407,
-      163.45099,
-      165.32399,
-      167.29596,
-      169.25314,
-      171.86119,
-      174.49864,
-      177.21867,
-      179.54178,
-      181.22845,
-      183.38428,
-      185.67424,
-      190.05716,
-      194.57022,
-      199.92766,
-      204.06985,
-      207.75932,
-      209.99441,
-      211.41052,
-      213.9835,
-      215.91289,
-      217.26934,
-      218.61614,
-      219.77868,
-      220.94173,
-      222.94249,
-      225.09475,
-      227.59749,
-      229.96945,
-      233.81767,
-      238.51088,
-      242.62647,
-      245.48692,
-      248.33955,
-      251.62492,
-      256.27957,
-      262.35958,
-      267.84276,
-      274.96809,
-      283.54099,
-      288.55348,
-      295.85229,
-      321.06787
+      83.44219,
+      91.8863,
+      99.96594,
+      102.89409,
+      103.85289,
+      105.15006,
+      106.1059,
+      106.58823,
+      107.0451,
+      107.64407,
+      108.17765,
+      108.64139,
+      109.14531,
+      109.65072,
+      110.08496,
+      110.50474,
+      110.86021,
+      111.16755,
+      111.38416,
+      111.63753,
+      111.91057,
+      112.30409,
+      112.66581,
+      113.06067,
+      113.42464,
+      113.83152,
+      114.73737,
+      115.94331,
+      116.95862,
+      117.79462,
+      118.56885,
+      119.29644,
+      119.90065,
+      120.48663,
+      121.02998,
+      121.61459,
+      122.02473,
+      122.38447,
+      122.68808,
+      123.05351,
+      123.41222,
+      123.77446,
+      124.07974,
+      124.35834,
+      124.64564,
+      124.96476,
+      125.28058,
+      125.62759,
+      126.01717,
+      126.41569,
+      126.87202,
+      127.2809,
+      127.70923,
+      128.11685,
+      128.508,
+      128.94931,
+      129.35561,
+      129.66821,
+      130.01725,
+      130.59156,
+      131.20336,
+      131.70904,
+      132.20123,
+      132.63936,
+      133.04573,
+      133.45946,
+      133.89362,
+      134.50477,
+      134.98898,
+      135.43526,
+      136.0211,
+      136.77745,
+      137.5844,
+      138.38896,
+      139.12198,
+      139.97916,
+      141.02258,
+      141.64499,
+      142.53051,
+      143.40458,
+      144.3294,
+      145.18522,
+      146.2152,
+      147.03689,
+      147.91491,
+      149.01956,
+      150.61019,
+      152.38299,
+      154.13817,
+      156.74543,
+      159.83615,
+      161.98568,
+      163.97714,
+      165.22773,
+      166.6291,
+      168.94877,
+      173.22645,
+      177.91753,
+      181.01633,
+      185.67507,
+      200.16577
     ],
     "dist_water_m": [
       0.0,
       0.0,
       0.0,
-      2.99737,
-      11.6867,
-      18.75838,
-      26.29422,
-      31.47996,
-      37.17971,
-      41.77412,
-      45.94715,
-      49.12403,
-      52.60534,
-      55.78647,
-      58.93559,
-      61.96567,
-      65.24148,
-      68.47611,
-      71.60709,
-      74.32174,
-      77.13408,
-      80.22772,
-      83.81515,
-      86.50039,
-      89.50263,
-      93.09449,
-      96.29743,
-      99.23824,
-      102.21519,
-      105.09455,
-      107.75837,
-      110.8524,
-      113.60065,
-      117.10953,
-      120.83353,
-      124.5117,
-      128.68752,
-      133.03972,
-      137.47668,
-      140.99292,
-      145.68137,
-      150.31402,
-      154.90072,
-      159.92874,
-      164.33794,
-      169.03447,
-      173.88778,
-      178.2335,
-      184.25599,
-      190.96157,
-      197.69499,
-      204.88271,
-      212.12792,
-      219.31636,
-      226.0011,
-      233.15629,
-      240.43565,
-      247.39841,
-      255.96428,
-      264.43608,
-      272.39222,
-      280.93415,
-      290.34871,
-      300.50252,
-      310.77912,
-      319.42185,
-      330.91189,
-      340.52447,
-      352.81142,
-      364.47031,
-      373.84737,
-      384.52538,
-      396.1444,
-      407.6402,
-      421.12675,
-      434.12149,
-      448.09021,
-      467.2905,
-      489.08528,
-      506.22863,
-      524.19043,
-      542.56418,
-      561.52791,
-      579.91476,
-      602.61074,
-      624.44359,
-      649.50935,
-      680.75449,
-      719.89436,
-      752.97232,
-      792.94481,
-      833.45687,
-      896.08542,
-      964.9866,
-      1072.51107,
-      1211.05269,
-      1379.88755,
-      1612.46771,
-      1931.32682,
-      2361.61855,
-      3351.49403
+      2.99718,
+      11.68598,
+      18.75722,
+      26.29259,
+      31.47801,
+      37.1774,
+      41.77152,
+      45.9443,
+      49.12098,
+      52.60208,
+      55.78301,
+      58.93193,
+      61.96182,
+      65.23743,
+      68.47186,
+      71.60264,
+      74.31713,
+      77.12929,
+      80.22274,
+      83.80995,
+      86.49502,
+      89.49708,
+      93.08872,
+      96.29145,
+      99.23208,
+      102.20885,
+      105.08803,
+      107.75169,
+      110.84553,
+      113.5936,
+      117.10226,
+      120.82603,
+      124.50397,
+      128.67954,
+      133.03147,
+      137.46815,
+      140.98417,
+      145.67233,
+      150.30469,
+      154.89111,
+      159.91881,
+      164.32774,
+      169.02398,
+      173.87699,
+      178.22244,
+      184.24456,
+      190.94972,
+      197.68272,
+      204.86999,
+      212.11475,
+      219.30275,
+      225.98707,
+      233.14182,
+      240.42073,
+      247.38306,
+      255.94839,
+      264.41967,
+      272.37532,
+      280.91671,
+      290.3307,
+      300.48388,
+      310.75983,
+      319.40203,
+      330.89136,
+      340.50334,
+      352.78953,
+      364.4477,
+      373.82417,
+      384.50152,
+      396.11982,
+      407.6149,
+      421.10062,
+      434.09455,
+      448.0624,
+      467.2615,
+      489.05492,
+      506.19721,
+      524.1579,
+      542.53051,
+      561.49306,
+      579.87877,
+      602.57334,
+      624.40484,
+      649.46905,
+      680.71225,
+      719.84969,
+      752.92559,
+      792.89561,
+      833.40515,
+      896.02981,
+      964.92672,
+      1072.44451,
+      1210.97754,
+      1379.80192,
+      1612.36764,
+      1931.20697,
+      2361.472,
+      3351.28605
     ],
     "ndmi_veg_mean": [
       -0.25548,
@@ -933,105 +935,105 @@
     "composite_cell": [
       0.086,
       0.12977,
-      0.147,
+      0.149,
       0.161,
-      0.171,
-      0.18,
-      0.188,
-      0.197,
-      0.205,
-      0.216,
-      0.225,
-      0.233,
-      0.242,
-      0.25001,
-      0.261,
+      0.169,
+      0.177,
+      0.183,
+      0.192,
+      0.199,
+      0.209,
+      0.218,
+      0.226,
+      0.23324,
+      0.241,
+      0.247,
+      0.254,
+      0.262,
       0.269,
-      0.276,
-      0.285,
-      0.293,
-      0.301,
-      0.307,
-      0.314,
-      0.32,
-      0.328,
-      0.333,
-      0.339,
-      0.346,
+      0.275,
+      0.281,
+      0.287,
+      0.292,
+      0.298,
+      0.303,
+      0.308,
+      0.31325,
+      0.319,
+      0.324,
+      0.329,
+      0.334,
+      0.34,
+      0.345,
       0.352,
       0.358,
-      0.36333,
-      0.37,
-      0.378,
-      0.385,
-      0.391,
-      0.397,
-      0.402,
-      0.409,
-      0.415,
-      0.423,
-      0.42803,
-      0.435,
-      0.439,
-      0.445,
+      0.364,
+      0.371,
+      0.377,
+      0.383,
+      0.389,
+      0.394,
+      0.3998,
+      0.406,
+      0.412,
+      0.418,
+      0.422,
+      0.428,
+      0.433,
+      0.438,
+      0.444,
       0.45,
-      0.455,
-      0.461,
-      0.466,
-      0.472,
-      0.478,
-      0.483,
-      0.488,
-      0.495,
-      0.5,
-      0.505,
-      0.511,
-      0.516,
-      0.521,
-      0.526,
-      0.531,
-      0.537,
-      0.542,
+      0.456,
+      0.46027,
+      0.465,
+      0.471,
+      0.476,
+      0.482,
+      0.487,
+      0.492,
+      0.497,
+      0.502,
+      0.507,
+      0.513,
+      0.518,
+      0.524,
+      0.528,
+      0.533,
+      0.538,
+      0.543,
       0.547,
-      0.553,
-      0.558,
-      0.563,
-      0.568,
-      0.573,
-      0.578,
-      0.583,
-      0.58713,
-      0.593,
-      0.598,
-      0.603,
-      0.608,
-      0.613,
-      0.618,
-      0.623,
+      0.552,
+      0.557,
+      0.561,
+      0.56644,
+      0.572,
+      0.577,
+      0.582,
+      0.587,
+      0.592,
+      0.596,
+      0.6,
+      0.605,
+      0.61,
+      0.617,
+      0.622,
       0.629,
       0.636,
-      0.642,
+      0.64,
       0.647,
-      0.652,
-      0.658,
-      0.66591,
-      0.672,
-      0.679,
-      0.686,
-      0.693,
+      0.653,
+      0.66,
+      0.667,
+      0.674,
+      0.683,
+      0.691,
       0.7,
-      0.707,
-      0.714,
-      0.722,
-      0.73,
-      0.74,
-      0.749,
-      0.76,
-      0.77292,
-      0.791,
-      0.812,
-      0.846,
-      0.953
+      0.71,
+      0.72192,
+      0.735,
+      0.75646,
+      0.78123,
+      0.86
     ]
   },
   "sources": {
@@ -1073,12 +1075,12 @@
       "qc_min_c": 20.0
     },
     "aqi": {
-      "file": "aqi_cpcb_idw_20261108T180000Z.tif",
-      "source_timestamp": "2026-11-08T18:00:00+00:00",
-      "method": "OpenAQ v3 CPCB/MPCB stations \u2192 CPCB National AQI (2014) \u2192 IDW"
+      "file": "aqi_cpcb_idw_20261116T171500Z.tif",
+      "source_timestamp": "2026-11-16T17:15:00+00:00",
+      "method": "OpenAQ v3 CPCB-network stations \u2192 CPCB National AQI (2014) \u2192 IDW"
     },
     "composite": {
-      "file": "composite_components_20261108T202654Z.tif",
+      "file": "composite_components_20261116T183924Z.tif",
       "weights": {
         "air": 0.25,
         "heat": 0.4,
@@ -1117,8 +1119,8 @@
       "cv": "GroupKFold(5) on ~3 km spatial blocks",
       "baseline_std_c": 4.122578090172578,
       "feature_set": "land cover + NDBI",
-      "linear_baseline_r2": 0.45200792742832496,
-      "linear_baseline_rmse_c": 3.0517997195502224
+      "linear_baseline_r2": 0.45200792742832596,
+      "linear_baseline_rmse_c": 3.05179971955022
     },
     "feature_importance_gain": {
       "NDVI (mean)": 0.0483,
@@ -1142,9 +1144,9 @@
     ],
     "model_comparison": {
       "linear_baseline": {
-        "r2_spatial_cv": 0.45200792742832496,
-        "rmse_c": 3.0517997195502224,
-        "mae_c": 2.3832164830521245
+        "r2_spatial_cv": 0.45200792742832596,
+        "rmse_c": 3.05179971955022,
+        "mae_c": 2.3832164830521214
       },
       "xgboost_land_cover": {
         "r2_spatial_cv": 0.49475278228984465,
@@ -1261,9 +1263,9 @@
         "CPCB AQI (IDW)"
       ],
       "eligible": 7922,
-      "anomalies": 396,
-      "unusually_high": 264,
-      "unusually_low": 132,
+      "anomalies": 397,
+      "unusually_high": 226,
+      "unusually_low": 171,
       "unusual_pattern": 0,
       "contamination": 0.05,
       "local_radius_m": 1000.0
@@ -1280,65 +1282,123 @@
       "O\u2083",
       "CO"
     ],
-    "eligible": 16,
+    "eligible": 22,
     "anomalies": 2,
-    "contamination": 0.125,
+    "contamination": 0.091,
     "stations": [
+      {
+        "station_id": 6927,
+        "station_name": "Colaba, Mumbai - MPCB",
+        "lat": 18.91,
+        "lon": 72.82,
+        "aqi": 85,
+        "is_anomaly": false,
+        "score_percentile": 72.7,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 67.3,
+            "z": 1.4,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 23.0,
+            "z": -1.32,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 85.0,
+            "z": -1.26,
+            "direction": "below"
+          }
+        ]
+      },
       {
         "station_id": 11611,
         "station_name": "Malad West, Mumbai - IITM",
         "lat": 19.19709,
         "lon": 72.82204,
-        "aqi": 218,
+        "aqi": 186,
         "is_anomaly": true,
-        "score_percentile": 87.5,
+        "score_percentile": 95.5,
         "dominant_deviations": [
           {
             "pollutant": "SO\u2082",
-            "sub_index": 102.7,
-            "z": 2.2,
+            "sub_index": 105.6,
+            "z": 2.91,
             "direction": "above"
           },
           {
-            "pollutant": "NO\u2082",
-            "sub_index": 105.0,
-            "z": 1.33,
+            "pollutant": "PM2.5",
+            "sub_index": 186.3,
+            "z": 1.49,
             "direction": "above"
           },
           {
             "pollutant": "O\u2083",
-            "sub_index": 48.0,
-            "z": 0.91,
+            "sub_index": 81.0,
+            "z": 1.41,
             "direction": "above"
           }
         ]
       },
       {
-        "station_id": 12039,
-        "station_name": "Khindipada-Bhandup West, Mumbai - IITM",
-        "lat": 19.164394,
-        "lon": 72.928297,
-        "aqi": 105,
+        "station_id": 12024,
+        "station_name": "Chakala-Andheri East, Mumbai - IITM",
+        "lat": 19.11074,
+        "lon": 72.86084,
+        "aqi": 135,
         "is_anomaly": false,
-        "score_percentile": 56.2,
+        "score_percentile": 4.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 66.0,
+            "z": 0.71,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 105.0,
+            "z": 0.69,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 15.0,
+            "z": -0.66,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409322,
+        "station_name": "Pimpleshwar Mandir, Thane - MPCB",
+        "lat": 19.192056,
+        "lon": 72.9585188,
+        "aqi": 102,
+        "is_anomaly": false,
+        "score_percentile": 77.3,
         "dominant_deviations": [
           {
             "pollutant": "PM2.5",
-            "sub_index": 59.4,
-            "z": -1.7,
-            "direction": "below"
-          },
-          {
-            "pollutant": "PM10",
-            "sub_index": 105.0,
-            "z": -1.11,
+            "sub_index": 25.0,
+            "z": -1.81,
             "direction": "below"
           },
           {
             "pollutant": "NO\u2082",
-            "sub_index": 52.3,
-            "z": -0.29,
+            "sub_index": 17.5,
+            "z": -1.69,
             "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 71.0,
+            "z": 0.94,
+            "direction": "above"
           }
         ]
       },
@@ -1347,26 +1407,55 @@
         "station_name": "Worli, Mumbai - MPCB",
         "lat": 18.9936162,
         "lon": 72.8128113,
-        "aqi": 101,
+        "aqi": 102,
         "is_anomaly": false,
-        "score_percentile": 75.0,
+        "score_percentile": 27.3,
         "dominant_deviations": [
           {
             "pollutant": "PM10",
             "sub_index": 90.0,
-            "z": -1.64,
+            "z": -1.05,
             "direction": "below"
           },
           {
-            "pollutant": "PM2.5",
-            "sub_index": 101.0,
-            "z": -1.23,
-            "direction": "below"
+            "pollutant": "SO\u2082",
+            "sub_index": 47.5,
+            "z": 0.62,
+            "direction": "above"
           },
           {
             "pollutant": "NO\u2082",
-            "sub_index": 98.7,
-            "z": 1.14,
+            "sub_index": 102.0,
+            "z": 0.61,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409328,
+        "station_name": "Bandra Kurla Complex, Mumbai - IITM",
+        "lat": 19.0627,
+        "lon": 72.84614,
+        "aqi": 221,
+        "is_anomaly": false,
+        "score_percentile": 86.4,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 221.5,
+            "z": 2.21,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 150.2,
+            "z": 1.51,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 58.5,
+            "z": 1.05,
             "direction": "above"
           }
         ]
@@ -1376,26 +1465,26 @@
         "station_name": "Deonar, Mumbai - IITM",
         "lat": 19.04946,
         "lon": 72.923,
-        "aqi": 300,
+        "aqi": 201,
         "is_anomaly": false,
-        "score_percentile": 25.0,
+        "score_percentile": 45.5,
         "dominant_deviations": [
           {
-            "pollutant": "O\u2083",
-            "sub_index": 53.0,
-            "z": 1.37,
+            "pollutant": "PM2.5",
+            "sub_index": 201.0,
+            "z": 1.79,
             "direction": "above"
           },
           {
-            "pollutant": "PM2.5",
-            "sub_index": 300.0,
-            "z": 1.04,
+            "pollutant": "PM10",
+            "sub_index": 136.9,
+            "z": 0.94,
             "direction": "above"
           },
           {
             "pollutant": "SO\u2082",
-            "sub_index": 20.0,
-            "z": -0.74,
+            "sub_index": 12.5,
+            "z": -0.76,
             "direction": "below"
           }
         ]
@@ -1405,27 +1494,56 @@
         "station_name": "Kasarvadavali, Thane - MPCB",
         "lat": 19.26777,
         "lon": 72.97182,
-        "aqi": 115,
+        "aqi": 122,
         "is_anomaly": false,
-        "score_percentile": 6.2,
+        "score_percentile": 9.1,
         "dominant_deviations": [
           {
             "pollutant": "PM2.5",
-            "sub_index": 104.4,
-            "z": -1.19,
+            "sub_index": 79.7,
+            "z": -0.69,
             "direction": "below"
           },
           {
             "pollutant": "NO\u2082",
-            "sub_index": 93.7,
-            "z": 0.98,
+            "sub_index": 102.0,
+            "z": 0.61,
             "direction": "above"
           },
           {
             "pollutant": "SO\u2082",
-            "sub_index": 64.8,
-            "z": 0.85,
+            "sub_index": 46.2,
+            "z": 0.57,
             "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409471,
+        "station_name": "Sector-2E Kalamboli, Navi Mumbai - MPCB",
+        "lat": 19.02579,
+        "lon": 73.10297,
+        "aqi": 105,
+        "is_anomaly": false,
+        "score_percentile": 81.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 8.0,
+            "z": -2.02,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 30.0,
+            "z": -1.35,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 67.9,
+            "z": -0.93,
+            "direction": "below"
           }
         ]
       },
@@ -1434,27 +1552,27 @@
         "station_name": "Upvan Fort, Thane - MPCB",
         "lat": 19.222279,
         "lon": 72.957979,
-        "aqi": 142,
+        "aqi": 156,
         "is_anomaly": false,
-        "score_percentile": 12.5,
+        "score_percentile": 40.9,
         "dominant_deviations": [
           {
-            "pollutant": "SO\u2082",
-            "sub_index": 69.8,
-            "z": 1.03,
-            "direction": "above"
-          },
-          {
-            "pollutant": "PM10",
-            "sub_index": 109.6,
-            "z": -0.95,
+            "pollutant": "NO\u2082",
+            "sub_index": 46.2,
+            "z": -0.91,
             "direction": "below"
           },
           {
             "pollutant": "PM2.5",
-            "sub_index": 142.0,
-            "z": -0.76,
-            "direction": "below"
+            "sub_index": 155.6,
+            "z": 0.86,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 58.0,
+            "z": 0.33,
+            "direction": "above"
           }
         ]
       },
@@ -1463,26 +1581,26 @@
         "station_name": "CBD Belapur, Belapur - MPCB",
         "lat": 19.0243902,
         "lon": 73.0406721,
-        "aqi": 190,
-        "is_anomaly": false,
-        "score_percentile": 37.5,
+        "aqi": 109,
+        "is_anomaly": true,
+        "score_percentile": 90.9,
         "dominant_deviations": [
           {
             "pollutant": "PM10",
-            "sub_index": 175.4,
-            "z": 1.38,
-            "direction": "above"
+            "sub_index": 45.0,
+            "z": -2.96,
+            "direction": "below"
           },
           {
-            "pollutant": "SO\u2082",
-            "sub_index": 69.8,
-            "z": 1.03,
-            "direction": "above"
+            "pollutant": "PM2.5",
+            "sub_index": 30.0,
+            "z": -1.7,
+            "direction": "below"
           },
           {
             "pollutant": "NO\u2082",
-            "sub_index": 89.9,
-            "z": 0.87,
+            "sub_index": 109.0,
+            "z": 0.8,
             "direction": "above"
           }
         ]
@@ -1492,27 +1610,85 @@
         "station_name": "Bhayandar West, Mira-Bhayandar - MPCB",
         "lat": 19.296481,
         "lon": 72.840923,
-        "aqi": 132,
+        "aqi": 114,
         "is_anomaly": false,
-        "score_percentile": 43.8,
+        "score_percentile": 31.8,
         "dominant_deviations": [
           {
             "pollutant": "NO\u2082",
             "sub_index": 21.2,
-            "z": -1.25,
+            "z": -1.59,
             "direction": "below"
           },
           {
             "pollutant": "PM2.5",
-            "sub_index": 114.7,
-            "z": -1.07,
+            "sub_index": 79.7,
+            "z": -0.69,
             "direction": "below"
           },
           {
             "pollutant": "SO\u2082",
-            "sub_index": 22.5,
-            "z": -0.65,
+            "sub_index": 15.0,
+            "z": -0.66,
             "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409479,
+        "station_name": "Mindspace-Malad West, Mumbai - MPCB",
+        "lat": 19.1878657,
+        "lon": 72.8304069,
+        "aqi": 127,
+        "is_anomaly": false,
+        "score_percentile": 63.6,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 18.0,
+            "z": -1.55,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 69.8,
+            "z": 1.5,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 126.9,
+            "z": 0.52,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 3409482,
+        "station_name": "Bandra Kurla Complex, Mumbai - MPCB",
+        "lat": 19.065931,
+        "lon": 72.862131,
+        "aqi": 170,
+        "is_anomaly": false,
+        "score_percentile": 68.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 170.0,
+            "z": 2.46,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 140.2,
+            "z": 1.08,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 71.0,
+            "z": 0.94,
+            "direction": "above"
           }
         ]
       },
@@ -1521,27 +1697,27 @@
         "station_name": "Chembur, Mumbai - MPCB",
         "lat": 19.0364585,
         "lon": 72.8954371,
-        "aqi": 269,
+        "aqi": 162,
         "is_anomaly": false,
-        "score_percentile": 0.0,
+        "score_percentile": 50.0,
         "dominant_deviations": [
           {
-            "pollutant": "NO\u2082",
-            "sub_index": 93.7,
-            "z": 0.98,
+            "pollutant": "O\u2083",
+            "sub_index": 86.0,
+            "z": 1.65,
             "direction": "above"
           },
           {
             "pollutant": "PM2.5",
-            "sub_index": 269.3,
-            "z": 0.69,
+            "sub_index": 162.4,
+            "z": 1.0,
             "direction": "above"
           },
           {
-            "pollutant": "O\u2083",
-            "sub_index": 43.0,
-            "z": 0.45,
-            "direction": "above"
+            "pollutant": "SO\u2082",
+            "sub_index": 22.5,
+            "z": -0.36,
+            "direction": "below"
           }
         ]
       },
@@ -1550,26 +1726,26 @@
         "station_name": "Gokul Nagar, Bhiwandi - MPCB",
         "lat": 19.309073,
         "lon": 73.057223,
-        "aqi": 332,
+        "aqi": 157,
         "is_anomaly": false,
-        "score_percentile": 18.8,
+        "score_percentile": 54.5,
         "dominant_deviations": [
           {
-            "pollutant": "PM2.5",
-            "sub_index": 332.5,
-            "z": 1.41,
+            "pollutant": "PM10",
+            "sub_index": 157.5,
+            "z": 1.82,
             "direction": "above"
           },
           {
-            "pollutant": "SO\u2082",
-            "sub_index": 12.5,
-            "z": -1.01,
+            "pollutant": "NO\u2082",
+            "sub_index": 46.2,
+            "z": -0.91,
             "direction": "below"
           },
           {
-            "pollutant": "PM10",
-            "sub_index": 160.1,
-            "z": 0.84,
+            "pollutant": "O\u2083",
+            "sub_index": 61.0,
+            "z": 0.47,
             "direction": "above"
           }
         ]
@@ -1579,26 +1755,26 @@
         "station_name": "Kherwadi_Bandra East, Mumbai - MPCB",
         "lat": 19.0632143,
         "lon": 72.8456324,
-        "aqi": 325,
-        "is_anomaly": true,
-        "score_percentile": 93.8,
+        "aqi": 119,
+        "is_anomaly": false,
+        "score_percentile": 59.1,
         "dominant_deviations": [
           {
             "pollutant": "O\u2083",
-            "sub_index": 7.0,
-            "z": -2.84,
+            "sub_index": 6.0,
+            "z": -2.11,
             "direction": "below"
           },
           {
-            "pollutant": "PM10",
-            "sub_index": 178.1,
-            "z": 1.47,
-            "direction": "above"
+            "pollutant": "SO\u2082",
+            "sub_index": 6.2,
+            "z": -1.0,
+            "direction": "below"
           },
           {
             "pollutant": "NO\u2082",
-            "sub_index": 18.8,
-            "z": -1.32,
+            "sub_index": 58.5,
+            "z": -0.57,
             "direction": "below"
           }
         ]
@@ -1608,27 +1784,27 @@
         "station_name": "Sanpada, Navi Mumbai - MPCB",
         "lat": 19.0575752,
         "lon": 73.0151367,
-        "aqi": 211,
+        "aqi": 99,
         "is_anomaly": false,
-        "score_percentile": 62.5,
+        "score_percentile": 22.7,
         "dominant_deviations": [
           {
             "pollutant": "NO\u2082",
-            "sub_index": 23.8,
-            "z": -1.17,
+            "sub_index": 43.8,
+            "z": -0.97,
             "direction": "below"
           },
           {
             "pollutant": "PM10",
-            "sub_index": 107.0,
-            "z": -1.04,
+            "sub_index": 99.0,
+            "z": -0.67,
             "direction": "below"
           },
           {
-            "pollutant": "O\u2083",
-            "sub_index": 47.0,
-            "z": 0.82,
-            "direction": "above"
+            "pollutant": "PM2.5",
+            "sub_index": 94.9,
+            "z": -0.38,
+            "direction": "below"
           }
         ]
       },
@@ -1637,55 +1813,26 @@
         "station_name": "Byculla, Mumbai - BMC",
         "lat": 18.9767,
         "lon": 72.838,
-        "aqi": 183,
+        "aqi": 102,
         "is_anomaly": false,
-        "score_percentile": 50.0,
+        "score_percentile": 18.2,
         "dominant_deviations": [
-          {
-            "pollutant": "NO\u2082",
-            "sub_index": 102.0,
-            "z": 1.24,
-            "direction": "above"
-          },
-          {
-            "pollutant": "PM10",
-            "sub_index": 105.7,
-            "z": -1.09,
-            "direction": "below"
-          },
           {
             "pollutant": "SO\u2082",
-            "sub_index": 12.5,
-            "z": -1.01,
+            "sub_index": 5.0,
+            "z": -1.05,
             "direction": "below"
-          }
-        ]
-      },
-      {
-        "station_id": 3409511,
-        "station_name": "Shivaji Nagar, Mumbai - BMC",
-        "lat": 19.060498,
-        "lon": 72.923356,
-        "aqi": 322,
-        "is_anomaly": false,
-        "score_percentile": 81.2,
-        "dominant_deviations": [
+          },
           {
             "pollutant": "PM10",
-            "sub_index": 180.1,
-            "z": 1.54,
-            "direction": "above"
+            "sub_index": 101.7,
+            "z": -0.55,
+            "direction": "below"
           },
           {
             "pollutant": "NO\u2082",
-            "sub_index": 15.0,
-            "z": -1.44,
-            "direction": "below"
-          },
-          {
-            "pollutant": "PM2.5",
-            "sub_index": 321.7,
-            "z": 1.28,
+            "sub_index": 98.7,
+            "z": 0.52,
             "direction": "above"
           }
         ]
@@ -1695,26 +1842,55 @@
         "station_name": "Kandivali West, Mumbai - BMC",
         "lat": 19.215859,
         "lon": 72.831718,
-        "aqi": 304,
+        "aqi": 122,
         "is_anomaly": false,
-        "score_percentile": 68.8,
+        "score_percentile": 36.4,
         "dominant_deviations": [
           {
-            "pollutant": "O\u2083",
-            "sub_index": 21.0,
-            "z": -1.56,
-            "direction": "below"
-          },
-          {
-            "pollutant": "PM2.5",
-            "sub_index": 304.1,
-            "z": 1.08,
+            "pollutant": "NO\u2082",
+            "sub_index": 122.0,
+            "z": 1.16,
             "direction": "above"
           },
           {
-            "pollutant": "PM10",
-            "sub_index": 160.1,
-            "z": 0.84,
+            "pollutant": "SO\u2082",
+            "sub_index": 11.2,
+            "z": -0.81,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 39.0,
+            "z": -0.56,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 3409513,
+        "station_name": "Sewri, Mumbai - BMC",
+        "lat": 19.000084,
+        "lon": 72.85673,
+        "aqi": 135,
+        "is_anomaly": false,
+        "score_percentile": 0.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 12.5,
+            "z": -0.76,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 106.0,
+            "z": 0.72,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 135.1,
+            "z": 0.44,
             "direction": "above"
           }
         ]
@@ -1724,26 +1900,26 @@
         "station_name": "Ghatkopar, Mumbai - BMC",
         "lat": 19.083694,
         "lon": 72.920967,
-        "aqi": 166,
+        "aqi": 116,
         "is_anomaly": false,
-        "score_percentile": 31.2,
+        "score_percentile": 13.6,
         "dominant_deviations": [
           {
-            "pollutant": "SO\u2082",
-            "sub_index": 5.0,
-            "z": -1.27,
+            "pollutant": "NO\u2082",
+            "sub_index": 46.2,
+            "z": -0.91,
             "direction": "below"
           },
           {
-            "pollutant": "NO\u2082",
-            "sub_index": 32.5,
-            "z": -0.9,
+            "pollutant": "SO\u2082",
+            "sub_index": 10.0,
+            "z": -0.85,
             "direction": "below"
           },
           {
             "pollutant": "PM2.5",
-            "sub_index": 165.9,
-            "z": -0.49,
+            "sub_index": 79.7,
+            "z": -0.69,
             "direction": "below"
           }
         ]
@@ -2054,55 +2230,55 @@
         "scope": "land",
         "all": {
           "n": 7644,
-          "pearson_r": -0.142,
-          "spearman_rho": -0.156,
+          "pearson_r": -0.049,
+          "spearman_rho": -0.032,
           "strength": "negligible",
           "direction": "negative"
         },
         "by_municipality": {
           "Mira-Bhayandar": {
             "n": 922,
-            "pearson_r": 0.095,
-            "spearman_rho": 0.078,
+            "pearson_r": 0.259,
+            "spearman_rho": 0.097,
             "strength": "negligible",
             "direction": "positive"
           },
           "Mumbai": {
             "n": 5204,
-            "pearson_r": -0.114,
-            "spearman_rho": -0.102,
+            "pearson_r": -0.031,
+            "spearman_rho": -0.018,
             "strength": "negligible",
             "direction": "negative"
           },
           "Thane": {
             "n": 1518,
-            "pearson_r": -0.038,
-            "spearman_rho": -0.005,
+            "pearson_r": 0.143,
+            "spearman_rho": 0.145,
             "strength": "negligible",
-            "direction": "negative"
+            "direction": "positive"
           }
         },
         "by_land_class": {
           "vegetation-dominated": {
             "n": 3287,
-            "pearson_r": -0.234,
-            "spearman_rho": -0.21,
-            "strength": "weak",
+            "pearson_r": -0.181,
+            "spearman_rho": -0.15,
+            "strength": "negligible",
             "direction": "negative"
           },
           "mixed": {
             "n": 3330,
-            "pearson_r": -0.035,
-            "spearman_rho": -0.056,
+            "pearson_r": -0.014,
+            "spearman_rho": -0.028,
             "strength": "negligible",
             "direction": "negative"
           },
           "built-up-dominated": {
             "n": 1027,
-            "pearson_r": -0.022,
-            "spearman_rho": -0.034,
+            "pearson_r": 0.068,
+            "spearman_rho": 0.075,
             "strength": "negligible",
-            "direction": "negative"
+            "direction": "positive"
           }
         },
         "caution": "AQI between stations is interpolated from 30 stations; the effective sample size is the station count, so treat this as indicative only."
@@ -2114,53 +2290,53 @@
         "scope": "land",
         "all": {
           "n": 6805,
-          "pearson_r": 0.199,
-          "spearman_rho": 0.225,
-          "strength": "weak",
+          "pearson_r": 0.086,
+          "spearman_rho": 0.099,
+          "strength": "negligible",
           "direction": "positive"
         },
         "by_municipality": {
           "Mira-Bhayandar": {
             "n": 826,
-            "pearson_r": 0.224,
-            "spearman_rho": 0.19,
+            "pearson_r": -0.077,
+            "spearman_rho": -0.043,
             "strength": "negligible",
-            "direction": "positive"
+            "direction": "negative"
           },
           "Mumbai": {
             "n": 4616,
-            "pearson_r": 0.132,
-            "spearman_rho": 0.136,
+            "pearson_r": 0.056,
+            "spearman_rho": 0.082,
             "strength": "negligible",
             "direction": "positive"
           },
           "Thane": {
             "n": 1363,
-            "pearson_r": 0.017,
-            "spearman_rho": 0.028,
+            "pearson_r": -0.169,
+            "spearman_rho": -0.144,
             "strength": "negligible",
-            "direction": "positive"
+            "direction": "negative"
           }
         },
         "by_land_class": {
           "vegetation-dominated": {
             "n": 2757,
-            "pearson_r": 0.291,
-            "spearman_rho": 0.35,
-            "strength": "weak",
+            "pearson_r": 0.09,
+            "spearman_rho": 0.135,
+            "strength": "negligible",
             "direction": "positive"
           },
           "mixed": {
             "n": 3077,
-            "pearson_r": 0.148,
-            "spearman_rho": 0.178,
+            "pearson_r": 0.101,
+            "spearman_rho": 0.128,
             "strength": "negligible",
             "direction": "positive"
           },
           "built-up-dominated": {
             "n": 971,
-            "pearson_r": 0.203,
-            "spearman_rho": 0.219,
+            "pearson_r": 0.207,
+            "spearman_rho": 0.217,
             "strength": "weak",
             "direction": "positive"
           }
@@ -2211,32 +2387,32 @@
         "scope": "water",
         "all": {
           "n": 2319,
-          "pearson_r": 0.122,
-          "spearman_rho": 0.13,
+          "pearson_r": -0.016,
+          "spearman_rho": -0.059,
           "strength": "negligible",
-          "direction": "positive"
+          "direction": "negative"
         },
         "by_municipality": {
           "Mira-Bhayandar": {
             "n": 390,
-            "pearson_r": -0.109,
-            "spearman_rho": -0.172,
-            "strength": "negligible",
+            "pearson_r": -0.177,
+            "spearman_rho": -0.201,
+            "strength": "weak",
             "direction": "negative"
           },
           "Mumbai": {
             "n": 1405,
-            "pearson_r": 0.083,
-            "spearman_rho": 0.063,
+            "pearson_r": -0.088,
+            "spearman_rho": -0.134,
             "strength": "negligible",
-            "direction": "positive"
+            "direction": "negative"
           },
           "Thane": {
             "n": 524,
-            "pearson_r": -0.007,
-            "spearman_rho": -0.055,
+            "pearson_r": -0.083,
+            "spearman_rho": 0.002,
             "strength": "negligible",
-            "direction": "negative"
+            "direction": "positive"
           }
         },
         "by_land_class": {},
@@ -2406,20 +2582,20 @@
       "status": "ok",
       "method": "leave-one-station-out, same IDW settings (k, power, max distance)",
       "n": 30,
-      "mae": 64.0,
-      "rmse": 81.9,
-      "bias": 2.5,
-      "category_agreement_pct": 53.0,
+      "mae": 33.3,
+      "rmse": 41.5,
+      "bias": 5.0,
+      "category_agreement_pct": 73.0,
       "by_distance": {
         "far": {
-          "mae": 88.3,
+          "mae": 15.4,
           "n": 5,
-          "rmse": 107.9
+          "rmse": 18.9
         },
         "near": {
-          "mae": 59.2,
+          "mae": 36.9,
           "n": 25,
-          "rmse": 75.6
+          "rmse": 44.7
         }
       }
     }
@@ -2428,6 +2604,6 @@
     "Signals are statistical associations within one snapshot, not causal proof.",
     "LST cells with <30% cloud-free Landsat pixels are excluded rather than filled.",
     "Water Health is a satellite spectral proxy, not laboratory water quality.",
-    "AQI enters the models only when a real OpenAQ CPCB/MPCB station surface exists."
+    "AQI enters the models only when a real OpenAQ CPCB-network station surface exists."
   ]
 }

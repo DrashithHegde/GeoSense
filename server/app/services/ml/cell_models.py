@@ -22,7 +22,7 @@ features from `cell_features`:
                the surrounding ~1 km (cell value minus neighbour mean)
      output:   "unusually high / low / patchy for this layer" with z-scores
 
-5. Station Isolation Forest (OpenAQ CPCB/MPCB stations)
+5. Station Isolation Forest (OpenAQ CPCB-network stations)
      features: CPCB pollutant sub-indices (PM2.5, PM10, NO2, SO2, O3, CO)
      output:   stations whose pollutant mix is unusual relative to other stations
 
@@ -390,8 +390,11 @@ def persist_results(db, observed_at: datetime, iso: dict, xgbr: dict, wh: dict,
     # Replace this snapshot's rows for these models so cells that are no longer
     # scored (e.g. water cells now excluded from Isolation Forest) keep no stale result.
     names = [IF_MODEL, XGB_MODEL, WH_MODEL] + [c["model"] for c in LAYER_IF.values()]
-    db.execute(text("DELETE FROM anomaly_results WHERE observed_at = :obs AND model_name = ANY(:names)"),
-               {"obs": observed_at, "names": names})
+    # only this city's cells: another city can have a snapshot with the same timestamp
+    from app.core.cities import current_city_id
+    db.execute(text("DELETE FROM anomaly_results WHERE observed_at = :obs AND model_name = ANY(:names) "
+                    "AND cell_id IN (SELECT id FROM spatial_cells WHERE city = :city)"),
+               {"obs": observed_at, "names": names, "city": current_city_id()})
     if payload:
         db.execute(text("""
             INSERT INTO anomaly_results (cell_id, observed_at, detected_at, anomaly_score, is_anomaly, model_name,
@@ -424,7 +427,10 @@ def write_summary(observed_at: datetime, sources: dict, iso: dict, xgbr: dict, w
                   rows: list[dict] | None = None, layers: dict | None = None, stations: dict | None = None,
                   extras: dict | None = None) -> Path:
     import xgboost as xgb
+    from app.core.cities import get_city
     summary = {
+        "city": get_city().id,
+        "region": get_city().region_label,
         "snapshot_at": observed_at.isoformat(),
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "cells_total": n_cells,
@@ -441,7 +447,7 @@ def write_summary(observed_at: datetime, sources: dict, iso: dict, xgbr: dict, w
             "Signals are statistical associations within one snapshot, not causal proof.",
             "LST cells with <30% cloud-free Landsat pixels are excluded rather than filled.",
             "Water Health is a satellite spectral proxy, not laboratory water quality.",
-            "AQI enters the models only when a real OpenAQ CPCB/MPCB station surface exists.",
+            "AQI enters the models only when a real OpenAQ CPCB-network station surface exists.",
         ],
     }
     ML_DIR.mkdir(parents=True, exist_ok=True)

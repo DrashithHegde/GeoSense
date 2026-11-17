@@ -1,9 +1,10 @@
 """Build GeoSense's seasonal history (run on your machine; needs Earth Engine + OpenAQ key).
 
-    python scripts/build_history.py                 # satellites + stations, all seasons since 2023
-    python scripts/build_history.py --only satellite
-    python scripts/build_history.py --only stations
-    python scripts/build_history.py --rebuild        # recompute seasons already on disk
+    python scripts/build_history.py --city delhi            # satellites + stations, all seasons since 2023
+    python scripts/build_history.py --city delhi --only satellite
+    python scripts/build_history.py --city delhi --only stations
+    python scripts/build_history.py --city delhi --rebuild   # recompute seasons already on disk
+(--city defaults to mumbai; seasons per city are in app/core/cities.py)
 
 Resumable: a season whose CSV already exists is loaded from disk, not recomputed (except the
 season still in progress and its matched window, which are always refreshed).
@@ -58,13 +59,13 @@ def main() -> int:
                 if csv_path.exists() and s.key in metas and not (a.rebuild or fresh):
                     print(f"{s.key}: on disk, loading")
                 else:
-                    print(f"{s.key}: computing in Earth Engine ({s.start} → {s.end})")
+                    print(f"{s.key}: computing in Earth Engine ({s.start} -> {s.end})")
                     metas[s.key] = build_season(s, cells, region)
                     meta_path.write_text(json.dumps(metas, indent=2), encoding="utf-8")
                 store.upsert_season(db, metas[s.key])
                 n = store.load_cell_csv(db, s.key)
                 db.commit()
-                print(f"  {s.key}: {n} cells loaded · S2 images {metas[s.key]['s2_images']} · "
+                print(f"  {s.key}: {n} cells loaded | S2 images {metas[s.key]['s2_images']} | "
                       f"Landsat images {metas[s.key]['landsat_images']}")
         if a.only in (None, "stations"):
             from app.core.config import get_settings
@@ -72,7 +73,7 @@ def main() -> int:
 
             key = get_settings().openaq_aqi_key or os.getenv("OPENAQ_AQI_KEY")
             if not key:
-                print("No OpenAQ key (OPENAQ_AQI_KEY) — skipping station history.")
+                print("No OpenAQ key (OPENAQ_AQI_KEY) - skipping station history.")
             else:
                 for s in season_list:   # seasons table must exist for labels
                     store.upsert_season(db, {"season": s.key, "label": s.label, "kind": s.kind, "year": s.year,
@@ -94,4 +95,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from app.core.cities import run_script_for_city  # noqa: E402
+    raise SystemExit(run_script_for_city(main))

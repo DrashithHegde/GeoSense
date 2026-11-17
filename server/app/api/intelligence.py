@@ -9,6 +9,8 @@ GET  /api/ml/hotspots?model=&limit=           GeoJSON points of flagged cells fo
 GET  /api/ml/stations                         station-level Isolation Forest (pollutant mix) as GeoJSON
 GET  /api/knowledge                           the cited knowledge base (for transparency)
 POST /api/ml/run                              re-run the cell ML pipeline (background)
+
+Every endpoint works on the city of the request (?city=, or the city containing ?lon=&lat=).
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
+from app.core.cities import get_city, use_city
 from app.database import engine, get_db
 from app.services.rag import retriever
 from app.services.rag.explainer import answer_question, explain_point, ml_summary
@@ -37,6 +40,9 @@ MODELS = {
     "if_aqi": "isolation_forest_aqi_v1",
 }
 FOCUS_PATTERN = "^(composite|ndvi|lst|water_health|aqi)$"
+# anywhere in India (each city's own study region is checked by the analysis itself)
+LON = dict(ge=68.0, le=98.0)
+LAT = dict(ge=6.0, le=38.0)
 
 
 async def _analysis(lon: float, lat: float) -> dict:
@@ -44,16 +50,34 @@ async def _analysis(lon: float, lat: float) -> dict:
     return await get_point_analysis(lon, lat, db_cm=get_db())
 
 
+def _has_any_data(analysis: dict) -> bool:
+    px = analysis.get("pixel") or {}
+    for k in ("ndvi", "water_health", "aqi", "composite"):
+        if (px.get(k) or {}).get("value") is not None:
+            return True
+    if (px.get("lst") or {}).get("value_c") is not None:
+        return True
+    cell = analysis.get("cell") or {}
+    m = cell.get("metrics") or {}
+    return bool(cell.get("features")) or any(m.get(k) is not None for k in ("ndvi", "lst", "aqi", "water_health_score",
+                                                                           "composite"))
+
+
 def _client(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
 @router.get("/analysis/point/explain")
-async def explain(request: Request, lon: float = Query(..., ge=72.0, le=74.0), lat: float = Query(..., ge=18.0, le=20.0),
+async def explain(request: Request, lon: float = Query(..., **LON), lat: float = Query(..., **LAT),
                   llm: bool = True, focus: Optional[str] = Query(None, pattern=FOCUS_PATTERN)):
     analysis = await _analysis(lon, lat)
     if not analysis.get("cell") and not analysis.get("municipality"):
-        raise HTTPException(status_code=404, detail="Location is outside the GeoSense study region")
+        raise HTTPException(status_code=404, detail=f"Location is outside the {get_city().name} study region")
+    if not _has_any_data(analysis):
+        # nothing measured here yet (e.g. a city whose layers are still being generated): say so,
+        # instead of an "all fine" write-up built from missing values
+        raise HTTPException(status_code=404, detail=f"No layer data for this place yet: {get_city().name}'s layers "
+                                                    "have not been generated.")
     limited = False
     if llm:
         ok, _ = AI_SUMMARY_LIMIT.check(_client(request))
@@ -70,8 +94,9 @@ async def explain(request: Request, lon: float = Query(..., ge=72.0, le=74.0), l
 class AskRequest(BaseModel):
     """Pydantic validates every Ask request before any code runs (types, lengths, ranges, allowed values)."""
     question: str = Field(..., min_length=3, max_length=500)
-    lon: Optional[float] = Field(None, ge=72.0, le=74.0)
-    lat: Optional[float] = Field(None, ge=18.0, le=20.0)
+    lon: Optional[float] = Field(None, **LON)
+    lat: Optional[float] = Field(None, **LAT)
+    city: Optional[str] = Field(None, max_length=20, pattern=r"^[a-z_]+$")
     focus: Optional[str] = Field(None, pattern=FOCUS_PATTERN)
     intent: Optional[str] = Field(None, max_length=40, pattern=r"^[a-z0-9_]+$")
 
@@ -83,15 +108,20 @@ async def ask(req: AskRequest, request: Request):
         log_event("rate_limit", "ask", req.question, client=_client(request))
         raise HTTPException(status_code=429, detail=f"Too many questions — please wait {int(wait) + 1} s.",
                             headers={"Retry-After": str(int(wait) + 1)})
-    analysis = await _analysis(req.lon, req.lat) if req.lon is not None and req.lat is not None else None
-    return await answer_question(req.question, analysis, req.focus, req.intent)
+    from app.core.cities import city_for_point
+    cid = (city_for_point(req.lon, req.lat) if req.lon is not None and req.lat is not None else None) \
+        or get_city(req.city).id
+    with use_city(cid):
+        analysis = await _analysis(req.lon, req.lat) if req.lon is not None and req.lat is not None else None
+        return await answer_question(req.question, analysis, req.focus, req.intent)
 
 
 @router.get("/ml/summary")
 async def get_ml_summary():
     s = ml_summary()
     if not s:
-        raise HTTPException(status_code=404, detail="No ML run yet — run scripts/run_ml_pipeline.py")
+        raise HTTPException(status_code=404, detail=f"No ML run yet for {get_city().name} — run "
+                                                    f"scripts/run_ml_pipeline.py --city {get_city().id}")
     s = {k: v for k, v in s.items() if k != "city_percentiles"}
     s["llm_provider"] = (active_provider() or (None, None))[0]
     from app.services.rag.explainer import _composite_card
@@ -108,18 +138,19 @@ async def hotspots(model: str = Query("isolation_forest",
                ST_X(sc.centroid) AS lon, ST_Y(sc.centroid) AS lat,
                ar.anomaly_score, ar.anomaly_type, ar.root_cause, ar.observed_at
         FROM anomaly_results ar JOIN spatial_cells sc ON sc.id = ar.cell_id
-        WHERE ar.model_name = :m AND ar.is_anomaly
+        WHERE sc.city = :city AND ar.model_name = :m AND ar.is_anomaly
           AND (:m <> 'xgboost_lst_residual_v1' OR ar.anomaly_type = 'unexplained_heat')
         ORDER BY ar.cell_id, ar.observed_at DESC
     """)
     with engine.connect() as conn:
-        rows = conn.execute(sql, {"m": MODELS[model]}).mappings().all()
+        rows = conn.execute(sql, {"m": MODELS[model], "city": get_city().id}).mappings().all()
     rows = sorted(rows, key=lambda r: abs(r["anomaly_score"]), reverse=True)[:limit]
     scores = [abs(r["anomaly_score"]) for r in rows] or [1.0]
     lo, hi = min(scores), max(scores)
     return {
         "type": "FeatureCollection",
         "model": MODELS[model],
+        "city": get_city().id,
         "features": [{
             "type": "Feature",
             "geometry": {"type": "Point", "coordinates": [r["lon"], r["lat"]]},
@@ -171,9 +202,11 @@ async def run_ml(background: BackgroundTasks, request: Request):
     if PIPELINE_LOCK.locked():
         raise HTTPException(status_code=409, detail="The ML pipeline is already running.")
 
+    city = get_city().id
+
     def _job():
         from app.services.ml.pipeline import run_cell_ml_pipeline
-        with get_db() as db:
+        with use_city(city), get_db() as db:
             run_cell_ml_pipeline(db)
     background.add_task(run_exclusive, _job)
-    return {"status": "started"}
+    return {"status": "started", "city": city}

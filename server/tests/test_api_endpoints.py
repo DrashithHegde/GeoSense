@@ -1,129 +1,97 @@
-"""Automated API route tests using FastAPI TestClient."""
+"""API route tests (FastAPI TestClient). Database-backed tests skip when no database is reachable."""
 from __future__ import annotations
 
-from pathlib import Path
 import sys
 import unittest
+from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SERVER_ROOT = REPO_ROOT / "server"
-for path in (str(REPO_ROOT), str(SERVER_ROOT)):
-    if path not in sys.path:
-        sys.path.insert(0, path)
+SERVER_ROOT = Path(__file__).resolve().parents[1]
+if str(SERVER_ROOT) not in sys.path:
+    sys.path.insert(0, str(SERVER_ROOT))
 
-from fastapi.testclient import TestClient
-from app.main import app
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.main import app  # noqa: E402
 
 
-def _zone_rows() -> int:
-    """Rows of the older 189-zone layer (zones + their environment_data). These tests check that
-    data, so they are skipped on a database that was set up without it (the 300 m cell
-    pipeline does not need it)."""
+def _db_ok() -> bool:
     try:
-        from sqlalchemy import text
-        from app.database import engine
-        with engine.connect() as c:
-            return int(c.execute(text(
-                "SELECT (SELECT count(*) FROM zones) * (SELECT count(*) FROM environment_data WHERE zone_id IS NOT NULL)"
-            )).scalar() or 0)
+        from app.database import test_database_connection
+        test_database_connection()
+        return True
     except Exception:
-        return 0
+        return False
 
 
-ZONE_DATA = _zone_rows() > 0
-needs_zone_data = unittest.skipUnless(ZONE_DATA, "the older 189-zone data is not loaded in this database")
+DB = _db_ok()
+needs_db = unittest.skipUnless(DB, "no database reachable")
 
 
 class ApiEndpointTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
 
-    def test_health_check(self):
-        res = self.client.get("/api/health")
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
-        self.assertEqual(data.get("status"), "healthy")
-        self.assertEqual(data.get("phase"), "2")
+    def test_health_reports_database_state(self):
+        data = self.client.get("/api/health").json()
+        self.assertEqual(data["status"], "healthy")
+        self.assertIn(data["database"], ("ok", "unreachable"))
 
+    def test_cities_lists_all_three(self):
+        data = self.client.get("/api/cities").json()
+        ids = [c["id"] for c in data["cities"]]
+        self.assertEqual(ids, ["mumbai", "delhi", "bengaluru"])
+        for c in data["cities"]:
+            self.assertTrue(c["boundaries"], c["id"])
+            self.assertEqual(len(c["center"]), 2)
+
+    def test_unknown_city_is_404(self):
+        res = self.client.get("/api/zones/boundary?city=atlantis")
+        self.assertEqual(res.status_code, 404)
+
+    def test_boundary_per_city(self):
+        for cid, (lon, lat) in {"mumbai": (72.88, 19.08), "delhi": (77.21, 28.61), "bengaluru": (77.59, 12.97)}.items():
+            data = self.client.get(f"/api/zones/boundary?city={cid}").json()
+            self.assertEqual(data["properties"]["city"], cid)
+            self.assertIn(data["geometry"]["type"], ("Polygon", "MultiPolygon"))
+            from shapely.geometry import Point, shape
+            self.assertTrue(shape(data["geometry"]).contains(Point(lon, lat)), cid)
+
+    def test_point_decides_the_city(self):
+        """?lon=&lat= inside Delhi is answered for Delhi even when ?city= says Mumbai."""
+        from app.core.cities import city_for_point
+        self.assertEqual(city_for_point(77.21, 28.61), "delhi")
+        self.assertEqual(city_for_point(77.59, 12.97), "bengaluru")
+        self.assertEqual(city_for_point(72.88, 19.08), "mumbai")
+        self.assertIsNone(city_for_point(80.27, 13.08))   # Chennai: not a GeoSense city
+
+    def test_surface_urls_are_per_city(self):
+        res = self.client.get("/api/surfaces/lst/latest?city=mumbai")
+        if res.status_code == 404:
+            self.skipTest("no Mumbai LST surface in this checkout")
+        self.assertTrue(res.json()["sharp_url"].startswith("/surface-assets/mumbai/"))
+
+    def test_city_without_layers_says_so(self):
+        """A city whose layers are not generated yet answers 404 with a reason, never another city's data."""
+        from app.core.cities import get_city
+        if (get_city("bengaluru").data_dir / "surfaces" / "manifest.json").exists():
+            self.skipTest("Bengaluru layers already generated here")
+        res = self.client.get("/api/surfaces/ndvi/latest?city=bengaluru")
+        self.assertEqual(res.status_code, 404)
+        self.assertIn("Bengaluru", res.json()["detail"])
+        aqi = self.client.get("/api/surfaces/aqi/latest?city=bengaluru").json()
+        self.assertFalse(aqi["available"])
+        self.assertEqual(aqi["city"], "bengaluru")
+
+    @needs_db
     def test_system_status(self):
-        res = self.client.get("/api/system/status")
+        data = self.client.get("/api/system/status?city=mumbai").json()
+        self.assertEqual(data["city"], "mumbai")
+        self.assertIn("layers", data)
+
+    @needs_db
+    def test_municipalities_latest_uses_the_city_boundaries(self):
+        res = self.client.get("/api/municipalities/latest?city=mumbai")
         self.assertEqual(res.status_code, 200)
-        data = res.json()
-        self.assertTrue(data.get("read_only"))
-        self.assertEqual(data.get("raw_data", {}).get("duplicate_zone_timestamp_rows"), 0)
-        if ZONE_DATA:
-            # 189 canonical analytical zones (restored from generated_zones.geojson)
-            self.assertEqual(data.get("raw_data", {}).get("total_zones"), 189)
-
-    def test_anomalies_endpoint(self):
-        res = self.client.get("/api/anomalies?days=30&limit=100")
-        self.assertEqual(res.status_code, 200)
-        anomalies = res.json()
-        # Accept any non-negative count — some anomaly zones may have been outside boundary
-        self.assertGreaterEqual(len(anomalies), 0)
-        for a in anomalies:
-            self.assertTrue(a.get("is_anomaly"))
-            self.assertIsNotNone(a.get("anomaly_score"))
-            self.assertIsNotNone(a.get("root_cause"))
-
-    @needs_zone_data
-    def test_metrics_latest(self):
-        res = self.client.get("/api/metrics/latest")
-        self.assertEqual(res.status_code, 200)
-        metrics = res.json()
-        # 189 canonical analytical zones (restored from generated_zones.geojson)
-        self.assertEqual(len(metrics), 189)
-
-    def test_municipalities_latest_uses_all_local_boundary_assets(self):
-        res = self.client.get("/api/municipalities/latest")
-        self.assertEqual(res.status_code, 200)
-        municipalities = res.json()
-        self.assertEqual([item["id"] for item in municipalities], ["mumbai", "thane", "mira_bhayandar"])
-        for municipality in municipalities:
-            self.assertIn(municipality["geometry"]["type"], ("Polygon", "MultiPolygon"))
-            self.assertIn("zone_count", municipality)
-
-    @needs_zone_data
-    def test_metrics_latest_uses_async_source_timestamps_and_composite(self):
-        res = self.client.get("/api/metrics/latest")
-        self.assertEqual(res.status_code, 200)
-        metrics = res.json()
-        self.assertTrue(any(item["aqi"] is not None and item["aqi_observed_at"] is not None for item in metrics))
-        self.assertTrue(any(item["ndvi"] is not None and item["ndvi_observed_at"] is not None for item in metrics))
-        self.assertTrue(any(item["lst"] is not None and item["lst_observed_at"] is not None for item in metrics))
-        self.assertTrue(any(item["water_health_score"] is not None and item["water_health_observed_at"] is not None for item in metrics))
-
-        item = next(item for item in metrics if item["water_health_score"] is not None)
-        composite = item["composite"]
-        self.assertIn("water_health", composite["available_components"])
-        self.assertAlmostEqual(
-            composite["score"],
-            sum(composite["contributions"].values()),
-            places=3,
-        )
-        self.assertIsNotNone(item["ndvi_observed_at"])
-        self.assertIsNotNone(item["water_health_observed_at"])
-
-        non_water = next(item for item in metrics if item["water_health_score"] is None)
-        self.assertIsNone(non_water["water_health_score"])
-        self.assertNotIn("water_health", non_water["composite"]["available_components"])
-        self.assertIn("water_health", non_water["composite"]["missing_components"])
-
-    @needs_zone_data
-    def test_aqi_stations(self):
-        res = self.client.get("/api/aqi/stations")
-        self.assertEqual(res.status_code, 200)
-        stations = res.json()
-        # 138 clipped zones — all have AQI data
-        self.assertGreaterEqual(len(stations), 130)
-
-    @needs_zone_data
-    def test_metrics_latest_includes_geometry(self):
-        """Verify that the metrics API returns polygon geometry for map rendering."""
-        res = self.client.get("/api/metrics/latest")
-        self.assertEqual(res.status_code, 200)
-        metrics = res.json()
-        # Every zone should have a geometry object (MultiPolygon)
-        for m in metrics:
-            self.assertIsNotNone(m.get("geometry"), f"Zone {m['id']} missing geometry")
-            self.assertIn(m["geometry"]["type"], ("Polygon", "MultiPolygon"))
+        self.assertEqual([m["id"] for m in res.json()], ["mumbai", "thane", "mira_bhayandar"])
+        res = self.client.get("/api/municipalities/latest?city=delhi")
+        self.assertEqual([m["id"] for m in res.json()], ["delhi"])

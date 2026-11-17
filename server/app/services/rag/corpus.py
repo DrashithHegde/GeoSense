@@ -171,19 +171,19 @@ def build_passages(sources: list[dict] | None = None, log=print) -> tuple[list[d
         path, how = download(doc)
         if not path:
             report.append({"id": doc["id"], "status": "download_failed", "detail": how})
-            log(f"  ✗ {doc['id']}: could not download ({how})")
+            log(f"  x {doc['id']}: could not download ({how})")
             continue
         try:
             pages = extract_pages(path, doc["type"])
         except Exception as exc:
             report.append({"id": doc["id"], "status": "extract_failed", "detail": str(exc)[:200]})
-            log(f"  ✗ {doc['id']}: text extraction failed ({exc!s:.80})")
+            log(f"  x {doc['id']}: text extraction failed ({exc!s:.80})")
             continue
         ps = passages_for(doc, pages)
         passages.extend(ps)
         report.append({"id": doc["id"], "status": "ok", "pages": len(pages), "passages": len(ps),
                        "sha256": sha256(path), "from": how})
-        log(f"  ✓ {doc['id']}: {len(pages)} pages -> {len(ps)} passages")
+        log(f"  ok {doc['id']}: {len(pages)} pages -> {len(ps)} passages")
     CORPUS_DIR.mkdir(parents=True, exist_ok=True)
     PASSAGES.write_text("".join(json.dumps(p, ensure_ascii=False) + "\n" for p in passages), encoding="utf-8")
     (CORPUS_DIR / "ingest_report.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
@@ -191,6 +191,25 @@ def build_passages(sources: list[dict] | None = None, log=print) -> tuple[list[d
 
 
 def load_passages(path: Path = PASSAGES) -> list[dict[str, Any]]:
-    if not path.exists():
+    """Document passages: from the local corpus file, or (on a deployed server, where the
+    third-party documents are not shipped) from the database table the ingestion filled."""
+    if path.exists():
+        return [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    return _passages_from_db()
+
+
+def _passages_from_db() -> list[dict[str, Any]]:
+    try:
+        from sqlalchemy import text
+
+        from app.database import engine
+        with engine.connect() as c:
+            if not c.execute(text("SELECT to_regclass('rag_items')")).scalar():
+                return []
+            rows = c.execute(text("SELECT id, doc_id, page, title, citation, url, source_type, text, meta "
+                                  "FROM rag_items WHERE kind = 'passage' ORDER BY id")).mappings().all()
+    except Exception:
         return []
-    return [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    return [{"id": r["id"], "doc_id": r["doc_id"], "kind": "passage", "page": r["page"], "title": r["title"],
+             "citation": r["citation"], "url": r["url"], "source_type": r["source_type"], "text": r["text"],
+             "supports": (r["meta"] or {}).get("supports") or []} for r in rows]

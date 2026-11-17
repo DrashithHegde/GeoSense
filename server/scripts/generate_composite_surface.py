@@ -23,15 +23,17 @@ from rasterio.vrt import WarpedVRT
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVER_ROOT))
 
+from app.core.cities import city_path  # noqa: E402
+
 from app.services.surfaces.heatmap_render import (  # noqa: E402
     STRESS_STOPS, RenderSpec, legend_stops, mapbox_coordinates_for, render_heatmap, layer_style, save_layers,
     sha256, study_region_mask,
 )
 
-DATA = SERVER_ROOT / "data" / "surfaces"
-MANIFEST = DATA / "manifest.json"
+DATA = city_path("surfaces")
+MANIFEST = city_path("surfaces", "manifest.json")
 NODATA = -9999.0
-from app.services.qc import LST_QC_MIN_C  # noqa: E402
+from app.services.qc import lst_qc_min_c  # noqa: E402
 
 
 def _tif(rec: dict, folder: str) -> Path:
@@ -56,7 +58,7 @@ def main() -> int:
     lst_path = _tif(S["lst"], "lst")
     with rasterio.open(lst_path) as ref:
         lst = ref.read(1).astype("float32")
-        lst[(lst == ref.nodata) | (lst < LST_QC_MIN_C)] = np.nan
+        lst[(lst == ref.nodata) | (lst < lst_qc_min_c())] = np.nan
         transform, profile = ref.transform, ref.profile
         ndvi = _read_on(_tif(S["ndvi"], "ndvi"), ref)
         wh = None
@@ -144,4 +146,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from app.core.cities import run_script_for_city
+    raise SystemExit(run_script_for_city(main))

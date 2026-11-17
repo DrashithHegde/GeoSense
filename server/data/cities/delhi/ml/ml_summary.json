@@ -1,0 +1,3175 @@
+{
+  "city": "delhi",
+  "region": "Delhi (National Capital Territory)",
+  "snapshot_at": "2026-11-16T00:00:00+00:00",
+  "generated_at": "2026-11-16T19:27:52.044772+00:00",
+  "cells_total": 17004,
+  "city_percentiles": {
+    "ndvi_mean": [
+      -0.27281,
+      0.02858,
+      0.04157,
+      0.04981,
+      0.05673,
+      0.06365,
+      0.0715,
+      0.07851,
+      0.08694,
+      0.09396,
+      0.10112,
+      0.10823,
+      0.11484,
+      0.12122,
+      0.12728,
+      0.13344,
+      0.13953,
+      0.14489,
+      0.15025,
+      0.15547,
+      0.16037,
+      0.16478,
+      0.16928,
+      0.17323,
+      0.17765,
+      0.1818,
+      0.18594,
+      0.18959,
+      0.19355,
+      0.19778,
+      0.20237,
+      0.2063,
+      0.20976,
+      0.21375,
+      0.21768,
+      0.22175,
+      0.225,
+      0.22895,
+      0.2324,
+      0.23637,
+      0.23955,
+      0.24401,
+      0.24786,
+      0.25158,
+      0.25521,
+      0.25905,
+      0.26253,
+      0.26606,
+      0.26973,
+      0.27329,
+      0.27713,
+      0.28113,
+      0.28476,
+      0.2884,
+      0.29258,
+      0.29662,
+      0.30049,
+      0.30388,
+      0.30845,
+      0.31272,
+      0.31731,
+      0.32183,
+      0.32591,
+      0.32999,
+      0.33379,
+      0.33736,
+      0.34169,
+      0.34645,
+      0.35155,
+      0.35668,
+      0.36237,
+      0.36697,
+      0.37194,
+      0.37687,
+      0.38247,
+      0.38789,
+      0.39334,
+      0.39871,
+      0.40466,
+      0.4111,
+      0.41649,
+      0.42215,
+      0.42803,
+      0.43395,
+      0.44088,
+      0.44718,
+      0.45367,
+      0.46054,
+      0.46749,
+      0.47425,
+      0.48263,
+      0.49167,
+      0.50059,
+      0.51104,
+      0.52266,
+      0.53496,
+      0.54908,
+      0.56634,
+      0.58759,
+      0.61827,
+      0.84426
+    ],
+    "veg_frac": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.00095,
+      0.00098,
+      0.0019,
+      0.00196,
+      0.00294,
+      0.00381,
+      0.00476,
+      0.0049,
+      0.00667,
+      0.00784,
+      0.00882,
+      0.01078,
+      0.01176,
+      0.01373,
+      0.01569,
+      0.01765,
+      0.01961,
+      0.02255,
+      0.02476,
+      0.02745,
+      0.03039,
+      0.03333,
+      0.03725,
+      0.04118,
+      0.0451,
+      0.04902,
+      0.05294,
+      0.0576,
+      0.06176,
+      0.06749,
+      0.07255,
+      0.07787,
+      0.08333,
+      0.08922,
+      0.09574,
+      0.10196,
+      0.10882,
+      0.1151,
+      0.12255,
+      0.12941,
+      0.1381,
+      0.14608,
+      0.15588,
+      0.16569,
+      0.17451,
+      0.18431,
+      0.19412,
+      0.20392,
+      0.21674,
+      0.23039,
+      0.2402,
+      0.25152,
+      0.26303,
+      0.27765,
+      0.29216,
+      0.30686,
+      0.32353,
+      0.33922,
+      0.35588,
+      0.37353,
+      0.39118,
+      0.41048,
+      0.43194,
+      0.45294,
+      0.47843,
+      0.50196,
+      0.52941,
+      0.55882,
+      0.59118,
+      0.62745,
+      0.67255,
+      0.72148,
+      0.77255,
+      0.82451,
+      0.88428,
+      0.95329,
+      1.0
+    ],
+    "built_frac": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.00098,
+      0.00294,
+      0.00588,
+      0.00882,
+      0.01333,
+      0.01714,
+      0.02157,
+      0.02647,
+      0.03137,
+      0.03684,
+      0.04314,
+      0.04902,
+      0.05588,
+      0.06184,
+      0.06863,
+      0.07619,
+      0.08333,
+      0.09216,
+      0.1,
+      0.10784,
+      0.11667,
+      0.1254,
+      0.13333,
+      0.14118,
+      0.15098,
+      0.16073,
+      0.16949,
+      0.17745,
+      0.18824,
+      0.19804,
+      0.20692,
+      0.21667,
+      0.22549,
+      0.23431,
+      0.24412,
+      0.25392,
+      0.26373,
+      0.27429,
+      0.28269,
+      0.29314,
+      0.30294,
+      0.31373,
+      0.32549,
+      0.33627,
+      0.34804,
+      0.35784,
+      0.36667,
+      0.37647,
+      0.38762,
+      0.39773,
+      0.40762,
+      0.41893,
+      0.42952,
+      0.4402,
+      0.45,
+      0.461,
+      0.47353,
+      0.48431,
+      0.49608,
+      0.50784,
+      0.52156,
+      0.53333,
+      0.54412,
+      0.55588,
+      0.56961,
+      0.58137,
+      0.59219,
+      0.60392,
+      0.61765,
+      0.63046,
+      0.64412,
+      0.65714,
+      0.67059,
+      0.68425,
+      0.69706,
+      0.71078,
+      0.72451,
+      0.73824,
+      0.75315,
+      0.76863,
+      0.7843,
+      0.8,
+      0.81543,
+      0.82941,
+      0.84457,
+      0.86091,
+      0.87647,
+      0.89216,
+      0.90686,
+      0.92244,
+      0.93627,
+      0.95,
+      0.96471,
+      0.9781,
+      1.0
+    ],
+    "lst_mean": [
+      24.17199,
+      26.80648,
+      27.15776,
+      27.46706,
+      27.76655,
+      27.93944,
+      28.12009,
+      28.26481,
+      28.42369,
+      28.56185,
+      28.6789,
+      28.79619,
+      28.90221,
+      29.00681,
+      29.08997,
+      29.17253,
+      29.25265,
+      29.32685,
+      29.40776,
+      29.49226,
+      29.57099,
+      29.62902,
+      29.70238,
+      29.769,
+      29.82862,
+      29.891,
+      29.954,
+      30.01634,
+      30.07659,
+      30.14597,
+      30.2052,
+      30.25991,
+      30.32561,
+      30.38456,
+      30.44215,
+      30.48804,
+      30.54559,
+      30.60322,
+      30.6604,
+      30.70758,
+      30.76171,
+      30.81926,
+      30.87424,
+      30.92489,
+      30.9754,
+      31.02549,
+      31.06541,
+      31.11152,
+      31.16815,
+      31.21839,
+      31.27112,
+      31.32333,
+      31.3719,
+      31.42595,
+      31.47541,
+      31.52801,
+      31.57618,
+      31.62727,
+      31.68176,
+      31.7388,
+      31.79398,
+      31.84295,
+      31.89226,
+      31.94239,
+      31.9986,
+      32.05566,
+      32.11197,
+      32.16715,
+      32.22605,
+      32.28321,
+      32.34925,
+      32.40258,
+      32.45989,
+      32.51806,
+      32.58535,
+      32.64271,
+      32.7076,
+      32.77531,
+      32.84493,
+      32.91791,
+      32.9973,
+      33.07038,
+      33.16468,
+      33.29056,
+      33.39292,
+      33.51264,
+      33.63473,
+      33.76652,
+      33.91924,
+      34.10979,
+      34.35529,
+      34.60096,
+      34.94102,
+      35.2907,
+      35.74177,
+      36.23418,
+      36.89427,
+      37.73223,
+      38.75986,
+      40.0595,
+      43.65741
+    ],
+    "wh_mean": [
+      0.35063,
+      0.39361,
+      0.41429,
+      0.42403,
+      0.42868,
+      0.43088,
+      0.43476,
+      0.43767,
+      0.43961,
+      0.44145,
+      0.44305,
+      0.4449,
+      0.44681,
+      0.44824,
+      0.44925,
+      0.45038,
+      0.4513,
+      0.45225,
+      0.45346,
+      0.45452,
+      0.45596,
+      0.45678,
+      0.45771,
+      0.45849,
+      0.45931,
+      0.45993,
+      0.46044,
+      0.46154,
+      0.46204,
+      0.46277,
+      0.46356,
+      0.46417,
+      0.4648,
+      0.4655,
+      0.46624,
+      0.46703,
+      0.46754,
+      0.46779,
+      0.46845,
+      0.46903,
+      0.4695,
+      0.47015,
+      0.47056,
+      0.47079,
+      0.47126,
+      0.47167,
+      0.47189,
+      0.4721,
+      0.47243,
+      0.47265,
+      0.47284,
+      0.47308,
+      0.47331,
+      0.47364,
+      0.47386,
+      0.47408,
+      0.47438,
+      0.47463,
+      0.47497,
+      0.47546,
+      0.47586,
+      0.4761,
+      0.47643,
+      0.47666,
+      0.47688,
+      0.47708,
+      0.4773,
+      0.4776,
+      0.47778,
+      0.47795,
+      0.47809,
+      0.47824,
+      0.47843,
+      0.47868,
+      0.4789,
+      0.47935,
+      0.47949,
+      0.47975,
+      0.47994,
+      0.48023,
+      0.48042,
+      0.48072,
+      0.48104,
+      0.48131,
+      0.48161,
+      0.48192,
+      0.48238,
+      0.48289,
+      0.48365,
+      0.48404,
+      0.48481,
+      0.4854,
+      0.48631,
+      0.48717,
+      0.48795,
+      0.48918,
+      0.49126,
+      0.49307,
+      0.49502,
+      0.49851,
+      0.50728
+    ],
+    "aqi_idw": [
+      227.7542,
+      281.21994,
+      292.51689,
+      298.47187,
+      302.39895,
+      304.70843,
+      306.23017,
+      307.40668,
+      308.36587,
+      308.98153,
+      309.46827,
+      309.96163,
+      310.52398,
+      311.08507,
+      311.77099,
+      312.6079,
+      313.43252,
+      314.36842,
+      315.12871,
+      316.02495,
+      316.91646,
+      317.98042,
+      318.93511,
+      319.60439,
+      320.28764,
+      320.94382,
+      321.75417,
+      322.40845,
+      323.05096,
+      323.74804,
+      324.0524,
+      324.71607,
+      325.27884,
+      325.81982,
+      326.39301,
+      326.80718,
+      327.23562,
+      327.71034,
+      328.16407,
+      328.56211,
+      329.07109,
+      329.53477,
+      330.04811,
+      330.57232,
+      331.06837,
+      331.5673,
+      331.99941,
+      332.37635,
+      332.80462,
+      333.29582,
+      333.85306,
+      334.3287,
+      334.77517,
+      335.35223,
+      336.0924,
+      336.86218,
+      337.53582,
+      338.10284,
+      338.75139,
+      339.44356,
+      340.02883,
+      340.54707,
+      341.18191,
+      341.88612,
+      342.57954,
+      343.08488,
+      343.49749,
+      343.87044,
+      344.13339,
+      344.51956,
+      345.14016,
+      345.72272,
+      346.32064,
+      347.01478,
+      347.58167,
+      348.15453,
+      348.86412,
+      349.56299,
+      350.3229,
+      351.08347,
+      351.92123,
+      352.71275,
+      353.53215,
+      354.56659,
+      355.57858,
+      356.48507,
+      357.63329,
+      358.98014,
+      360.39526,
+      361.75302,
+      363.23538,
+      364.73192,
+      366.2947,
+      367.60278,
+      368.78695,
+      371.45218,
+      374.35014,
+      376.41394,
+      377.63148,
+      380.19154,
+      414.80972
+    ],
+    "dist_water_m": [
+      0.0,
+      16.5844,
+      24.38157,
+      30.13934,
+      36.00607,
+      42.10379,
+      46.81582,
+      52.03316,
+      57.04774,
+      61.80936,
+      66.69241,
+      71.62136,
+      76.22494,
+      81.63863,
+      87.59855,
+      92.74696,
+      98.18604,
+      103.4126,
+      108.31861,
+      113.68673,
+      118.40857,
+      123.70024,
+      129.38632,
+      134.91725,
+      140.86192,
+      146.60447,
+      153.40029,
+      159.97274,
+      166.41702,
+      173.50742,
+      179.68333,
+      186.66372,
+      193.25872,
+      200.85568,
+      207.78242,
+      214.84982,
+      222.58207,
+      229.19317,
+      236.15639,
+      243.47148,
+      250.99395,
+      259.12762,
+      267.05002,
+      274.85242,
+      283.82552,
+      291.87834,
+      300.98326,
+      308.61081,
+      317.34625,
+      325.90889,
+      334.10892,
+      343.69844,
+      352.11327,
+      361.62479,
+      372.88113,
+      381.76397,
+      390.78536,
+      400.50647,
+      410.01614,
+      420.00869,
+      428.88602,
+      439.99577,
+      449.48785,
+      460.39636,
+      471.59624,
+      483.49964,
+      494.86133,
+      506.2485,
+      519.25569,
+      531.94428,
+      546.64434,
+      560.16663,
+      574.25121,
+      591.3865,
+      604.32395,
+      619.10395,
+      635.28606,
+      651.633,
+      672.39862,
+      691.55724,
+      709.99472,
+      728.82817,
+      750.76025,
+      772.35334,
+      797.18935,
+      822.09572,
+      847.8274,
+      880.56424,
+      906.82057,
+      941.90146,
+      974.24319,
+      1015.55309,
+      1063.89182,
+      1114.73228,
+      1176.40188,
+      1243.59135,
+      1339.56518,
+      1453.25,
+      1649.70816,
+      1974.83666,
+      2983.88681
+    ],
+    "ndmi_veg_mean": [
+      -0.05519,
+      0.04566,
+      0.06643,
+      0.07971,
+      0.08785,
+      0.09604,
+      0.10195,
+      0.10726,
+      0.11199,
+      0.11675,
+      0.12074,
+      0.12399,
+      0.12783,
+      0.1314,
+      0.13454,
+      0.13729,
+      0.13954,
+      0.14158,
+      0.14412,
+      0.14631,
+      0.1488,
+      0.15122,
+      0.15361,
+      0.15562,
+      0.15772,
+      0.15937,
+      0.1612,
+      0.16323,
+      0.16488,
+      0.16675,
+      0.16839,
+      0.16981,
+      0.17155,
+      0.1733,
+      0.17474,
+      0.1762,
+      0.17773,
+      0.17925,
+      0.18077,
+      0.18216,
+      0.18352,
+      0.18488,
+      0.18638,
+      0.18791,
+      0.18946,
+      0.19067,
+      0.19199,
+      0.1931,
+      0.19445,
+      0.19573,
+      0.19687,
+      0.19828,
+      0.19962,
+      0.20083,
+      0.20209,
+      0.2034,
+      0.2045,
+      0.20578,
+      0.20694,
+      0.20812,
+      0.20943,
+      0.2104,
+      0.21157,
+      0.21292,
+      0.21433,
+      0.21569,
+      0.21692,
+      0.21818,
+      0.2195,
+      0.22059,
+      0.22179,
+      0.2229,
+      0.22418,
+      0.22536,
+      0.22667,
+      0.22804,
+      0.22944,
+      0.23103,
+      0.23238,
+      0.23391,
+      0.2357,
+      0.23741,
+      0.23917,
+      0.24099,
+      0.24282,
+      0.24492,
+      0.24706,
+      0.24915,
+      0.25152,
+      0.25364,
+      0.2561,
+      0.25858,
+      0.26201,
+      0.26612,
+      0.27041,
+      0.27442,
+      0.28156,
+      0.29043,
+      0.3031,
+      0.32334,
+      0.43836
+    ],
+    "ndbi_land_mean": [
+      -0.50524,
+      -0.27981,
+      -0.25562,
+      -0.24232,
+      -0.23073,
+      -0.22204,
+      -0.2151,
+      -0.20847,
+      -0.20333,
+      -0.19684,
+      -0.19157,
+      -0.18762,
+      -0.18324,
+      -0.17944,
+      -0.17529,
+      -0.17155,
+      -0.16812,
+      -0.16483,
+      -0.16116,
+      -0.15788,
+      -0.15434,
+      -0.15124,
+      -0.1482,
+      -0.14511,
+      -0.14241,
+      -0.1395,
+      -0.13649,
+      -0.13346,
+      -0.13033,
+      -0.12704,
+      -0.12419,
+      -0.12078,
+      -0.11796,
+      -0.11519,
+      -0.11242,
+      -0.10963,
+      -0.10651,
+      -0.1036,
+      -0.10078,
+      -0.09841,
+      -0.09584,
+      -0.0934,
+      -0.0905,
+      -0.08808,
+      -0.08585,
+      -0.0834,
+      -0.08081,
+      -0.07854,
+      -0.07605,
+      -0.07337,
+      -0.0708,
+      -0.06834,
+      -0.06591,
+      -0.06335,
+      -0.06079,
+      -0.05827,
+      -0.05578,
+      -0.05322,
+      -0.05071,
+      -0.04802,
+      -0.04522,
+      -0.04229,
+      -0.03956,
+      -0.03696,
+      -0.03417,
+      -0.03166,
+      -0.02909,
+      -0.02702,
+      -0.02449,
+      -0.0217,
+      -0.01919,
+      -0.01656,
+      -0.01394,
+      -0.01151,
+      -0.0091,
+      -0.00646,
+      -0.00413,
+      -0.00193,
+      0.00033,
+      0.0028,
+      0.00477,
+      0.00777,
+      0.01036,
+      0.01323,
+      0.01612,
+      0.01889,
+      0.02197,
+      0.02491,
+      0.02786,
+      0.031,
+      0.0344,
+      0.03803,
+      0.04186,
+      0.04646,
+      0.05061,
+      0.05594,
+      0.06288,
+      0.07026,
+      0.08079,
+      0.0962,
+      0.16621
+    ],
+    "composite_cell": [
+      0.208,
+      0.34598,
+      0.366,
+      0.381,
+      0.395,
+      0.406,
+      0.415,
+      0.425,
+      0.433,
+      0.441,
+      0.449,
+      0.457,
+      0.465,
+      0.472,
+      0.47872,
+      0.485,
+      0.491,
+      0.497,
+      0.502,
+      0.507,
+      0.5136,
+      0.52,
+      0.525,
+      0.531,
+      0.536,
+      0.541,
+      0.547,
+      0.552,
+      0.557,
+      0.562,
+      0.567,
+      0.572,
+      0.576,
+      0.581,
+      0.586,
+      0.59,
+      0.594,
+      0.599,
+      0.603,
+      0.607,
+      0.611,
+      0.615,
+      0.619,
+      0.623,
+      0.627,
+      0.631,
+      0.635,
+      0.638,
+      0.642,
+      0.646,
+      0.65,
+      0.653,
+      0.657,
+      0.66,
+      0.664,
+      0.668,
+      0.672,
+      0.675,
+      0.678,
+      0.682,
+      0.686,
+      0.69,
+      0.694,
+      0.698,
+      0.702,
+      0.706,
+      0.71,
+      0.714,
+      0.718,
+      0.723,
+      0.727,
+      0.731,
+      0.735,
+      0.74,
+      0.744,
+      0.748,
+      0.752,
+      0.756,
+      0.76,
+      0.764,
+      0.768,
+      0.772,
+      0.776,
+      0.78,
+      0.784,
+      0.789,
+      0.793,
+      0.797,
+      0.802,
+      0.807,
+      0.812,
+      0.818,
+      0.824,
+      0.832,
+      0.84,
+      0.852,
+      0.866,
+      0.878,
+      0.892,
+      0.91,
+      0.987
+    ]
+  },
+  "sources": {
+    "ndvi": {
+      "file": "ndvi_20261116T000000Z.tif",
+      "period": {
+        "end": "2026-11-16",
+        "start": "2026-11-02"
+      },
+      "scale_m": 10,
+      "dataset": "COPERNICUS/S2_SR_HARMONIZED"
+    },
+    "ndmi": {
+      "file": "ndmi_20261116T000000Z.tif",
+      "period": {
+        "end": "2026-11-16",
+        "start": "2026-11-02"
+      },
+      "scale_m": 20,
+      "ndbi": "derived as -NDMI over land pixels"
+    },
+    "water_health": {
+      "file": "wh_20261116T000000Z.tif",
+      "period": {
+        "days": 14,
+        "end": "2026-11-16",
+        "start": "2026-11-02"
+      },
+      "scale_m": 10
+    },
+    "lst": {
+      "file": "lst_20261116T000000Z.tif",
+      "period": {
+        "days": 45,
+        "end": "2026-11-16",
+        "start": "2026-10-02"
+      },
+      "scale_m": 30,
+      "qc_min_c": 10.0
+    },
+    "aqi": {
+      "file": "aqi_cpcb_idw_20261116T180000Z.tif",
+      "source_timestamp": "2026-11-16T18:00:00+00:00",
+      "method": "OpenAQ v3 CPCB-network stations \u2192 CPCB National AQI (2014) \u2192 IDW"
+    },
+    "composite": {
+      "file": "composite_components_20261116T191823Z.tif",
+      "weights": {
+        "air": 0.25,
+        "heat": 0.4,
+        "surface": 0.35
+      },
+      "version": 2
+    }
+  },
+  "isolation_forest": {
+    "status": "ok",
+    "eligible": 16472,
+    "excluded": 532,
+    "features": [
+      "ndvi_land_mean",
+      "ndvi_std",
+      "veg_land_frac",
+      "built_land_frac",
+      "lst_mean",
+      "lst_std",
+      "aqi_idw"
+    ],
+    "excluded_water_cells": 103,
+    "anomalies": 824,
+    "contamination": 0.05,
+    "excluded_reason": "water-dominated (> 50% open water; assessed by the Water Health model), missing LST (cloud) or NDVI coverage < 30% of cell",
+    "model": "isolation_forest_cell_v2",
+    "sklearn": "1.8.0"
+  },
+  "xgboost_lst": {
+    "status": "ok",
+    "metrics": {
+      "r2_spatial_cv": 0.556683358521646,
+      "rmse_c": 1.671870062906016,
+      "mae_c": 1.1604217759917932,
+      "n_cells": 16999,
+      "cv": "GroupKFold(5) on ~3 km spatial blocks",
+      "baseline_std_c": 2.5109930115608274,
+      "feature_set": "land cover + NDBI + NDMI",
+      "linear_baseline_r2": 0.25570292853896126,
+      "linear_baseline_rmse_c": 2.1663002962972033
+    },
+    "feature_importance_gain": {
+      "NDVI (mean)": 0.0715,
+      "NDVI variability": 0.0572,
+      "dense-vegetation share": 0.0979,
+      "built/bare share": 0.1163,
+      "open-water share": 0.0544,
+      "detected water share": 0.0814,
+      "distance to open water": 0.0472,
+      "built-up index (NDBI) of land": 0.3756,
+      "vegetation moisture (NDMI)": 0.0984
+    },
+    "features": [
+      "ndvi_mean",
+      "ndvi_std",
+      "veg_frac",
+      "built_frac",
+      "openwater_frac",
+      "water_frac",
+      "dist_water_m",
+      "ndbi_land_mean",
+      "ndmi_veg_mean"
+    ],
+    "model_comparison": {
+      "linear_baseline": {
+        "r2_spatial_cv": 0.25570292853896126,
+        "rmse_c": 2.1663002962972033,
+        "mae_c": 1.5248552662307333
+      },
+      "xgboost_land_cover": {
+        "r2_spatial_cv": 0.41948486936558105,
+        "rmse_c": 1.9131643335803883,
+        "mae_c": 1.372491823161712
+      },
+      "xgboost+ NDBI": {
+        "r2_spatial_cv": 0.5247690723948322,
+        "rmse_c": 1.7310031261783403,
+        "mae_c": 1.2014748682137382
+      },
+      "xgboost+ NDBI + NDMI": {
+        "r2_spatial_cv": 0.556683358521646,
+        "rmse_c": 1.671870062906016,
+        "mae_c": 1.1604217759917932
+      }
+    },
+    "flags": {
+      "unexplained_heat": 673,
+      "unexplained_cooling": 296,
+      "explained": 16030
+    },
+    "xgboost_version": "3.2.0",
+    "model": "xgboost_lst_residual_v1",
+    "xgboost": "3.2.0"
+  },
+  "water_health": {
+    "status": "ok",
+    "eligible": 1075,
+    "median": 0.472841748398935,
+    "mad_scaled": 0.012098461362493622,
+    "flags": {
+      "low_water_condition": 143,
+      "typical": 916,
+      "high_water_condition": 16
+    },
+    "model": "water_health_robust_z_v1"
+  },
+  "layer_isolation_forest": {
+    "ndvi": {
+      "status": "ok",
+      "model": "isolation_forest_ndvi_v1",
+      "name": "NDVI (vegetation)",
+      "features": [
+        "ndvi_land_mean",
+        "ndvi_std",
+        "ndvi_local_diff"
+      ],
+      "feature_labels": [
+        "NDVI of land (mean)",
+        "NDVI variability",
+        "NDVI vs surrounding 1 km"
+      ],
+      "eligible": 16901,
+      "anomalies": 845,
+      "unusually_high": 483,
+      "unusually_low": 242,
+      "unusual_pattern": 120,
+      "contamination": 0.05,
+      "local_radius_m": 1000.0
+    },
+    "lst": {
+      "status": "ok",
+      "model": "isolation_forest_lst_v1",
+      "name": "LST (surface temperature)",
+      "features": [
+        "lst_mean",
+        "lst_std",
+        "lst_local_diff"
+      ],
+      "feature_labels": [
+        "LST (mean)",
+        "LST variability",
+        "LST vs surrounding 1 km"
+      ],
+      "eligible": 16999,
+      "anomalies": 850,
+      "unusually_high": 617,
+      "unusually_low": 110,
+      "unusual_pattern": 123,
+      "contamination": 0.05,
+      "local_radius_m": 1000.0
+    },
+    "water_health": {
+      "status": "ok",
+      "model": "isolation_forest_water_health_v1",
+      "name": "Water Health",
+      "features": [
+        "wh_mean",
+        "wh_std",
+        "wh_local_diff"
+      ],
+      "feature_labels": [
+        "Water Health index",
+        "Water Health variability",
+        "Water Health vs nearby water"
+      ],
+      "eligible": 942,
+      "anomalies": 48,
+      "unusually_high": 7,
+      "unusually_low": 30,
+      "unusual_pattern": 11,
+      "contamination": 0.05,
+      "local_radius_m": 1000.0
+    },
+    "aqi": {
+      "status": "ok",
+      "model": "isolation_forest_aqi_v1",
+      "name": "CPCB AQI (interpolated)",
+      "features": [
+        "aqi_idw"
+      ],
+      "feature_labels": [
+        "CPCB AQI (IDW)"
+      ],
+      "eligible": 16570,
+      "anomalies": 829,
+      "unusually_high": 250,
+      "unusually_low": 579,
+      "unusual_pattern": 0,
+      "contamination": 0.05,
+      "local_radius_m": 1000.0
+    }
+  },
+  "station_isolation_forest": {
+    "status": "ok",
+    "model": "isolation_forest_aqi_station_v1",
+    "pollutants": [
+      "PM2.5",
+      "PM10",
+      "NO\u2082",
+      "SO\u2082",
+      "O\u2083",
+      "CO"
+    ],
+    "eligible": 46,
+    "anomalies": 3,
+    "contamination": 0.05,
+    "stations": [
+      {
+        "station_id": 17,
+        "station_name": "R K Puram, Delhi - DPCC",
+        "lat": 28.563262,
+        "lon": 77.186937,
+        "aqi": 329,
+        "is_anomaly": false,
+        "score_percentile": 15.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 132.0,
+            "z": 0.9,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 31.2,
+            "z": -0.61,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 171.4,
+            "z": -0.54,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 50,
+        "station_name": "Punjabi Bagh, Delhi - DPCC",
+        "lat": 28.674045,
+        "lon": 77.131023,
+        "aqi": 376,
+        "is_anomaly": false,
+        "score_percentile": 67.4,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 93.7,
+            "z": 2.09,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 376.2,
+            "z": 1.11,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 49.0,
+            "z": 0.6,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 235,
+        "station_name": "Anand Vihar, New Delhi - DPCC",
+        "lat": 28.646835,
+        "lon": 77.316032,
+        "aqi": 311,
+        "is_anomaly": false,
+        "score_percentile": 0.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 68.6,
+            "z": -0.44,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 194.0,
+            "z": -0.18,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 311.0,
+            "z": -0.08,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 301,
+        "station_name": "Vikas Sadan, Gurugram - HSPCB",
+        "lat": 28.4501238,
+        "lon": 77.0263051,
+        "aqi": 218,
+        "is_anomaly": false,
+        "score_percentile": 56.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 218.1,
+            "z": -1.76,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 31.2,
+            "z": -1.24,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 21.0,
+            "z": -0.77,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 5586,
+        "station_name": "Sirifort, Delhi - CPCB",
+        "lat": 28.5504249,
+        "lon": 77.2159377,
+        "aqi": 415,
+        "is_anomaly": false,
+        "score_percentile": 87.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM10",
+            "sub_index": 339.8,
+            "z": 2.16,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 415.3,
+            "z": 1.82,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 11.0,
+            "z": -1.26,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 5598,
+        "station_name": "Sector - 125, Noida, UP - UPPCB",
+        "lat": 28.5447608,
+        "lon": 77.3231257,
+        "aqi": 269,
+        "is_anomaly": false,
+        "score_percentile": 58.7,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 30.0,
+            "z": -1.26,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 20.0,
+            "z": -1.1,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 144.2,
+            "z": -0.98,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 5613,
+        "station_name": "ITO, New Delhi - CPCB",
+        "lat": 28.628624,
+        "lon": 77.24106,
+        "aqi": 402,
+        "is_anomaly": false,
+        "score_percentile": 80.4,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 71.0,
+            "z": 1.67,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 401.8,
+            "z": 1.57,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 271.0,
+            "z": 1.06,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 5622,
+        "station_name": "NSIT Dwarka, Delhi - CPCB",
+        "lat": 28.60909,
+        "lon": 77.0325413,
+        "aqi": 332,
+        "is_anomaly": true,
+        "score_percentile": 97.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 91.0,
+            "z": 2.65,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 332.3,
+            "z": 2.04,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 207.8,
+            "z": -1.95,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 5626,
+        "station_name": "DTU, New Delhi - CPCB",
+        "lat": 28.7500499,
+        "lon": 77.1112615,
+        "aqi": 367,
+        "is_anomaly": false,
+        "score_percentile": 69.6,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 101.3,
+            "z": 2.42,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 367.0,
+            "z": 0.94,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 240.0,
+            "z": 0.56,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 5630,
+        "station_name": "Shadipur, Delhi - CPCB",
+        "lat": 28.6514781,
+        "lon": 77.1473105,
+        "aqi": 314,
+        "is_anomaly": false,
+        "score_percentile": 78.3,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 212.0,
+            "z": 2.6,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 12.0,
+            "z": -1.21,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 28.8,
+            "z": -0.72,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 5665,
+        "station_name": "Vasundhara, Ghaziabad - UPPCB",
+        "lat": 28.6603346,
+        "lon": 77.3572563,
+        "aqi": 303,
+        "is_anomaly": false,
+        "score_percentile": 65.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 68.0,
+            "z": 1.53,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 157.0,
+            "z": 1.43,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 135.6,
+            "z": -1.11,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6356,
+        "station_name": "Pusa, Delhi - DPCC",
+        "lat": 28.639645,
+        "lon": 77.146262,
+        "aqi": 197,
+        "is_anomaly": false,
+        "score_percentile": 60.9,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 196.6,
+            "z": -2.15,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 20.0,
+            "z": -0.82,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 174.1,
+            "z": -0.5,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6358,
+        "station_name": "Mandir Marg, New Delhi - DPCC",
+        "lat": 28.636429,
+        "lon": 77.201067,
+        "aqi": 326,
+        "is_anomaly": false,
+        "score_percentile": 82.6,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 122.5,
+            "z": 3.33,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 57.0,
+            "z": 0.99,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 53.5,
+            "z": -0.76,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6359,
+        "station_name": "IHBAS, Dilshad Garden,New Delhi - CPCB",
+        "lat": 28.6811736,
+        "lon": 77.3025234,
+        "aqi": 315,
+        "is_anomaly": false,
+        "score_percentile": 19.6,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 47.5,
+            "z": -0.89,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 22.0,
+            "z": -0.72,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 170.8,
+            "z": -0.55,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6929,
+        "station_name": "Major Dhyan Chand National Stadium, Delhi - DPCC",
+        "lat": 28.611281,
+        "lon": 77.237738,
+        "aqi": 315,
+        "is_anomaly": false,
+        "score_percentile": 26.1,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 22.0,
+            "z": -0.72,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 168.1,
+            "z": -0.59,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 109.0,
+            "z": 0.42,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 6931,
+        "station_name": "Dwarka-Sector 8, Delhi - DPCC",
+        "lat": 28.5710274,
+        "lon": 77.0719006,
+        "aqi": 339,
+        "is_anomaly": false,
+        "score_percentile": 2.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 121.0,
+            "z": 0.67,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 339.4,
+            "z": 0.44,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 41.2,
+            "z": -0.18,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6932,
+        "station_name": "Alipur, Delhi - DPCC",
+        "lat": 28.815329,
+        "lon": 77.15301,
+        "aqi": 322,
+        "is_anomaly": false,
+        "score_percentile": 13.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 52.0,
+            "z": 0.75,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 77.4,
+            "z": -0.26,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 190.0,
+            "z": -0.24,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6934,
+        "station_name": "Dr. Karni Singh Shooting Range, Delhi - DPCC",
+        "lat": 28.498571,
+        "lon": 77.26484,
+        "aqi": 337,
+        "is_anomaly": false,
+        "score_percentile": 17.4,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 53.0,
+            "z": 0.8,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 110.0,
+            "z": 0.44,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 337.1,
+            "z": 0.4,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 6936,
+        "station_name": "Arya Nagar, Bahadurgarh - HSPCB",
+        "lat": 28.6701,
+        "lon": 76.9254,
+        "aqi": 321,
+        "is_anomaly": false,
+        "score_percentile": 32.6,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 20.0,
+            "z": -1.47,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 41.2,
+            "z": -0.18,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 321.0,
+            "z": 0.11,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 6938,
+        "station_name": "Vivek Vihar, Delhi - DPCC",
+        "lat": 28.672342,
+        "lon": 77.31526,
+        "aqi": 336,
+        "is_anomaly": false,
+        "score_percentile": 50.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 11.2,
+            "z": -1.66,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 28.0,
+            "z": -0.43,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 335.5,
+            "z": 0.37,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 6953,
+        "station_name": "Sector-2 IMT, Manesar - HSPCB",
+        "lat": 28.360699,
+        "lon": 76.93609,
+        "aqi": 316,
+        "is_anomaly": false,
+        "score_percentile": 30.4,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 21.2,
+            "z": -1.05,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 120.0,
+            "z": 0.65,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 39.0,
+            "z": 0.11,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 6957,
+        "station_name": "Jawaharlal Nehru Stadium, Delhi - DPCC",
+        "lat": 28.58028,
+        "lon": 77.233829,
+        "aqi": 329,
+        "is_anomaly": false,
+        "score_percentile": 47.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 82.4,
+            "z": 1.6,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 61.1,
+            "z": -0.6,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 179.4,
+            "z": -0.41,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6960,
+        "station_name": "Patparganj, Delhi - DPCC",
+        "lat": 28.623748,
+        "lon": 77.287205,
+        "aqi": 322,
+        "is_anomaly": false,
+        "score_percentile": 4.3,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 127.0,
+            "z": 0.8,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 38.8,
+            "z": -0.29,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 187.4,
+            "z": -0.28,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6972,
+        "station_name": "Nathu Colony, Ballabgarh - HSPCB",
+        "lat": 28.3419248,
+        "lon": 77.319699,
+        "aqi": 411,
+        "is_anomaly": false,
+        "score_percentile": 91.3,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM10",
+            "sub_index": 411.0,
+            "z": 3.3,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 7.5,
+            "z": -1.64,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 37.5,
+            "z": -1.1,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6980,
+        "station_name": "Sector-1, Noida - UPPCB",
+        "lat": 28.589247,
+        "lon": 77.321962,
+        "aqi": 249,
+        "is_anomaly": true,
+        "score_percentile": 95.7,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 226.0,
+            "z": 2.9,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 83.0,
+            "z": 2.26,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 248.8,
+            "z": -1.21,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 6988,
+        "station_name": "Sector-116, Noida - UPPCB",
+        "lat": 28.56923,
+        "lon": 77.393848,
+        "aqi": 242,
+        "is_anomaly": false,
+        "score_percentile": 84.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 178.0,
+            "z": 1.88,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 119.6,
+            "z": -1.37,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 242.0,
+            "z": -1.33,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 7005,
+        "station_name": "Loni, Ghaziabad - UPPCB",
+        "lat": 28.757294,
+        "lon": 77.278792,
+        "aqi": 312,
+        "is_anomaly": false,
+        "score_percentile": 63.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 86.0,
+            "z": 2.41,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 154.8,
+            "z": -0.81,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 36.2,
+            "z": -0.4,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 8235,
+        "station_name": "Jahangirpuri, Delhi - DPCC",
+        "lat": 28.73282,
+        "lon": 77.170633,
+        "aqi": 344,
+        "is_anomaly": false,
+        "score_percentile": 21.7,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 128.0,
+            "z": 0.82,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 31.2,
+            "z": -0.61,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 344.0,
+            "z": 0.52,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 8239,
+        "station_name": "Okhla Phase-2, Delhi - DPCC",
+        "lat": 28.530785,
+        "lon": 77.271255,
+        "aqi": 323,
+        "is_anomaly": false,
+        "score_percentile": 6.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 32.5,
+            "z": -0.56,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 114.0,
+            "z": 0.52,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 176.1,
+            "z": -0.46,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 8365,
+        "station_name": "Nehru Nagar, Delhi - DPCC",
+        "lat": 28.56789,
+        "lon": 77.250515,
+        "aqi": 347,
+        "is_anomaly": false,
+        "score_percentile": 8.7,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 347.0,
+            "z": 0.58,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 54.8,
+            "z": 0.41,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 72.4,
+            "z": -0.36,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 8472,
+        "station_name": "Bawana, Delhi - DPCC",
+        "lat": 28.7762,
+        "lon": 77.051074,
+        "aqi": 344,
+        "is_anomaly": false,
+        "score_percentile": 23.9,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 45.0,
+            "z": -0.94,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 344.0,
+            "z": 0.52,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 54.8,
+            "z": 0.41,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 8475,
+        "station_name": "Sonia Vihar, Delhi - DPCC",
+        "lat": 28.710508,
+        "lon": 77.249485,
+        "aqi": 319,
+        "is_anomaly": false,
+        "score_percentile": 28.3,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 16.0,
+            "z": -1.01,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 58.5,
+            "z": -0.66,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 168.1,
+            "z": -0.59,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 8915,
+        "station_name": "Wazirpur, Delhi - DPCC",
+        "lat": 28.699793,
+        "lon": 77.165453,
+        "aqi": 342,
+        "is_anomaly": false,
+        "score_percentile": 43.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 134.0,
+            "z": 0.95,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 22.0,
+            "z": -0.72,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 241.0,
+            "z": 0.57,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 8917,
+        "station_name": "Ashok Vihar, Delhi - DPCC",
+        "lat": 28.695381,
+        "lon": 77.181665,
+        "aqi": 324,
+        "is_anomaly": false,
+        "score_percentile": 45.7,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 81.2,
+            "z": 1.55,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 117.0,
+            "z": 0.58,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 324.0,
+            "z": 0.16,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 10484,
+        "station_name": "Sri Aurobindo Marg, Delhi - DPCC",
+        "lat": 28.531346,
+        "lon": 77.190156,
+        "aqi": 325,
+        "is_anomaly": false,
+        "score_percentile": 34.8,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM10",
+            "sub_index": 252.0,
+            "z": 0.75,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 30.0,
+            "z": -0.67,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 68.6,
+            "z": -0.44,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 10485,
+        "station_name": "Narela, Delhi - DPCC",
+        "lat": 28.822836,
+        "lon": 77.101981,
+        "aqi": 325,
+        "is_anomaly": false,
+        "score_percentile": 39.1,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 25.0,
+            "z": -1.37,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 15.0,
+            "z": -1.06,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 187.4,
+            "z": -0.28,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 10486,
+        "station_name": "Mundka, Delhi - DPCC",
+        "lat": 28.684678,
+        "lon": 77.076574,
+        "aqi": 369,
+        "is_anomaly": false,
+        "score_percentile": 54.3,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 368.5,
+            "z": 0.97,
+            "direction": "above"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 20.0,
+            "z": -0.82,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 126.0,
+            "z": 0.78,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 10488,
+        "station_name": "Najafgarh, Delhi - DPCC",
+        "lat": 28.570173,
+        "lon": 76.933762,
+        "aqi": 307,
+        "is_anomaly": false,
+        "score_percentile": 37.0,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM10",
+            "sub_index": 142.9,
+            "z": -1.0,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 49.0,
+            "z": 0.6,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 32.5,
+            "z": -0.56,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 10820,
+        "station_name": "Sector 30, Faridabad - HSPCB",
+        "lat": 28.4417,
+        "lon": 77.3217,
+        "aqi": 176,
+        "is_anomaly": false,
+        "score_percentile": 89.1,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 176.1,
+            "z": -2.53,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 6.2,
+            "z": -1.69,
+            "direction": "below"
+          },
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 7.0,
+            "z": -1.45,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 10825,
+        "station_name": "Sector-51, Gurugram - HSPCB",
+        "lat": 28.4227,
+        "lon": 77.0667,
+        "aqi": 303,
+        "is_anomaly": false,
+        "score_percentile": 41.3,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 17.5,
+            "z": -1.21,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 171.4,
+            "z": -0.54,
+            "direction": "below"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 74.9,
+            "z": -0.31,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 10831,
+        "station_name": "Rohini, Delhi - DPCC",
+        "lat": 28.732528,
+        "lon": 77.11992,
+        "aqi": 342,
+        "is_anomaly": false,
+        "score_percentile": 10.9,
+        "dominant_deviations": [
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 61.1,
+            "z": 0.68,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 341.7,
+            "z": 0.48,
+            "direction": "above"
+          },
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 102.0,
+            "z": 0.27,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 10900,
+        "station_name": "Teri Gram, Gurugram - HSPCB",
+        "lat": 28.4275,
+        "lon": 77.1465,
+        "aqi": 395,
+        "is_anomaly": false,
+        "score_percentile": 76.1,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM10",
+            "sub_index": 362.4,
+            "z": 2.52,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 395.4,
+            "z": 1.46,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 61.1,
+            "z": 0.68,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 10908,
+        "station_name": "Sector 11, Faridabad - HSPCB",
+        "lat": 28.376058,
+        "lon": 77.315741,
+        "aqi": 330,
+        "is_anomaly": false,
+        "score_percentile": 73.9,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 6.0,
+            "z": -1.5,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 295.0,
+            "z": 1.44,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 22.5,
+            "z": -0.99,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 10920,
+        "station_name": "New Industrial Town, Faridabad - HSPCB",
+        "lat": 28.39072,
+        "lon": 77.30059,
+        "aqi": 145,
+        "is_anomaly": true,
+        "score_percentile": 93.5,
+        "dominant_deviations": [
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 145.4,
+            "z": -3.08,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 113.0,
+            "z": -1.48,
+            "direction": "below"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 17.5,
+            "z": -1.21,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "station_id": 11603,
+        "station_name": "Chandni Chowk, Delhi - IITM",
+        "lat": 28.656756,
+        "lon": 77.227234,
+        "aqi": 369,
+        "is_anomaly": false,
+        "score_percentile": 71.7,
+        "dominant_deviations": [
+          {
+            "pollutant": "NO\u2082",
+            "sub_index": 16.2,
+            "z": -1.55,
+            "direction": "below"
+          },
+          {
+            "pollutant": "PM10",
+            "sub_index": 287.0,
+            "z": 1.31,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 369.3,
+            "z": 0.98,
+            "direction": "above"
+          }
+        ]
+      },
+      {
+        "station_id": 301388,
+        "station_name": "Sardar Patel Inter College, Baghpat - UPPCB",
+        "lat": 28.964949,
+        "lon": 77.278761,
+        "aqi": 343,
+        "is_anomaly": false,
+        "score_percentile": 52.2,
+        "dominant_deviations": [
+          {
+            "pollutant": "O\u2083",
+            "sub_index": 63.0,
+            "z": 1.28,
+            "direction": "above"
+          },
+          {
+            "pollutant": "SO\u2082",
+            "sub_index": 63.6,
+            "z": 0.79,
+            "direction": "above"
+          },
+          {
+            "pollutant": "PM2.5",
+            "sub_index": 343.2,
+            "z": 0.51,
+            "direction": "above"
+          }
+        ]
+      }
+    ]
+  },
+  "relationships": {
+    "pairs": [
+      {
+        "x": "ndvi_mean",
+        "y": "lst_mean",
+        "label": "NDVI \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 16896,
+          "pearson_r": -0.405,
+          "spearman_rho": -0.492,
+          "strength": "moderate",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 16896,
+            "pearson_r": -0.405,
+            "spearman_rho": -0.492,
+            "strength": "moderate",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 1891,
+            "pearson_r": -0.264,
+            "spearman_rho": -0.315,
+            "strength": "weak",
+            "direction": "negative"
+          },
+          "mixed": {
+            "n": 8931,
+            "pearson_r": -0.216,
+            "spearman_rho": -0.284,
+            "strength": "weak",
+            "direction": "negative"
+          },
+          "built-up-dominated": {
+            "n": 6074,
+            "pearson_r": 0.128,
+            "spearman_rho": 0.007,
+            "strength": "negligible",
+            "direction": "positive"
+          }
+        }
+      },
+      {
+        "x": "veg_frac",
+        "y": "lst_mean",
+        "label": "dense-vegetation share \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 16896,
+          "pearson_r": -0.369,
+          "spearman_rho": -0.382,
+          "strength": "weak",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 16896,
+            "pearson_r": -0.369,
+            "spearman_rho": -0.382,
+            "strength": "weak",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 1891,
+            "pearson_r": -0.432,
+            "spearman_rho": -0.46,
+            "strength": "moderate",
+            "direction": "negative"
+          },
+          "mixed": {
+            "n": 8931,
+            "pearson_r": -0.077,
+            "spearman_rho": -0.092,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "built-up-dominated": {
+            "n": 6074,
+            "pearson_r": 0.132,
+            "spearman_rho": 0.082,
+            "strength": "negligible",
+            "direction": "positive"
+          }
+        }
+      },
+      {
+        "x": "built_frac",
+        "y": "lst_mean",
+        "label": "built/bare share \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 16896,
+          "pearson_r": 0.422,
+          "spearman_rho": 0.54,
+          "strength": "moderate",
+          "direction": "positive"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 16896,
+            "pearson_r": 0.422,
+            "spearman_rho": 0.54,
+            "strength": "moderate",
+            "direction": "positive"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 1891,
+            "pearson_r": 0.252,
+            "spearman_rho": 0.343,
+            "strength": "weak",
+            "direction": "positive"
+          },
+          "mixed": {
+            "n": 8931,
+            "pearson_r": 0.327,
+            "spearman_rho": 0.382,
+            "strength": "weak",
+            "direction": "positive"
+          },
+          "built-up-dominated": {
+            "n": 6074,
+            "pearson_r": 0.011,
+            "spearman_rho": 0.1,
+            "strength": "negligible",
+            "direction": "positive"
+          }
+        }
+      },
+      {
+        "x": "ndbi_land_mean",
+        "y": "lst_mean",
+        "label": "NDBI \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 16896,
+          "pearson_r": 0.607,
+          "spearman_rho": 0.689,
+          "strength": "strong",
+          "direction": "positive"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 16896,
+            "pearson_r": 0.607,
+            "spearman_rho": 0.689,
+            "strength": "strong",
+            "direction": "positive"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 1891,
+            "pearson_r": 0.399,
+            "spearman_rho": 0.453,
+            "strength": "moderate",
+            "direction": "positive"
+          },
+          "mixed": {
+            "n": 8931,
+            "pearson_r": 0.54,
+            "spearman_rho": 0.627,
+            "strength": "strong",
+            "direction": "positive"
+          },
+          "built-up-dominated": {
+            "n": 6074,
+            "pearson_r": 0.433,
+            "spearman_rho": 0.544,
+            "strength": "moderate",
+            "direction": "positive"
+          }
+        }
+      },
+      {
+        "x": "ndmi_veg_mean",
+        "y": "lst_mean",
+        "label": "NDMI (vegetation moisture) \u2194 LST",
+        "scope": "land",
+        "all": {
+          "n": 12548,
+          "pearson_r": -0.246,
+          "spearman_rho": -0.333,
+          "strength": "weak",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 12548,
+            "pearson_r": -0.246,
+            "spearman_rho": -0.333,
+            "strength": "weak",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 1883,
+            "pearson_r": -0.067,
+            "spearman_rho": -0.177,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "mixed": {
+            "n": 8417,
+            "pearson_r": -0.207,
+            "spearman_rho": -0.296,
+            "strength": "weak",
+            "direction": "negative"
+          },
+          "built-up-dominated": {
+            "n": 2248,
+            "pearson_r": -0.134,
+            "spearman_rho": -0.288,
+            "strength": "weak",
+            "direction": "negative"
+          }
+        }
+      },
+      {
+        "x": "ndvi_mean",
+        "y": "aqi_idw",
+        "label": "NDVI \u2194 AQI (interpolated)",
+        "scope": "land",
+        "all": {
+          "n": 16472,
+          "pearson_r": -0.01,
+          "spearman_rho": -0.03,
+          "strength": "negligible",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 16472,
+            "pearson_r": -0.01,
+            "spearman_rho": -0.03,
+            "strength": "negligible",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 1851,
+            "pearson_r": 0.05,
+            "spearman_rho": 0.064,
+            "strength": "negligible",
+            "direction": "positive"
+          },
+          "mixed": {
+            "n": 8669,
+            "pearson_r": 0.091,
+            "spearman_rho": 0.072,
+            "strength": "negligible",
+            "direction": "positive"
+          },
+          "built-up-dominated": {
+            "n": 5952,
+            "pearson_r": -0.049,
+            "spearman_rho": -0.068,
+            "strength": "negligible",
+            "direction": "negative"
+          }
+        },
+        "caution": "AQI between stations is interpolated from 57 stations; the effective sample size is the station count, so treat this as indicative only."
+      },
+      {
+        "x": "lst_mean",
+        "y": "aqi_idw",
+        "label": "LST \u2194 AQI (interpolated)",
+        "scope": "land",
+        "all": {
+          "n": 16472,
+          "pearson_r": -0.202,
+          "spearman_rho": -0.154,
+          "strength": "negligible",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 16472,
+            "pearson_r": -0.202,
+            "spearman_rho": -0.154,
+            "strength": "negligible",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {
+          "vegetation-dominated": {
+            "n": 1851,
+            "pearson_r": -0.194,
+            "spearman_rho": -0.195,
+            "strength": "negligible",
+            "direction": "negative"
+          },
+          "mixed": {
+            "n": 8669,
+            "pearson_r": -0.258,
+            "spearman_rho": -0.223,
+            "strength": "weak",
+            "direction": "negative"
+          },
+          "built-up-dominated": {
+            "n": 5952,
+            "pearson_r": -0.222,
+            "spearman_rho": -0.127,
+            "strength": "negligible",
+            "direction": "negative"
+          }
+        },
+        "caution": "AQI between stations is interpolated from 57 stations; the effective sample size is the station count, so treat this as indicative only."
+      },
+      {
+        "x": "wh_mean",
+        "y": "lst_mean",
+        "label": "Water Health \u2194 LST",
+        "scope": "water",
+        "all": {
+          "n": 1075,
+          "pearson_r": 0.183,
+          "spearman_rho": 0.252,
+          "strength": "weak",
+          "direction": "positive"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 1075,
+            "pearson_r": 0.183,
+            "spearman_rho": 0.252,
+            "strength": "weak",
+            "direction": "positive"
+          }
+        },
+        "by_land_class": {}
+      },
+      {
+        "x": "wh_mean",
+        "y": "aqi_idw",
+        "label": "Water Health \u2194 AQI (interpolated)",
+        "scope": "water",
+        "all": {
+          "n": 1023,
+          "pearson_r": -0.056,
+          "spearman_rho": -0.003,
+          "strength": "negligible",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 1023,
+            "pearson_r": -0.056,
+            "spearman_rho": -0.003,
+            "strength": "negligible",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {},
+        "caution": "AQI between stations is interpolated from 57 stations; the effective sample size is the station count, so treat this as indicative only."
+      },
+      {
+        "x": "wh_mean",
+        "y": "ndvi_land_mean",
+        "label": "Water Health \u2194 NDVI of surrounding land",
+        "scope": "water",
+        "all": {
+          "n": 1074,
+          "pearson_r": -0.272,
+          "spearman_rho": -0.299,
+          "strength": "weak",
+          "direction": "negative"
+        },
+        "by_municipality": {
+          "Delhi": {
+            "n": 1074,
+            "pearson_r": -0.272,
+            "spearman_rho": -0.299,
+            "strength": "weak",
+            "direction": "negative"
+          }
+        },
+        "by_land_class": {}
+      }
+    ],
+    "notes": [
+      "Effect sizes only: neighbouring cells are spatially autocorrelated, so p-values are not reported.",
+      "Association, not causation."
+    ]
+  },
+  "validation": {
+    "worldcover": {
+      "status": "ok",
+      "reference": "ESA WorldCover 2021 v200 (10 m), independent of GeoSense",
+      "cells_compared": 17004,
+      "vegetation_dense_vs_tree_mangrove": {
+        "n": 17004,
+        "spearman_rho": 0.507,
+        "mean_abs_diff": 0.145
+      },
+      "vegetation_any_vs_wc_vegetation": {
+        "n": 17004,
+        "spearman_rho": 0.591,
+        "mean_abs_diff": 0.23
+      },
+      "built_bare_share": {
+        "n": 17004,
+        "spearman_rho": 0.58,
+        "mean_abs_diff": 0.233
+      },
+      "ndbi_vs_built_bare": {
+        "n": 16959,
+        "spearman_rho": 0.279,
+        "mean_abs_diff": 0.505
+      },
+      "open_water_share": {
+        "n": 17004,
+        "spearman_rho": 0.26,
+        "mean_abs_diff": 0.013
+      },
+      "dominant_class_agreement_pct": 73.4,
+      "dominant_class_confusion": {
+        "built/bare": {
+          "built/bare": 4544,
+          "mixed": 14,
+          "vegetation": 1504,
+          "water": 12
+        },
+        "mixed": {
+          "built/bare": 42,
+          "mixed": 26,
+          "vegetation": 76,
+          "water": 31
+        },
+        "vegetation": {
+          "built/bare": 2744,
+          "mixed": 39,
+          "vegetation": 7855,
+          "water": 14
+        },
+        "water": {
+          "built/bare": 14,
+          "mixed": 1,
+          "vegetation": 30,
+          "water": 58
+        }
+      },
+      "lst_by_worldcover_class": {
+        "shrub": {
+          "n": 404,
+          "median_c": 29.0,
+          "iqr_c": [
+            27.9,
+            29.8
+          ]
+        },
+        "crop": {
+          "n": 5023,
+          "median_c": 32.3,
+          "iqr_c": [
+            30.9,
+            34.5
+          ]
+        },
+        "tree": {
+          "n": 2261,
+          "median_c": 28.9,
+          "iqr_c": [
+            28.1,
+            29.6
+          ]
+        },
+        "built": {
+          "n": 7116,
+          "median_c": 31.6,
+          "iqr_c": [
+            30.6,
+            32.6
+          ]
+        },
+        "grass": {
+          "n": 68,
+          "median_c": 31.3,
+          "iqr_c": [
+            30.2,
+            32.6
+          ]
+        },
+        "bare": {
+          "n": 34,
+          "median_c": 33.4,
+          "iqr_c": [
+            32.1,
+            34.8
+          ]
+        },
+        "water": {
+          "n": 115,
+          "median_c": 27.7,
+          "iqr_c": [
+            26.8,
+            28.7
+          ]
+        }
+      },
+      "lst_physically_plausible": true,
+      "heat_flags_in_built_bare_pct": {
+        "base_rate": 43.2,
+        "unexplained_heat": 3.6,
+        "unexplained_heat_n": 673,
+        "lst_isolation_forest_high": 6.6,
+        "lst_isolation_forest_high_n": 617
+      },
+      "caveat": "WorldCover has its own errors (about 77% overall accuracy globally) and is from 2021; agreement is evidence of consistency, not proof."
+    },
+    "aqi_idw_loso": {
+      "status": "ok",
+      "method": "leave-one-station-out, same IDW settings (k, power, max distance)",
+      "n": 56,
+      "mae": 46.3,
+      "rmse": 68.7,
+      "bias": -0.1,
+      "category_agreement_pct": 70.0,
+      "by_distance": {
+        "far": {
+          "mae": 25.4,
+          "n": 13,
+          "rmse": 33.4
+        },
+        "near": {
+          "mae": 52.6,
+          "n": 43,
+          "rmse": 76.2
+        }
+      }
+    }
+  },
+  "caveats": [
+    "Signals are statistical associations within one snapshot, not causal proof.",
+    "LST cells with <30% cloud-free Landsat pixels are excluded rather than filled.",
+    "Water Health is a satellite spectral proxy, not laboratory water quality.",
+    "AQI enters the models only when a real OpenAQ CPCB-network station surface exists."
+  ]
+}

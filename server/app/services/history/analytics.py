@@ -14,6 +14,7 @@
 Missing seasons (cloud) stay missing; nothing is interpolated in time.
 """
 from __future__ import annotations
+from app.core.cities import city_path
 
 import json
 from typing import Any
@@ -21,10 +22,11 @@ from typing import Any
 import numpy as np
 from sqlalchemy import text
 
+from app.core.cities import current_city_id, get_city
 from app.services.history.gee_builder import HISTORY_DIR
 
-SUMMARY_PATH = HISTORY_DIR / "history_summary.json"
-CHANGE_IF_PATH = HISTORY_DIR / "change_if.json"
+SUMMARY_PATH = city_path("history", "history_summary.json")
+CHANGE_IF_PATH = city_path("history", "change_if.json")
 METRICS = {
     "lst": {"label": "LST", "unit": "°C", "min_change": 2.0, "persist": ("high", "hottest 10%")},
     "ndvi": {"label": "NDVI", "unit": "", "min_change": 0.10, "persist": ("low", "least green 10%")},
@@ -39,7 +41,8 @@ CHANGE_IF_FEATURES = ["d_lst", "d_ndvi", "d_ndmi_veg"]
 
 def _seasons(db) -> list[dict[str, Any]]:
     rows = db.execute(text("SELECT season, label, kind, year, period_start, period_end, partial, s2_images, "
-                           "landsat_images, metadata FROM history_seasons ORDER BY period_start")).mappings().all()
+                           "landsat_images, metadata FROM history_seasons WHERE city = :city ORDER BY period_start"),
+                      {"city": current_city_id()}).mappings().all()
     out = []
     for r in rows:
         meta = r["metadata"] or {}
@@ -77,8 +80,9 @@ def build_summary(db) -> dict[str, Any]:
     by_key = {s["season"]: s for s in seasons}
     data: dict[str, dict[int, dict[str, float]]] = {}
     for s in seasons:
-        rows = db.execute(text(f"SELECT cell_id, {', '.join(METRICS)} FROM cell_history WHERE season = :s"),
-                          {"s": s["season"]}).mappings().all()
+        rows = db.execute(text(f"SELECT cell_id, {', '.join(METRICS)} FROM cell_history "
+                               "WHERE city = :city AND season = :s"),
+                          {"city": current_city_id(), "s": s["season"]}).mappings().all()
         data[s["season"]] = {r["cell_id"]: {m: r[m] for m in METRICS} for r in rows}
     pct: dict[str, dict[str, list[float]]] = {}
     for key, cells in data.items():
@@ -172,7 +176,8 @@ def cell_history(db, cell_id: int, lat: float | None = None, lon: float | None =
         return None
     by_key = {s["season"]: s for s in seasons}
     rows = db.execute(text(f"SELECT season, {', '.join(METRICS)}, s2_valid_frac, lst_valid_frac "
-                           "FROM cell_history WHERE cell_id = :c"), {"c": cell_id}).mappings().all()
+                           "FROM cell_history WHERE cell_id = :c AND city = :city"),
+                      {"c": cell_id, "city": current_city_id()}).mappings().all()
     vals = {r["season"]: dict(r) for r in rows}
     shown = [s for s in seasons if not s.get("matched_for")]
     out: dict[str, Any] = {"seasons": [{k: s[k] for k in ("season", "label", "kind", "year", "partial",
@@ -220,7 +225,7 @@ def cell_history(db, cell_id: int, lat: float | None = None, lon: float | None =
                 entry["persistence"] = {"seasons_flagged": hits, "seasons_observed": n, "description": words,
                                         "persistent": hits >= 3 and hits / n >= 0.6}
         # trend over the same season (indicative)
-        for kind in ("pre", "post"):
+        for kind in get_city().seasons:
             pts = [(s["year"], (vals.get(s["season"]) or {}).get(m)) for s in shown
                    if s["kind"] == kind and not s["partial"]]
             pts = [(y, float(v)) for y, v in pts if v is not None]
@@ -241,7 +246,8 @@ def cell_history(db, cell_id: int, lat: float | None = None, lon: float | None =
 
 def nearest_station_history(db, lat: float, lon: float, by_key: dict[str, dict], max_km: float = 10.0):
     rows = db.execute(text("SELECT station_id, station_name, lat, lon, season, days_with_aqi, aqi_median, aqi_p90, "
-                           "dominant_pollutant, method FROM station_aqi_history")).mappings().all()
+                           "dominant_pollutant, method FROM station_aqi_history WHERE city = :city"),
+                      {"city": current_city_id()}).mappings().all()
     if not rows:
         return None
     from app.services.surfaces.aqi_station_surface import _haversine_m

@@ -33,18 +33,22 @@ HOT_PCT = 80.0            # "hotter at the start" = among the hottest 20% of are
 MIN_NDVI_DROP = 0.03      # a greenery loss must also be physically visible
 MIN_LST_DROP = 0.5        # °C, for "cooled"
 CACHE_S = 3600.0
-_CACHE: dict[str, Any] = {"t": 0.0, "data": None}
+_CACHE: dict[str, dict[str, Any]] = {}     # per city: {"t": ..., "data": ...}
 
 
 def _load(db=None) -> dict[str, Any] | None:
-    if _CACHE["data"] is not None and time.time() - _CACHE["t"] < CACHE_S:
-        return _CACHE["data"]
+    from app.core.cities import current_city_id
     from app.services.history.analytics import _seasons, comparable
+
+    city = current_city_id()
+    hit = _CACHE.get(city)
+    if hit and hit["data"] is not None and time.time() - hit["t"] < CACHE_S:
+        return hit["data"]
 
     def run(d):
         seasons = _seasons(d)
-        rows = d.execute(text("SELECT cell_id, season, ndvi, lst, ndmi_veg, openwater_frac FROM cell_history")) \
-            .mappings().all()
+        rows = d.execute(text("SELECT cell_id, season, ndvi, lst, ndmi_veg, openwater_frac FROM cell_history "
+                              "WHERE city = :city"), {"city": city}).mappings().all()
         return seasons, rows
 
     if db is not None:
@@ -68,7 +72,7 @@ def _load(db=None) -> dict[str, Any] | None:
                 p.update(start=prev["label"], end=s["label"], start_key=prev["season"], end_key=s["season"])
                 pairs.append(p)
     data = {"pairs": pairs}
-    _CACHE.update(t=time.time(), data=data)
+    _CACHE[city] = {"t": time.time(), "data": data}
     return data
 
 

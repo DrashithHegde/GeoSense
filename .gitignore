@@ -63,3 +63,15 @@ server/data/rag/models/
 
 # guardrail audit log (local)
 server/data/logs/
+
+# ── Map layers and pipeline outputs: built on your machine, shipped to servers as the data bundle
+#    (python server/scripts/data_bundle.py pack / fetch), not stored in git. Boundaries stay in git.
+server/data/**/surfaces/
+server/data/**/ml/*.csv
+server/data/**/ml/*.joblib
+server/data/**/history/
+server/data/**/validation/
+server/data/.bundle.json
+server/data/bundle.json
+geosense-data.tar.gz
+*.dump

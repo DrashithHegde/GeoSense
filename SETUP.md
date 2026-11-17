@@ -35,25 +35,26 @@ In VS Code you can instead:
 - `Terminal → Run Task… → GeoSense: start all`, or
 - `Run and Debug (Ctrl+Shift+D) → GeoSense: full stack` (breakpoints work in the Python backend)
 
-Then: pick **Mumbai** → click anywhere on the map → **Deep Analysis**.
+Then: pick **Mumbai**, **Delhi** or **Bengaluru** → click anywhere on the map → **Deep Analysis**.
 
-## 4. Refresh data later
+## 4. Add / refresh a city
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\setup.ps1 -PipelineOnly
+powershell -ExecutionPolicy Bypass -File .\setup.ps1 -PipelineOnly -City delhi
+powershell -ExecutionPolicy Bypass -File .\setup.ps1 -PipelineOnly -City bengaluru -History
 ```
-Re-renders heatmaps, re-fetches AQI and re-runs the ML.
+A city without layers yet is built from scratch (Earth Engine + OpenAQ, about 20-40 minutes; add
+`-History` for the seasonal history, longer). A city that has them is refreshed: map images, AQI,
+composite and ML. Mumbai is the default (`-City mumbai`).
 
 ## Troubleshooting
 | Problem | Fix |
 |---|---|
 | `alembic failed` | Docker Desktop not running, or DB_* in `.env` wrong |
-| AQI shows “unavailable” | Fewer than 3 CPCB/MPCB stations reported in the last 48 h — expected; try later |
+| AQI shows “unavailable” | Fewer than 3 CPCB-network stations reported in the last 48 h — expected; try later |
+| A city's layers say “not generated yet” | Run `setup.ps1 -PipelineOnly -City <city>` (needs Earth Engine + OpenAQ) |
 | No AI write-up | No LLM key in `.env` — evidence-only explanation is shown instead |
 | Map is blank | `VITE_MAPBOX_TOKEN` missing in `.env` → re-run setup (it writes `client\.env`) |
 | `pip` fails building numpy | You're on Python 3.13/3.14 — install 3.12 and delete `server\.venv` |
 
-## About `geosense-intelligence.bundle`
-A git bundle is a single file containing git commits — like an offline `git push`. You only
-need it if you want this work as a branch inside your existing git clone:
-`git fetch path\to\geosense-intelligence.bundle feature/intelligence-layer:feature/intelligence-layer`.
-If you use this zip, you can ignore the bundle.
+## Deploy
+See `deploy/DEPLOY.md` (Render + Vercel, Azure as a secondary deployment).

@@ -1,6 +1,6 @@
 """Check the current AQI layer: how fresh each station is and which pollutants it reported.
 
-    python scripts/check_aqi.py
+    python scripts/check_aqi.py [--city mumbai|delhi|bengaluru]
 
 Reads the AQI surface the map is using (data/surfaces/manifest.json) — no server needed.
 Freshness policy (openaq/derive_aqi_grid.py): fresh < 6 h · stale 6-48 h (used, labelled) · > 48 h rejected.
@@ -14,7 +14,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SERVER_ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = SERVER_ROOT / "data" / "surfaces" / "manifest.json"
+sys.path.insert(0, str(SERVER_ROOT))
+
+from app.core.cities import city_path, run_script_for_city  # noqa: E402
+
+MANIFEST = city_path("surfaces", "manifest.json")
 POLLUTANTS = ["pm25", "pm10", "no2", "so2", "o3", "co", "nh3"]
 LABEL = {"pm25": "PM2.5", "pm10": "PM10", "no2": "NO2", "so2": "SO2", "o3": "O3", "co": "CO", "nh3": "NH3"}
 
@@ -78,4 +82,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run_script_for_city(main))

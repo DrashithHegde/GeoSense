@@ -12,6 +12,7 @@ These are agreement checks with an independent product, not proof: WorldCover ha
 errors (reported overall accuracy about 77% globally, Zanaga et al. 2022) and is from 2021.
 """
 from __future__ import annotations
+from app.core.cities import city_path
 
 import csv
 from pathlib import Path
@@ -21,7 +22,7 @@ import numpy as np
 from scipy.stats import spearmanr
 
 SERVER_ROOT = Path(__file__).resolve().parents[3]
-WORLDCOVER_CSV = SERVER_ROOT / "data" / "validation" / "worldcover_cells_v200.csv"
+WORLDCOVER_CSV = city_path("validation", "worldcover_cells_v200.csv")
 WORLDCOVER_CLASSES = {10: "tree", 20: "shrub", 30: "grass", 40: "crop", 50: "built", 60: "bare",
                       70: "snow", 80: "water", 90: "wetland", 95: "mangrove", 100: "moss"}
 # our broad classes <- WorldCover classes

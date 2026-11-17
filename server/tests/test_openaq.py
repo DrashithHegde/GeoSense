@@ -367,7 +367,7 @@ def test_production_station_filter_excludes_non_cpcb_providers():
         1: {"station_id": 1, "pollutants": {"pm25": 10}},
         2: {"station_id": 2, "pollutants": {"pm25": 10}},
     }
-    with patch("openaq.client.discover_mmr_stations", return_value=[cpcb, airnow]), patch(
+    with patch("openaq.client.discover_stations", return_value=[cpcb, airnow]), patch(
         "openaq.client.collect_station_pollutants",
         side_effect=lambda _key, station, **_kwargs: measurements[station["id"]],
     ) as collect:

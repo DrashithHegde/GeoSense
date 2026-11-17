@@ -13,7 +13,7 @@ class Base(DeclarativeBase):
 
 
 class SpatialCell(Base):
-    """Dense 300m analytical grid cell covering Mumbai + Thane + Mira-Bhayandar.
+    """Dense 300 m analytical grid cell of one city's study region (see app/core/cities.py).
 
     This is the new primary spatial abstraction for environmental analytics.
     The 300m resolution was chosen because:
@@ -36,6 +36,7 @@ class SpatialCell(Base):
     )
     resolution_m: Mapped[int] = mapped_column(Integer, nullable=False, server_default="300")
     municipality_name: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    city: Mapped[str] = mapped_column(String(32), nullable=False, server_default="mumbai", index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

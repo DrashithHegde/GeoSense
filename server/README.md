@@ -1,39 +1,14 @@
-# GeoSense Server (FastAPI)
+# GeoSense API (FastAPI)
 
-Minimal backend scaffold for easy frontend integration.
-
-## Structure
-
-- `app/main.py` → FastAPI app + CORS + `/api` router mount
-- `app/api/routes.py` → starter endpoints
-- `app/core/config.py` → env-based settings
-- `app/schemas/anomaly.py` → response models
-- `run.py` → local entrypoint with auto-reload in development
-
-## Quick start
+See the main [README](../README.md) for what it does and how to run it, and
+[deploy/DEPLOY.md](../deploy/DEPLOY.md) for hosting.
 
 ```bash
-cd server
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-python run.py
+pip install -r requirements-pipeline.txt   # requirements.txt = what the deployed API needs
+python scripts/db_init.py                  # PostGIS + pgvector + migrations
+uvicorn app.main:app --reload --port 8000  # http://127.0.0.1:8000/docs
+python -m pytest tests -q
 ```
 
-API will run at `http://127.0.0.1:8000`.
-
-## Starter endpoints
-
-- `GET /api/health`
-- `GET /api/anomalies?city=mumbai`
-
-## Frontend integration
-
-`client/vite.config.js` already proxies `/api` to `http://127.0.0.1:8000`.
-So from React, call:
-
-```js
-fetch('/api/health')
-```
+Pipeline scripts (all take `--city mumbai|delhi|bengaluru`): `scripts/setup_city.py` runs them in
+order; `scripts/data_bundle.py` packs / fetches the layers for a server.

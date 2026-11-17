@@ -51,7 +51,7 @@
     {
       "label": "Tests: intelligence layer",
       "type": "shell",
-      "command": "${workspaceFolder}/server/.venv/Scripts/python.exe -m pytest tests/test_intelligence_layer.py -q",
+      "command": "${workspaceFolder}/server/.venv/Scripts/python.exe -m pytest tests -q",
       "options": { "cwd": "${workspaceFolder}/server" },
       "group": "test",
       "problemMatcher": []

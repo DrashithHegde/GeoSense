@@ -19,6 +19,9 @@ PIPELINE_LOCK = threading.Lock()
 
 def require_admin(request: Request) -> None:
     token = os.getenv("ADMIN_TOKEN", "").strip()
+    if not token:
+        from app.core.config import get_settings
+        token = (get_settings().admin_token or "").strip()
     given = request.headers.get("x-admin-token", "")
     if token:
         if not hmac.compare_digest(given, token):

@@ -93,7 +93,7 @@ class AqiStationSurfaceTests(unittest.TestCase):
         ok, rej = aqs.eligible_stations([self._st(1, 19, 72.8, 50, cpcb=False), self._st(2, 19, 72.8, 50, age_h=-5)],
                                         self.now)
         self.assertEqual(ok, [])
-        self.assertEqual({r["reason"] for r in rej}, {"not CPCB/MPCB-backed", "future timestamp"})
+        self.assertEqual({r["reason"] for r in rej}, {"not CPCB-network-backed", "future timestamp"})
 
     def test_cpcb_category_boundaries(self):
         self.assertEqual(aqs.cpcb_category(50)["name"], "Good")

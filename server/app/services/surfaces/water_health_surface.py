@@ -6,11 +6,9 @@ database. The frozen zone geometry is used solely to obtain the existing study
 extent for a rectangular satellite export.
 """
 from __future__ import annotations
-
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 import hashlib
 import json
-import math
 import os
 from pathlib import Path
 import shutil
@@ -31,6 +29,7 @@ import rasterio
 from rasterio.features import rasterize as rio_rasterize
 import requests
 
+from app.core.cities import city_path
 from app.services.municipality_boundaries import (
     MunicipalityBoundaryError,
     get_study_region_bounds,
@@ -56,8 +55,8 @@ WATER_MASK_EIGHT_CONNECTED = True
 LAND_OVERLAY_RGB = (105, 76, 51)
 LAND_OVERLAY_ALPHA = 64
 SERVER_ROOT = Path(__file__).resolve().parents[3]
-SURFACE_ROOT = SERVER_ROOT / "data" / "surfaces"
-MANIFEST_PATH = SURFACE_ROOT / "manifest.json"
+SURFACE_ROOT = city_path("surfaces")
+MANIFEST_PATH = city_path("surfaces", "manifest.json")
 
 
 def mapbox_coordinates(bounds: tuple[float, float, float, float]) -> list[list[float]]:
@@ -69,7 +68,7 @@ def get_study_region_mask(width: int, height: int, transform,
                            bounds: tuple[float, float, float, float]) -> np.ndarray | None:
     """Build a uint8 alpha mask (255=inside study region, 0=outside) for WH rasters.
 
-    Union of Mumbai + Thane + Mira-Bhayandar local GeoJSON boundaries.
+    The current city's study region (union of its local municipality boundaries).
     Rasterised to the same (width, height, transform) as the target raster.
     Returns None if boundaries are unavailable so builds remain backward-compatible.
     """
@@ -246,7 +245,7 @@ def _tile_download(image: Any, tile_region: Any, dest: Path) -> Path:
 def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
     """Download a Water Health GeoTIFF at native 10 m resolution.
 
-    Uses a 2x1 horizontal tile split to remain under GEE's ~48 MB per-request
+    Uses a grid of tiles, sized from the area, to remain under GEE's ~48 MB per-request
     body limit, then mosaics the result with rasterio. Scientific pixel
     values, CRS, transform and coverage are preserved exactly at 10 m."""
     from rasterio.merge import merge as rio_merge
@@ -256,11 +255,12 @@ def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
     ys = [c[1] for c in coords]
     west, east = min(xs), max(xs)
     south, north = min(ys), max(ys)
-    mid_x = (west + east) / 2.0
+
+    from app.services.surfaces.ee_tiles import tile_grid
 
     tile_defs = [
-        ("tile_w", ee.Geometry.Rectangle([west, south, mid_x, north], proj=CRS, geodesic=False)),
-        ("tile_e", ee.Geometry.Rectangle([mid_x, south, east, north], proj=CRS, geodesic=False)),
+        (label, ee.Geometry.Rectangle([w, s, e, n], proj=CRS, geodesic=False))
+        for label, w, s, e, n in tile_grid(west, south, east, north, SCALE_METERS)
     ]
 
     with tempfile.TemporaryDirectory(prefix="wh_tiles_") as tmp_dir:
@@ -286,6 +286,7 @@ def _download_geotiff(image: Any, region: Any, destination: Path) -> None:
                 "crs": CRS,
                 "nodata": NODATA_VALUE,
             })
+            destination.parent.mkdir(parents=True, exist_ok=True)     # the work folder may have been cleaned meanwhile
             with rasterio.open(destination, "w", **out_meta) as dst:
                 dst.write(merged_arr)
         finally:
@@ -610,7 +611,7 @@ def publish_water_health_geotiff(
     scientific GeoTIFF pixel values remain 100% unchanged.
 
     All three layers are clipped/masked to the study-region union (Mumbai +
-    Thane + Mira-Bhayandar) AFTER blurring, so the glow/halo cannot bleed
+    its municipalities) AFTER blurring, so the glow/halo cannot bleed
     outside the municipal boundaries.
     """
     context = source_context(start_date, end_date)
@@ -740,7 +741,7 @@ def publish_water_health_geotiff(
         "coordinates": mapbox_coordinates((west, south, east, north)),
         "width": width, "height": height, "pixel_size_degrees": {"longitude": (east - west) / width, "latitude": (north - south) / height},
         "source_scale_m": SCALE_METERS, "nodata_value": NODATA_VALUE, "nodata": True,
-        "nodata_semantics": "transparent; non-water pixel / no valid Sentinel-2 observation; study region clipped to Mumbai + Thane + Mira-Bhayandar boundaries (visualisation layers only)",
+        "nodata_semantics": "transparent; non-water pixel / no valid Sentinel-2 observation; study region clipped to the city's municipality boundaries (visualisation layers only)",
         "valid_pixels": int(valid.sum()), "nodata_pixels": int((~valid).sum()),
         "valid_pixel_percent": round(float(valid.mean() * 100), 3),
         "wh_min": round(wh_min, 3),

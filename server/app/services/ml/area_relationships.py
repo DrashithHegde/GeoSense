@@ -25,7 +25,7 @@ from sqlalchemy import text
 
 MIN_N = 60
 N_BINS = 10
-_CACHE: dict[str, Any] = {"t": 0.0, "rows": None}
+_CACHE: dict[str, dict[str, Any]] = {}     # per city: {"t": ..., "rows": ...}
 CACHE_S = 3600.0
 
 # feature names in the ML snapshot · key in the area values · display
@@ -74,18 +74,25 @@ def _strength(rho: float) -> str:
 
 
 def _rows() -> list[dict]:
-    """Every area's snapshot features (cached for an hour)."""
-    if _CACHE["rows"] is not None and time.time() - _CACHE["t"] < CACHE_S:
-        return _CACHE["rows"]
+    """Every area's snapshot features in the current city (cached for an hour)."""
+    from app.core.cities import current_city_id
+    city = current_city_id()
+    hit = _CACHE.get(city)
+    if hit and hit["rows"] is not None and time.time() - hit["t"] < CACHE_S:
+        return hit["rows"]
     from app.database import SessionLocal
     with SessionLocal() as db:
         # latest snapshot per area (older snapshots of the same area would count twice)
         res = db.execute(text("""
-            SELECT DISTINCT ON (cell_id) feature_values -> 'raw_values' AS f
-            FROM engineered_features ORDER BY cell_id, observed_at DESC, id DESC
-        """)).fetchall()
-    rows = [dict(r[0]) for r in res if r[0]]
-    _CACHE.update(t=time.time(), rows=rows)
+            SELECT DISTINCT ON (ef.cell_id) ef.feature_values -> 'raw_values' AS f
+            FROM engineered_features ef JOIN spatial_cells sc ON sc.id = ef.cell_id
+            WHERE sc.city = :city
+            ORDER BY ef.cell_id, ef.observed_at DESC, ef.id DESC
+        """), {"city": city}).fetchall()
+    # only the columns the pairs use (a full feature row per area would hold tens of MB per city)
+    keep = {k for x, y, *_ in PAIRS for k in (x, y)} | {"openwater_frac"}
+    rows = [{k: r[0].get(k) for k in keep} for r in res if r[0]]
+    _CACHE[city] = {"t": time.time(), "rows": rows}
     return rows
 
 
@@ -151,9 +158,10 @@ def area_relationships(ev: dict, focus: str | None = None, n_stations: int | Non
             "direction": "positive" if rho > 0 else "negative", "city_text": city, "here": None,
         }
         if "aqi_idw" in (x, y):
-            item["caution"] = (f"AQI between stations is interpolated from {n_stations or 'about 30'} stations, so it changes "
+            stations = f"{n_stations} stations" if n_stations else "a limited number of stations"
+            item["caution"] = (f"AQI between stations is interpolated from {stations}, so it changes "
                                "over kilometres, not 300 m; this link is indicative only and is not judged per area.")
-            item["caution_plain"] = ("Air quality is measured at only about 30 stations, so this is a city-wide "
+            item["caution_plain"] = (f"Air quality is measured at {stations} only, so this is a city-wide "
                                      "pattern and is not judged for this one area.")
         else:
             xv = area.get(LAYER[x]["area"]) if LAYER[x]["area"] else feats.get(x)

@@ -1,153 +1,31 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// CITY CONFIGURATION
-// Each city contains: map center, zoom level, and environmental anomaly zones
+// CITY CONFIGURATION — the cities GeoSense covers (same ids, centres and zoom as the backend's
+// server/app/core/cities.py). Every value shown for a city comes from the backend; nothing here
+// is data. Whether a city's layers are ready is asked from GET /api/cities.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const CITY_CONFIG = {
   mumbai: {
     id: "mumbai",
     label: "Mumbai",
+    region: "Mumbai, Thane and Mira-Bhayandar",
     center: [72.8777, 19.076],
     zoom: 10.8,
-    zones: [], // Loaded live from backend
   },
-
+  delhi: {
+    id: "delhi",
+    label: "Delhi",
+    region: "Delhi (National Capital Territory)",
+    center: [77.1025, 28.6448],
+    zoom: 10.2,
+  },
   bengaluru: {
     id: "bengaluru",
     label: "Bengaluru",
+    region: "Bengaluru (BBMP area)",
     center: [77.5946, 12.9716],
-    zoom: 11.5,
-    zones: [
-      {
-        id: "blr-1",
-        name: "Bellandur Lake Catchment",
-        coords: [77.6387, 12.9305],
-        severity: 86,
-        aqi: 168,
-        ndvi: 0.34,
-        ndwi: 0.51,
-        lst: 38.2,
-        type: "critical",
-        _placeholder: true,
-      },
-      {
-        id: "blr-2",
-        name: "Varthur Wetland Basin",
-        coords: [77.7323, 12.9416],
-        severity: 74,
-        aqi: 149,
-        ndvi: 0.32,
-        ndwi: 0.47,
-        lst: 35.9,
-        type: "severe",
-        _placeholder: true,
-      },
-      {
-        id: "blr-3",
-        name: "Peenya Industrial Cluster",
-        coords: [77.5179, 13.027],
-        severity: 79,
-        aqi: 296,
-        ndvi: 0.23,
-        ndwi: -0.02,
-        lst: 39.8,
-        type: "severe",
-        _placeholder: true,
-      },
-      {
-        id: "blr-4",
-        name: "HSR Layout Sector",
-        coords: [77.6389, 12.9116],
-        severity: 41,
-        aqi: 166,
-        ndvi: 0.45,
-        ndwi: -0.07,
-        lst: 30.4,
-        type: "moderate",
-        _placeholder: true,
-      },
-    ],
-    zonePositions: [
-      { id: "blr-1", x: "58%", y: "65%" },
-      { id: "blr-2", x: "72%", y: "60%" },
-      { id: "blr-3", x: "34%", y: "38%" },
-      { id: "blr-4", x: "57%", y: "72%" },
-    ],
-  },
-
-  new_delhi: {
-    id: "new_delhi",
-    label: "New Delhi",
-    center: [77.209, 28.6139],
-    zoom: 11,
-    zones: [
-      {
-        id: "del-1",
-        name: "Anand Vihar Air Corridor",
-        coords: [77.3158, 28.6469],
-        severity: 96,
-        aqi: 372,
-        ndvi: 0.12,
-        ndwi: 0.04,
-        lst: 44.6,
-        type: "critical",
-        _placeholder: true,
-      },
-      {
-        id: "del-2",
-        name: "Yamuna Floodplain Sector",
-        coords: [77.28, 28.66],
-        severity: 89,
-        aqi: 221,
-        ndvi: 0.22,
-        ndwi: 0.52,
-        lst: 39.4,
-        type: "critical",
-        _placeholder: true,
-      },
-      {
-        id: "del-3",
-        name: "Ghazipur Landfill Mass",
-        coords: [77.3165, 28.6379],
-        severity: 93,
-        aqi: 338,
-        ndvi: 0.09,
-        ndwi: 0.18,
-        lst: 43.3,
-        type: "critical",
-        _placeholder: true,
-      },
-      {
-        id: "del-4",
-        name: "Wazirpur Industrial Hub",
-        coords: [77.17, 28.7],
-        severity: 82,
-        aqi: 344,
-        ndvi: 0.18,
-        ndwi: -0.01,
-        lst: 41.7,
-        type: "severe",
-        _placeholder: true,
-      },
-      {
-        id: "del-5",
-        name: "Okhla Industrial Estate",
-        coords: [77.2831, 28.5475],
-        severity: 77,
-        aqi: 282,
-        ndvi: 0.2,
-        ndwi: 0.1,
-        lst: 40.1,
-        type: "severe",
-        _placeholder: true,
-      },
-    ],
-    zonePositions: [
-      { id: "del-1", x: "62%", y: "42%" },
-      { id: "del-2", x: "52%", y: "36%" },
-      { id: "del-3", x: "63%", y: "44%" },
-      { id: "del-4", x: "38%", y: "28%" },
-      { id: "del-5", x: "54%", y: "68%" },
-    ],
+    zoom: 10.8,
   },
 };
+
+export const CITY_IDS = Object.keys(CITY_CONFIG);

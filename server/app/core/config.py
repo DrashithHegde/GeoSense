@@ -12,13 +12,18 @@ class Settings(BaseSettings):
     api_port: int = 8000
     env: str = "development"
     log_level: str = "info"
+    # comma-separated exact origins, plus an optional regex (e.g. Vercel preview URLs)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_origin_regex: str | None = None
+    # Hosted databases give one URL (Render: DATABASE_URL; Azure: build it from the parts below
+    # and set DB_SSLMODE=require). When DATABASE_URL is set it wins over the DB_* parts.
+    database_url_override: str | None = None
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "geosense"
     db_user: str = "postgres"
     db_password: str = ""
-    aqicn_token: str | None = None
+    db_sslmode: str | None = None
     openaq_aqi_key: str | None = None
     gee_project: str | None = None
     gemini_api_key: str | None = None
@@ -34,6 +39,8 @@ class Settings(BaseSettings):
     # place names for clicked points (reverse geocoding); the frontend's token is reused
     mapbox_token: str | None = None
     vite_mapbox_token: str | None = None
+    # protects the POST endpoints that rebuild data (/api/ml/run, /api/surfaces/aqi/refresh, ...)
+    admin_token: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=ROOT_ENV_FILE,
@@ -42,16 +49,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    def __init__(self, **values):
+        import os
+        if "database_url_override" not in values and os.getenv("DATABASE_URL"):
+            values["database_url_override"] = os.getenv("DATABASE_URL")
+        super().__init__(**values)
+
     @property
     def parsed_cors_origins(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
-    
-    @property
-    def database_url(self) -> str:
-        return (
-            f"postgresql+psycopg2://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}"
-        )
+        return [origin.strip().rstrip("/") for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache

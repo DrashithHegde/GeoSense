@@ -40,6 +40,8 @@ services:
     environment:
       - DB_HOST=db
       - DB_PORT=5432
+    # development: live reload on code changes (the image's own start script is for hosting)
+    command: sh -c "python scripts/db_init.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app"
 
   client:
     build:
@@ -55,7 +57,7 @@ services:
       - ./client:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URLS=http://localhost:8000
       - VITE_MAPBOX_TOKEN=${VITE_MAPBOX_TOKEN:-}
 
 volumes:

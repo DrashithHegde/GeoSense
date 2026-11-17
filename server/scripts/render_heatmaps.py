@@ -20,12 +20,13 @@ import numpy as np
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVER_ROOT))
 
+from app.core.cities import city_path  # noqa: E402
+
 from app.services.surfaces.heatmap_render import (  # noqa: E402
-    AQI_CPCB_STOPS,
+    aqi_band_colours,
     NDVI_STOPS,
     STRESS_STOPS,
     THERMAL_STOPS,
-    VIBRANT_STOPS,
     WATER_BLUE_STOPS,
     RenderSpec,
     legend_stops,
@@ -39,15 +40,15 @@ from app.services.surfaces.heatmap_render import (  # noqa: E402
     study_region_mask,
 )
 
-SURFACE_ROOT = SERVER_ROOT / "data" / "surfaces"
-MANIFEST = SURFACE_ROOT / "manifest.json"
+SURFACE_ROOT = city_path("surfaces")
+MANIFEST = city_path("surfaces", "manifest.json")
 RENDER_VERSION = "v6"   # v6: NDVI at 30 m with LST settings + inner glow; softer Composite glow
 
 # LST below this is physically implausible for coastal Mumbai at Landsat overpass
 # (~10:30 IST) and indicates residual cloud contamination. Hidden in the display and
 # excluded from cell statistics; the raw GeoTIFF pixel is still returned on click
 # together with a QC flag.
-from app.services.qc import LST_QC_MIN_C  # noqa: E402
+from app.services.qc import lst_qc_min_c  # noqa: E402
 
 
 def _load_manifest() -> dict:
@@ -185,7 +186,7 @@ def render_lst(manifest: dict) -> dict:
     rec = manifest["surfaces"]["lst"]
     tif = _tif_path(rec, "lst")
     values, valid, transform, _ = read_raster(tif)
-    qc_valid = valid & (values >= LST_QC_MIN_C)
+    qc_valid = valid & (values >= lst_qc_min_c())
     region_vals = _in_region_values(values, qc_valid, transform)
     knots = quantile_knots(region_vals, len(THERMAL_STOPS), 2.0, 98.0)
     spec = RenderSpec(
@@ -207,7 +208,7 @@ def render_lst(manifest: dict) -> dict:
         "renderer": f"heatmap_render {RENDER_VERSION}",
         "color_stops": [{"color": s["color"], "label": s["label"], "position": s["position"],
                          "temperature_c": round(s["value"], 1)} for s in stops],
-        "qc": {"min_plausible_c": LST_QC_MIN_C,
+        "qc": {"min_plausible_c": lst_qc_min_c(),
                "rule": "pixels below this are probable residual cloud; hidden in display, excluded from cell stats"},
         "smoothing": "normalised Gaussian, display only",
         "nodata_semantics": "transparent; output alpha masked to valid pixels in the municipality union",
@@ -253,10 +254,8 @@ def _rerender_from_tif(manifest: dict, key: str, folder: str, spec: RenderSpec, 
 
 
 def render_aqi(manifest: dict) -> dict:
-    # Fixed CPCB category midpoints so colours always mean the official category.
-    spec = RenderSpec(metric="aqi", stops_rgb=AQI_CPCB_STOPS, knot_values=[25, 75, 150, 250, 350, 450],
-                      stop_labels=["Good", "Satisfactory", "Moderate", "Poor", "Very Poor", "Severe"],
-                      **layer_style("aqi"))
+    # Each CPCB category in its own official colour over its whole range (see aqi_band_colours).
+    spec = RenderSpec(metric="aqi", **aqi_band_colours(), **layer_style("aqi"))
     stations = (manifest["surfaces"].get("aqi") or {}).get("stations") or []
     return _rerender_from_tif(manifest, "aqi", "aqi", spec,
                               {"left_label": "GOOD · 0", "right_label": "SEVERE · 500", "range": {"min": 0, "max": 500}},
@@ -301,4 +300,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from app.core.cities import run_script_for_city
+    raise SystemExit(run_script_for_city(main))

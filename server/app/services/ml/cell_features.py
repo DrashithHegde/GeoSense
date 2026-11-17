@@ -7,6 +7,7 @@ Each raster is labelled with cell ids via rasterisation on its own native grid
 is imputed: a statistic is NULL when a cell has too few valid pixels.
 """
 from __future__ import annotations
+from app.core.cities import city_path
 
 import json
 from dataclasses import dataclass
@@ -21,11 +22,11 @@ from shapely import wkb
 from sqlalchemy import text
 
 SERVER_ROOT = Path(__file__).resolve().parents[3]
-SURFACE_ROOT = SERVER_ROOT / "data" / "surfaces"
-MANIFEST = SURFACE_ROOT / "manifest.json"
-ML_DIR = SERVER_ROOT / "data" / "ml"
+SURFACE_ROOT = city_path("surfaces")
+MANIFEST = city_path("surfaces", "manifest.json")
+ML_DIR = city_path("ml")
 
-from app.services.qc import LST_QC_MIN_C  # noqa: E402
+from app.services.qc import lst_qc_min_c  # noqa: E402
 MIN_VALID_FRACTION = 0.30      # a cell statistic needs >=30% valid pixels
 MIN_WATER_PIXELS = 30          # >= 3,000 m² of detected water for a WH cell mean
 FEATURE_VERSION = "cell_features_v2"
@@ -44,10 +45,12 @@ class Cell:
 
 
 def load_cells(db) -> list[Cell]:
+    """The 300 m cells of the city in use."""
+    from app.core.cities import current_city_id
     rows = db.execute(text(
         "SELECT id, cell_code, municipality_name, ST_AsBinary(geometry) AS g, "
-        "ST_X(centroid) AS lon, ST_Y(centroid) AS lat FROM spatial_cells ORDER BY id"
-    )).mappings().all()
+        "ST_X(centroid) AS lon, ST_Y(centroid) AS lat FROM spatial_cells WHERE city = :city ORDER BY id"
+    ), {"city": current_city_id()}).mappings().all()
     return [Cell(r["id"], r["cell_code"], r["municipality_name"], wkb.loads(bytes(r["g"])), r["lon"], r["lat"]) for r in rows]
 
 
@@ -126,7 +129,8 @@ def compute_cell_features(cells: list[Cell]) -> tuple[list[dict], dict]:
         feats["openwater_frac"] = np.where(ok, _frac(lab, a < 0, v, n), np.nan)
         # distance (m) to nearest open water (NDVI < 0: sea, creeks, lakes) — coastal/lake cooling proxy
         from scipy.ndimage import distance_transform_edt
-        px_m = abs(ds.transform.a) * 111320.0 * np.cos(np.radians(19.1))
+        mid_lat = (ds.bounds.bottom + ds.bounds.top) / 2.0      # metres per degree depend on latitude
+        px_m = abs(ds.transform.a) * 111320.0 * np.cos(np.radians(mid_lat))
         dist = distance_transform_edt(~(v & (a < 0))).astype("float32") * px_m
         dst = _stats(lab, dist, v, n)
         feats["dist_water_m"] = np.where(ok, dst["mean"], np.nan)
@@ -179,7 +183,7 @@ def compute_cell_features(cells: list[Cell]) -> tuple[list[dict], dict]:
     p = _tif(S.get("lst"), "lst")
     if p:
         ds, a, v = _read(p)
-        v &= a >= LST_QC_MIN_C
+        v &= a >= lst_qc_min_c()
         lab = _labels(cells, ds)
         st = _stats(lab, a, v, n)
         ok = st["count"] >= MIN_VALID_FRACTION * np.maximum(st["total"], 1)
@@ -187,7 +191,7 @@ def compute_cell_features(cells: list[Cell]) -> tuple[list[dict], dict]:
         feats["lst_std"] = np.where(ok, st["std"], np.nan)
         feats["lst_valid_frac"] = np.where(st["total"] > 0, st["count"] / np.maximum(st["total"], 1), np.nan)
         sources["lst"] = {"file": p.name, "period": S["lst"].get("source_period"), "scale_m": 30,
-                          "qc_min_c": LST_QC_MIN_C}
+                          "qc_min_c": lst_qc_min_c()}
         ds.close()
 
     # ── AQI (OpenAQ CPCB IDW) — only if a real station surface exists ──
@@ -360,7 +364,7 @@ def live_cell_values(geom, centroid: tuple[float, float]) -> dict[str, Any]:
         out["files"]["ndvi"] = p.name
     p = _tif(S.get("lst"), "lst")
     if p:
-        st = _cell_window_stats(p, geom, lambda a: a >= LST_QC_MIN_C)
+        st = _cell_window_stats(p, geom, lambda a, t=lst_qc_min_c(): a >= t)
         out["lst"] = round(st[0], 2) if ok(st) else None
         out["files"]["lst"] = p.name
     p = _tif(S.get("water_health"), "water-health")

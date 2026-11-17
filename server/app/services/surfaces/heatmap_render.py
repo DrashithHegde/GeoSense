@@ -7,7 +7,7 @@ Rules this module enforces:
   * Smoothing is a *normalised* Gaussian (blur(v*w)/blur(w)): NoData never
     contributes a value, it only lowers alpha. No value is invented where no
     valid pixel exists within a few sigma.
-  * The study-region mask (Mumbai + Thane + Mira-Bhayandar union) is applied
+  * The study-region mask (union of the city's municipalities) is applied
     LAST, after blur/glow, so nothing bleeds past the municipal boundary and
     there is no rectangular footprint.
   * Legend stops always carry the RAW value each colour represents.
@@ -95,6 +95,16 @@ AQI_CPCB_STOPS: tuple[tuple[int, int, int], ...] = (
     (255, 66, 66),    # Very Poor   301-400
     (214, 36, 82),    # Severe      401-500
 )
+AQI_BANDS = (("Good", 0, 50), ("Satisfactory", 51, 100), ("Moderate", 101, 200), ("Poor", 201, 300),
+             ("Very Poor", 301, 400), ("Severe", 401, 500))
+AQI_KNOTS = [25, 75, 150, 250, 350, 450]     # CPCB category midpoints: colours blend smoothly between them
+
+
+def aqi_band_colours() -> dict[str, Any]:
+    """Smooth AQI gradient (green -> yellow -> orange -> red): each CPCB colour sits at its
+    category midpoint and the colours blend continuously in between."""
+    return {"stops_rgb": AQI_CPCB_STOPS, "knot_values": list(AQI_KNOTS),
+            "stop_labels": [name for name, _, _ in AQI_BANDS]}
 
 
 @dataclass

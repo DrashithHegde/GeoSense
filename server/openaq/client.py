@@ -1,8 +1,8 @@
 """OpenAQ v3 API client for GeoSense AQI ingestion.
 
-Discovers Mumbai/MMR stations and fetches latest pollutant measurements.
-Never fabricates missing measurements.
-Provider/source label preserved for CPCB/MPCB provenance.
+Discovers the regulatory (CPCB network) stations around the city in use and fetches their
+latest pollutant measurements. Never fabricates missing measurements. The provider label is kept
+for provenance.
 """
 from __future__ import annotations
 
@@ -17,8 +17,18 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-MMR_BBOX = "72.77,18.89,73.12,19.40"
-CPCB_PROVIDERS = {"CPCB", "caaqm", "MPCB", "BMC"}
+# Continuous Ambient Air Quality Monitoring Stations of the CPCB network: run by CPCB itself or by
+# the state boards / city bodies that report to it (Maharashtra MPCB and BMC, Delhi DPCC, Karnataka
+# KSPCB, Haryana HSPCB and Uttar Pradesh UPPCB stations just outside Delhi). Low-cost sensors and
+# other networks are never used for CPCB AQI.
+CPCB_PROVIDERS = {"CPCB", "caaqm", "MPCB", "BMC", "DPCC", "KSPCB", "HSPCB", "UPPCB"}
+MAX_LOCATION_PAGES = 5
+
+
+def city_bbox() -> str:
+    """OpenAQ bbox (west,south,east,north) around the current city's study region."""
+    from app.core.cities import get_city
+    return ",".join(f"{v:.4f}" for v in get_city().openaq_bbox)
 AQI_POLLUTANTS = {"pm25", "pm10", "no2", "so2", "o3", "co", "nh3"}   # Pb: manual, not real-time
 POLLUTANT_AVERAGING_HOURS = {
     "pm25": 24,
@@ -105,14 +115,24 @@ def _pace_sensor_history_request() -> None:
     _last_sensor_request_at = time.monotonic()
 
 
-def discover_mmr_stations(api_key: str) -> List[Dict[str, Any]]:
-    """Return OpenAQ location dicts within the MMR bounding box."""
-    url = f"{OPENAQ_BASE}/locations"
-    params = {"bbox": MMR_BBOX, "limit": 200}
-    resp = _request("GET", url, params=params, headers=_headers(api_key), timeout=REQUEST_TIMEOUT)
-    data = resp.json()
+def _locations(api_key: str, bbox: str) -> List[Dict[str, Any]]:
+    """All OpenAQ locations in the bbox (paged: big cities have hundreds of low-cost sensors too)."""
+    out: List[Dict[str, Any]] = []
+    for page in range(1, MAX_LOCATION_PAGES + 1):
+        resp = _request("GET", f"{OPENAQ_BASE}/locations", params={"bbox": bbox, "limit": 1000, "page": page},
+                        headers=_headers(api_key), timeout=REQUEST_TIMEOUT)
+        rows = resp.json().get("results", [])
+        out.extend(rows)
+        if len(rows) < 1000:
+            break
+    return out
+
+
+def discover_stations(api_key: str, bbox: str | None = None) -> List[Dict[str, Any]]:
+    """Return OpenAQ location dicts around the current city (or inside `bbox`)."""
+    bbox = bbox or city_bbox()
     stations = []
-    for loc in data.get("results", []):
+    for loc in _locations(api_key, bbox):
         coords = loc.get("coordinates") or {}
         lat = coords.get("latitude")
         lon = coords.get("longitude")
@@ -132,10 +152,13 @@ def discover_mmr_stations(api_key: str) -> List[Dict[str, Any]]:
             }
         )
     logger.info(
-        "OpenAQ: discovered %d stations in MMR bbox (%d CPCB/MPCB-backed)",
-        len(stations), sum(1 for s in stations if s["is_cpcb_mpcb"]),
+        "OpenAQ: discovered %d locations in bbox %s (%d CPCB-network stations)",
+        len(stations), bbox, sum(1 for s in stations if s["is_cpcb_mpcb"]),
     )
     return stations
+
+
+discover_mmr_stations = discover_stations   # old name
 
 
 def _parse_utc_dt(dt_obj: Any) -> Optional[datetime]:
@@ -467,13 +490,13 @@ def collect_station_pollutants(
     }
 
 
-def get_mumbai_station_measurements(
+def get_station_measurements(
     api_key: str,
     max_age_hours: float = 48.0,
     cpcb_only: bool = True,
 ) -> List[Dict[str, Any]]:
     """Discover stations + collect pollutant data. Returns list of station dicts."""
-    stations = discover_mmr_stations(api_key)
+    stations = discover_stations(api_key)
     if cpcb_only:
         stations = [s for s in stations if s["is_cpcb_mpcb"]]
         logger.info("OpenAQ: filtering to %d CPCB/MPCB stations", len(stations))
@@ -487,3 +510,6 @@ def get_mumbai_station_measurements(
         len(results), len(stations),
     )
     return results
+
+
+get_mumbai_station_measurements = get_station_measurements   # old name

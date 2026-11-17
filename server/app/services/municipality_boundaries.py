@@ -1,7 +1,9 @@
-"""Validated, local municipality context geometry for GeoSense.
+"""Validated, local municipality boundaries for each GeoSense city.
 
-These geometries are presentation/context assets. They do not alter the frozen
-analytical zones or assign one environmental value to an entire municipality.
+The boundary files are read from the city's own folder (see app/core/cities.py) and never
+fetched from the network while serving. They define the study region (the union of a city's
+municipalities) used to clip rasters and to build the 300 m grid; they never assign one
+environmental value to a whole municipality.
 """
 from __future__ import annotations
 
@@ -10,20 +12,18 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from shapely.geometry import mapping, shape
+from shapely.geometry import MultiPolygon, Polygon, mapping, shape
 from shapely.ops import unary_union
+
+from app.core.cities import get_city
 
 
 class MunicipalityBoundaryError(RuntimeError):
     """Raised when a required local municipality boundary cannot be trusted."""
 
 
-BOUNDARY_DIRECTORY = Path(__file__).resolve().parents[2] / "data" / "boundaries"
-MUNICIPALITIES = (
-    ("mumbai", "Mumbai"),
-    ("thane", "Thane"),
-    ("mira_bhayandar", "Mira-Bhayandar"),
-)
+def boundary_directory(city_id: str | None = None) -> Path:
+    return get_city(city_id).data_dir / "boundaries"
 
 
 def _feature_from_geojson(payload: dict[str, Any], *, municipality_id: str, path: Path) -> dict[str, Any]:
@@ -53,45 +53,67 @@ def _feature_from_geojson(payload: dict[str, Any], *, municipality_id: str, path
         raise MunicipalityBoundaryError(f"{path.name}: expected Polygon or MultiPolygon, got {geom.geom_type}")
     if geom.is_empty or not geom.is_valid:
         raise MunicipalityBoundaryError(f"{path.name}: invalid geometry")
-    return {"id": municipality_id, "name": properties.get("name") or municipality_id, "shapely_geom": geom, "geojson": mapping(geom)}
+    return {"id": municipality_id, "name": properties.get("name") or municipality_id, "shapely_geom": geom,
+            "geojson": mapping(geom), "source": properties.get("source")}
 
 
-@lru_cache(maxsize=1)
-def load_municipality_boundaries() -> tuple[dict[str, Any], ...]:
-    """Load all required WGS84 local assets once; never fall back to network."""
-    boundaries: list[dict[str, Any]] = []
-    for municipality_id, _display_name in MUNICIPALITIES:
-        path = BOUNDARY_DIRECTORY / f"{municipality_id}.geojson"
+@lru_cache(maxsize=8)
+def _boundaries(city_id: str) -> tuple[dict[str, Any], ...]:
+    city = get_city(city_id)
+    out: list[dict[str, Any]] = []
+    for municipality_id, display_name in city.municipalities:
+        path = boundary_directory(city_id) / f"{municipality_id}.geojson"
         if not path.is_file():
             raise MunicipalityBoundaryError(f"Required boundary asset is missing: {path}")
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise MunicipalityBoundaryError(f"Unable to read boundary asset {path}: {exc}") from exc
-        boundaries.append(_feature_from_geojson(payload, municipality_id=municipality_id, path=path))
-    return tuple(boundaries)
+        b = _feature_from_geojson(payload, municipality_id=municipality_id, path=path)
+        b["name"] = display_name
+        out.append(b)
+    return tuple(out)
 
 
-@lru_cache(maxsize=1)
-def load_study_region_geometry():
-    """Return the validated union of the three municipality boundaries in WGS84, filling any holes (e.g. SGNP)."""
-    geometry = unary_union([boundary["shapely_geom"] for boundary in load_municipality_boundaries()])
-    
-    # Fill holes in the union to include enclaves like Sanjay Gandhi National Park
-    from shapely.geometry import Polygon, MultiPolygon
-    if geometry.geom_type == 'Polygon':
+@lru_cache(maxsize=8)
+def _region(city_id: str):
+    """Union of the city's municipalities with interior holes filled (e.g. Sanjay Gandhi National
+    Park inside Mumbai's union, or slivers between dissolved wards)."""
+    geometry = unary_union([b["shapely_geom"] for b in _boundaries(city_id)])
+    if geometry.geom_type == "Polygon":
         geometry = Polygon(geometry.exterior)
-    elif geometry.geom_type == 'MultiPolygon':
+    elif geometry.geom_type == "MultiPolygon":
         geometry = MultiPolygon([Polygon(p.exterior) for p in geometry.geoms])
-        
     if geometry.is_empty or not geometry.is_valid:
-        raise MunicipalityBoundaryError("The municipality study-region union is invalid")
+        raise MunicipalityBoundaryError(f"The study-region union for {city_id} is invalid")
     return geometry
 
 
-def get_study_region_bounds() -> tuple[float, float, float, float]:
-    """Return west, south, east, north bounds for the municipality union."""
-    west, south, east, north = load_study_region_geometry().bounds
+def load_municipality_boundaries(city_id: str | None = None) -> tuple[dict[str, Any], ...]:
+    """The current city's municipalities (local files only; never the network)."""
+    return _boundaries(get_city(city_id).id)
+
+
+def load_study_region_geometry(city_id: str | None = None):
+    """The current city's study region (WGS84)."""
+    return _region(get_city(city_id).id)
+
+
+def city_region_or_none(city_id: str):
+    try:
+        return _region(city_id)
+    except MunicipalityBoundaryError:
+        return None
+
+
+def get_study_region_bounds(city_id: str | None = None) -> tuple[float, float, float, float]:
+    """West, south, east, north of the current city's study region."""
+    west, south, east, north = load_study_region_geometry(city_id).bounds
     if west >= east or south >= north:
-        raise MunicipalityBoundaryError("The municipality study-region bounds are invalid")
+        raise MunicipalityBoundaryError("The study-region bounds are invalid")
     return float(west), float(south), float(east), float(north)
+
+
+def clear_cache() -> None:
+    _boundaries.cache_clear()
+    _region.cache_clear()

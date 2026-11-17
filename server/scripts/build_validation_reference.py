@@ -4,7 +4,7 @@ WorldCover is produced independently of GeoSense (different method, different te
 comparing our NDVI/MNDWI/NDBI-based shares and our LST patterns with it is a real check, not a
 circular one. Writes data/validation/worldcover_cells_v200.csv (+ .json metadata).
 
-    python scripts/build_validation_reference.py          (needs Earth Engine credentials)
+    python scripts/build_validation_reference.py --city delhi     (needs Earth Engine credentials)
 """
 from __future__ import annotations
 
@@ -55,4 +55,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from app.core.cities import run_script_for_city  # noqa: E402
+    raise SystemExit(run_script_for_city(main))

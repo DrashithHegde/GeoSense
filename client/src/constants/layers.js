@@ -53,7 +53,7 @@ export const LAYER_CONFIG = {
     gradient: {
       0.0: "rgba(0,0,0,0)",
       0.05: "#052a3a", // dark teal — low
-      0.3: "#04527e", // blue
+      0.30: "#04527e", // blue
       0.55: "#008ab8", // mid blue
       0.78: "#00c0dc", // cyan
       1.0: "#1ee8ee", // turquoise — high

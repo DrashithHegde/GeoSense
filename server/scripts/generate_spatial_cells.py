@@ -1,199 +1,111 @@
-"""Generate the 300m dense analytical grid for GeoSense spatial_cells table.
+"""Generate the 300 m analytical grid (spatial_cells) for one city.
 
-Scientific rationale for 300m resolution:
-- Contains ~10 Landsat pixels (30m native LST resolution) → robust zonal mean
-- Contains ~900 Sentinel-2 pixels (10m native NDVI resolution) → excellent statistics
-- Matches neighborhood-scale AQI spatial variation
-- 705 km² study area / 0.09 km² per cell ≈ 7,833 cells before boundary clipping
+Why 300 m:
+- ~100 Landsat pixels (30 m LST) per cell -> robust zonal mean
+- ~900 Sentinel-2 pixels (10 m NDVI) per cell -> good statistics
+- neighbourhood scale; finer than AQI station spacing on purpose (AQI is interpolated)
 
-Study region: Mumbai + Thane + Mira-Bhayandar
-Boundary files: server/data/boundaries/{mumbai,thane,mira_bhayandar}.geojson
+The study region is the union of the city's municipality boundaries (data/.../boundaries/).
+Cells are square in metres at the city's latitude, clipped to the region; fringe cells with
+less than 1 % overlap are skipped. Cell codes are unique across cities (GSC-, DEL-, BLR-).
 
-Usage:
-    python server/scripts/generate_spatial_cells.py [--dry-run]
+    python scripts/generate_spatial_cells.py --city delhi [--dry-run]
 """
 from __future__ import annotations
 
 import argparse
-import json
-import os
+import math
 import sys
 from pathlib import Path
 
-import numpy as np
-
-ROOT = Path(__file__).resolve().parents[2]
 SERVER_ROOT = Path(__file__).resolve().parents[1]
-for p in (str(ROOT), str(SERVER_ROOT)):
-    if p not in sys.path:
-        sys.path.insert(0, p)
+sys.path.insert(0, str(SERVER_ROOT))
 
-from shapely.geometry import shape, box, mapping
-from shapely.ops import unary_union
-from sqlalchemy import text
+from shapely.geometry import box, mapping, shape  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
-from app.database import engine, get_db
+from app.core.cities import get_city  # noqa: E402
+from app.services.municipality_boundaries import load_municipality_boundaries, load_study_region_geometry  # noqa: E402
 
 RESOLUTION_M = 300
-BOUNDARIES_DIR = SERVER_ROOT / "data" / "boundaries"
-MUNICIPALITY_FILES = {
-    "Mumbai": BOUNDARIES_DIR / "mumbai.geojson",
-    "Mira-Bhayandar": BOUNDARIES_DIR / "mira_bhayandar.geojson",
-    "Thane": BOUNDARIES_DIR / "thane.geojson",
-}
-
-# Approximate degrees per meter at ~19°N
-DEG_PER_M_LAT = 1.0 / 111320.0
-DEG_PER_M_LON = 1.0 / (111320.0 * np.cos(np.radians(19.1)))
-
-CELL_SIZE_LAT = RESOLUTION_M * DEG_PER_M_LAT
-CELL_SIZE_LON = RESOLUTION_M * DEG_PER_M_LON
+CODE_PREFIX = {"mumbai": "GSC", "delhi": "DEL", "bengaluru": "BLR"}
 
 
-def load_boundaries() -> dict[str, object]:
-    """Load and validate municipality boundaries."""
-    geoms = {}
-    for name, path in MUNICIPALITY_FILES.items():
-        if not path.exists():
-            raise FileNotFoundError(f"Boundary file not found: {path}")
-        with open(path) as f:
-            fc = json.load(f)
-        features = fc.get("features", [])
-        if not features:
-            raise ValueError(f"No features in {path}")
-        geom = unary_union([shape(feat["geometry"]) for feat in features])
-        geoms[name] = geom
-        area_km2 = geom.area * (111320.0 ** 2) / 1e6  # very rough
-        print(f"  {name}: ~{area_km2:.0f} km² (rough WGS84 estimate)")
-    return geoms
-
-
-def generate_grid(study_region: object, municipality_geoms: dict[str, object]) -> list[dict]:
-    """Generate 300m cells covering the study region."""
-    bounds = study_region.bounds  # minx, miny, maxx, maxy
-    minx, miny, maxx, maxy = bounds
+def generate_grid() -> list[dict]:
+    """300 m cells covering the current city's study region."""
+    city = get_city()
+    region = load_study_region_geometry()
+    munis = [(b["name"], b["shapely_geom"]) for b in load_municipality_boundaries()]
+    lat0 = (region.bounds[1] + region.bounds[3]) / 2.0
+    d_lat = RESOLUTION_M / 111320.0
+    d_lon = RESOLUTION_M / (111320.0 * math.cos(math.radians(lat0)))
+    prefix = CODE_PREFIX.get(city.id, city.id[:3].upper())
+    minx, miny, maxx, maxy = region.bounds
 
     cells = []
-    cell_idx = 0
-    row = 0
     lat = miny
     while lat < maxy:
         lon = minx
-        col = 0
         while lon < maxx:
-            cell_geom = box(lon, lat, lon + CELL_SIZE_LON, lat + CELL_SIZE_LAT)
-            # Clip to study region boundary
-            clipped = cell_geom.intersection(study_region)
-            if clipped.is_empty or clipped.area < (cell_geom.area * 0.01):
-                # Skip cells with < 1% overlap (boundary fringe cells)
-                lon += CELL_SIZE_LON
-                col += 1
-                continue
-
-            # Determine municipality (centroid-based)
-            centroid = clipped.centroid
-            muni_name = None
-            for mname, mgeom in municipality_geoms.items():
-                if mgeom.contains(centroid):
-                    muni_name = mname
-                    break
-            if muni_name is None:
-                # Near boundary — assign to nearest municipality
-                min_dist = float("inf")
-                for mname, mgeom in municipality_geoms.items():
-                    d = mgeom.distance(centroid)
-                    if d < min_dist:
-                        min_dist = d
-                        muni_name = mname
-
-            cell_code = f"GSC-{cell_idx:06d}"
-            cells.append({
-                "cell_code": cell_code,
-                "geometry": mapping(clipped),
-                "centroid_lon": centroid.x,
-                "centroid_lat": centroid.y,
-                "resolution_m": RESOLUTION_M,
-                "municipality_name": muni_name,
-            })
-            cell_idx += 1
-            lon += CELL_SIZE_LON
-            col += 1
-        lat += CELL_SIZE_LAT
-        row += 1
-
+            cell = box(lon, lat, lon + d_lon, lat + d_lat)
+            clipped = cell.intersection(region)
+            if not clipped.is_empty and clipped.area >= cell.area * 0.01:
+                c = clipped.centroid
+                muni = next((n for n, g in munis if g.contains(c)), None)
+                if muni is None:      # near a boundary: nearest municipality
+                    muni = min(munis, key=lambda m: m[1].distance(c))[0]
+                cells.append({"cell_code": f"{prefix}-{len(cells):06d}", "geometry": mapping(clipped),
+                              "centroid_lon": c.x, "centroid_lat": c.y, "municipality_name": muni})
+            lon += d_lon
+        lat += d_lat
     return cells
 
 
 def load_cells_to_db(cells: list[dict], db) -> int:
-    """Insert cells into spatial_cells table (skips duplicates by cell_code)."""
+    city = get_city().id
     inserted = 0
     for c in cells:
-        geom_wkt = f"SRID=4326;{shape(c['geometry']).wkt}"
-        centroid_wkt = f"SRID=4326;POINT({c['centroid_lon']} {c['centroid_lat']})"
-        result = db.execute(
-            text("""
-                INSERT INTO spatial_cells (cell_code, geometry, centroid, resolution_m, municipality_name)
-                VALUES (:code, ST_Multi(ST_GeomFromEWKT(:geom)), ST_GeomFromEWKT(:centroid), :res, :muni)
-                ON CONFLICT (cell_code) DO NOTHING
-                RETURNING id
-            """),
-            {
-                "code": c["cell_code"],
-                "geom": geom_wkt,
-                "centroid": centroid_wkt,
-                "res": c["resolution_m"],
-                "muni": c["municipality_name"],
-            }
-        )
-        if result.rowcount > 0:
-            inserted += 1
+        r = db.execute(text("""
+            INSERT INTO spatial_cells (cell_code, geometry, centroid, resolution_m, municipality_name, city)
+            VALUES (:code, ST_Multi(ST_GeomFromEWKT(:geom)), ST_GeomFromEWKT(:centroid), :res, :muni, :city)
+            ON CONFLICT (cell_code) DO NOTHING
+            RETURNING id
+        """), {"code": c["cell_code"], "geom": f"SRID=4326;{shape(c['geometry']).wkt}",
+               "centroid": f"SRID=4326;POINT({c['centroid_lon']} {c['centroid_lat']})",
+               "res": RESOLUTION_M, "muni": c["municipality_name"], "city": city})
+        inserted += r.rowcount or 0
     return inserted
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate 300m spatial_cells grid for GeoSense")
-    parser.add_argument("--dry-run", action="store_true", help="Generate grid but do not insert into DB")
-    args = parser.parse_args()
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--dry-run", action="store_true", help="build the grid but do not write to the database")
+    args = ap.parse_args()
 
-    print("Loading municipality boundaries...")
-    municipality_geoms = load_boundaries()
-
-    print("Computing study region union...")
-    study_region = unary_union(list(municipality_geoms.values()))
-    area_km2 = study_region.area * (111320.0 ** 2) / 1e6
-    print(f"Study region total area: ~{area_km2:.0f} km²")
-
-    print(f"Generating {RESOLUTION_M}m grid...")
-    cells = generate_grid(study_region, municipality_geoms)
-    print(f"Generated {len(cells)} cells")
-
-    # Stats by municipality
+    city = get_city()
+    cells = generate_grid()
     by_muni: dict[str, int] = {}
     for c in cells:
         by_muni[c["municipality_name"]] = by_muni.get(c["municipality_name"], 0) + 1
-    for mname, count in sorted(by_muni.items()):
-        print(f"  {mname}: {count} cells")
-
+    print(f"{city.name}: {len(cells):,} cells of {RESOLUTION_M} m  " +
+          ", ".join(f"{m}: {n:,}" for m, n in sorted(by_muni.items())))
     if args.dry_run:
-        print("DRY RUN — no DB writes. Done.")
+        print("Dry run - nothing written.")
         return 0
 
-    print("Loading cells into spatial_cells table...")
+    from app.database import get_db
     with get_db() as db:
-        inserted = load_cells_to_db(cells, db)
+        existing = db.execute(text("SELECT count(*) FROM spatial_cells WHERE city = :c"), {"c": city.id}).scalar()
+        if existing:
+            print(f"{city.name} already has {existing:,} cells - nothing to do (cells are never regenerated, "
+                  "because every result is keyed to them).")
+            return 0
+        n = load_cells_to_db(cells, db)
         db.commit()
-
-    print(f"Inserted {inserted} new cells into spatial_cells (skipped duplicates)")
-
-    # Verify spatial index exists
-    with engine.connect() as conn:
-        row = conn.execute(text("""
-            SELECT COUNT(*) FROM spatial_cells
-        """)).scalar()
-        print(f"Total cells in DB: {row}")
-
+    print(f"Inserted {n:,} cells for {city.name}.")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from app.core.cities import run_script_for_city  # noqa: E402
+    raise SystemExit(run_script_for_city(main))

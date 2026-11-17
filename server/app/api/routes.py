@@ -1,152 +1,161 @@
-from typing import Optional
+"""GeoSense map API. Every endpoint works on the city of the request (see app/main.py:
+?city=<id>, or the city that contains ?lon=&lat=).
+
+Three levels are kept apart everywhere: PIXEL (exact GeoTIFF value) ≠ CELL (300 m analytical
+cell) ≠ MUNICIPALITY (administrative boundary).
+"""
+from __future__ import annotations
+
 import json
 import logging
-from functools import lru_cache
-import requests
-from shapely.geometry import shape, mapping
-from shapely.ops import unary_union
+import math
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
-from sqlalchemy import text, select, func
 import rasterio
-import numpy as np
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, Request
-from pydantic import BaseModel
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from rasterio.windows import Window
+from shapely.geometry import mapping
+from sqlalchemy import text
+
+from app.core.cities import CITIES, available_cities, city_path, get_city
+from app.database import get_db
+from app.services.surfaces.lst_surface import load_latest_lst_surface
+from app.services.surfaces.ndvi_surface import load_latest_ndvi_surface
+from app.services.surfaces.water_health_surface import load_latest_water_health_surface
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+SURFACES = city_path("surfaces")
+MANIFEST = city_path("surfaces", "manifest.json")
+
 
 def _db_cm():
-    """Return the session context manager itself. (Newer FastAPI versions unwrap
-    @contextmanager dependencies, which broke the existing `with db_cm as db` usage.)"""
-    from app.database import get_db as _get_db
-    return _get_db()
-
-from app.database import engine
-from app.database import get_db
-from app.models import Zone, EnvironmentData, AnomalyResult
-from app.services.operational_status import get_operational_status
-from app.services.composite_score import calculate_composite
-from app.services.municipality_aggregation import get_municipality_metrics
-from app.services.water_bodies import get_water_bodies_with_health
-from app.services.surfaces.ndvi_surface import load_latest_ndvi_surface
-from app.services.surfaces.lst_surface import load_latest_lst_surface
-from app.services.surfaces.water_health_surface import load_latest_water_health_surface
-from datetime import datetime, timedelta
+    """Return the session context manager itself (used as `with db_cm as db`)."""
+    return get_db()
 
 
-def _fetch_all(query: str, params: dict | None = None):
+# ─────────────────────────────────────────────────────────────────────────────
+# helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _manifest_surfaces() -> dict[str, Any]:
     try:
-        with engine.connect() as conn:
-            result = conn.execute(text(query), params or {})
-            return [dict(row) for row in result.mappings().all()]
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Database query failed: {exc}") from exc
+        return json.loads(MANIFEST.read_text(encoding="utf-8")).get("surfaces", {}) or {}
+    except FileNotFoundError:
+        return {}
 
 
-def _execute(query: str, params: dict | None = None):
+def _safe_rel(value: Any) -> str | None:
+    """A manifest file path that stays inside the city's surfaces folder."""
+    if not isinstance(value, str) or not value:
+        return None
+    parts = value.replace("\\", "/").split("/")
+    if ".." in parts or value.startswith("/"):
+        return None
+    return "/".join(parts)
+
+
+def asset_url(rel: str | None, version: Any = None) -> str | None:
+    """URL of a map file of the current city (served by the /surface-assets/<city> mount)."""
+    rel = _safe_rel(rel)
+    if rel is None:
+        return None
+    v = f"?v={version}" if isinstance(version, str) and version else ""
+    return f"/surface-assets/{get_city().id}/{rel}{v}"
+
+
+def _layer_urls(surface: dict, folder: str | None = None) -> dict[str, str | None]:
+    """sharp/glow/halo image URLs of a manifest record, each stamped with its content hash."""
+    ck = surface.get("checksums") or {}
+    files = surface.get("files") or {}
+    fallback = str(surface.get("generated_at") or "current")
+
+    def rel(key_rel: str, key_file: str) -> str | None:
+        if surface.get(key_rel):
+            return surface[key_rel]
+        if folder and files.get(key_file):
+            return f"{folder}/{files[key_file]}"
+        return None
+
+    sharp = rel("sharp_png_filename", "sharp_png") or rel("png_filename", "png")
+    out = {
+        "sharp_url": asset_url(sharp, ck.get("sharp_png_sha256") or ck.get("png_sha256") or fallback),
+        "glow_url": asset_url(rel("glow_png_filename", "glow_png"), ck.get("glow_png_sha256") or fallback),
+        "halo_url": asset_url(rel("halo_png_filename", "halo_png"), ck.get("halo_png_sha256") or fallback),
+    }
+    out["image_url"] = out["sharp_url"]
+    return out
+
+
+def _tif_path(surface: dict | None, folder: str) -> Path | None:
+    """Scientific GeoTIFF of a manifest record (the truth the map images are drawn from)."""
+    if not surface:
+        return None
+    rel = _safe_rel(surface.get("geotiff_filename"))
+    candidates = []
+    if rel:
+        candidates += [SURFACES / rel, SURFACES / folder / Path(rel).name]
+    name = (surface.get("files") or {}).get("geotiff")
+    if _safe_rel(name):
+        candidates.append(SURFACES / folder / name)
+    return next((p for p in candidates if p.exists()), None)
+
+
+def _read_pixel(path: Path, lon: float, lat: float) -> tuple[float | None, bool]:
+    """Exact 1x1 window read; (value, nodata)."""
+    with rasterio.open(path) as ds:
+        b = ds.bounds
+        if not (b.left <= lon <= b.right and b.bottom <= lat <= b.top):
+            return None, True
+        r, c = ds.index(lon, lat)
+        v = float(ds.read(1, window=Window(c, r, 1, 1))[0, 0])
+        nodata = (ds.nodata is not None and v == ds.nodata) or not math.isfinite(v)
+    return (None if nodata else v), nodata
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# cities and boundaries
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/cities")
+async def list_cities():
+    """Every city GeoSense covers, and which of its layers are ready."""
+    ready = set(available_cities())
+    out = []
+    for cid, city in CITIES.items():
+        manifest = city.data_dir / "surfaces" / "manifest.json"
+        layers = {}
+        if manifest.exists():
+            try:
+                s = json.loads(manifest.read_text(encoding="utf-8")).get("surfaces", {}) or {}
+                layers = {k: (v or {}).get("generation_status", "generated")
+                          for k, v in s.items() if k in ("ndvi", "lst", "water_health", "aqi", "composite")}
+            except Exception:
+                layers = {}
+        out.append({**city.public(), "boundaries": cid in ready, "layers": layers,
+                    "ready": cid in ready and any(v == "generated" for v in layers.values())})
+    return {"cities": out}
+
+
+@router.get("/zones/boundary")
+@router.get("/boundary")
+async def get_study_region_boundary():
+    """The current city's study region (union of its municipalities)."""
+    from app.services.municipality_boundaries import load_study_region_geometry
     try:
-        with engine.begin() as conn:
-            conn.execute(text(query), params or {})
+        return {"type": "Feature", "properties": {"city": get_city().id},
+                "geometry": mapping(load_study_region_geometry())}
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Database operation failed: {exc}") from exc
-
-
-@router.get("/metrics/latest")
-async def get_latest_metrics(db_cm = Depends(_db_cm)):
-    with db_cm as db:
-        # Each source has its own cadence. A global max(observed_at) would drop
-        # valid AQI/LST values whenever a newer satellite composite exists.
-        stmt = text(
-            """
-            WITH latest_aqi AS (
-                SELECT DISTINCT ON (zone_id) *
-                FROM environment_data
-                WHERE aqi IS NOT NULL
-                ORDER BY zone_id,
-                         CASE WHEN source_metadata->'aqi'->>'method' = 'station_discovery_idw' THEN 0 ELSE 1 END,
-                         observed_at DESC, id DESC
-            ), latest_ndvi AS (
-                SELECT DISTINCT ON (zone_id) *
-                FROM environment_data
-                WHERE ndvi IS NOT NULL
-                ORDER BY zone_id, observed_at DESC, id DESC
-            ), latest_lst AS (
-                SELECT DISTINCT ON (zone_id) *
-                FROM environment_data
-                WHERE lst IS NOT NULL
-                ORDER BY zone_id, observed_at DESC, id DESC
-            ), latest_water AS (
-                SELECT DISTINCT ON (zone_id) *
-                FROM environment_data
-                WHERE mndwi IS NOT NULL
-                ORDER BY zone_id, observed_at DESC, id DESC
-            )
-            SELECT
-                z.id,
-                z.name,
-                z.ward,
-                ST_X(ST_Centroid(z.geometry)) AS longitude,
-                ST_Y(ST_Centroid(z.geometry)) AS latitude,
-                ST_AsGeoJSON(z.geometry) AS geometry_geojson,
-                ndvi.ndvi,
-                ndvi.ndwi,
-                ndvi.observed_at AS ndvi_observed_at,
-                ndvi.source_metadata AS ndvi_source_metadata,
-                lst.lst,
-                lst.observed_at AS lst_observed_at,
-                lst.source_metadata AS lst_source_metadata,
-                water.mndwi,
-                water.ndci,
-                water.turbidity_proxy,
-                water.water_extent_m2,
-                water.water_health_score,
-                water.water_health_status,
-                water.observed_at AS water_health_observed_at,
-                water.source_metadata AS water_health_source_metadata,
-                aqi.aqi,
-                aqi.pm25,
-                aqi.pm10,
-                aqi.no2,
-                aqi.aqi_source_type,
-                aqi.aqi_nearest_station_distance_m,
-                aqi.temperature,
-                aqi.humidity,
-                aqi.observed_at AS aqi_observed_at,
-                aqi.source_metadata AS aqi_source_metadata,
-                GREATEST(aqi.observed_at, ndvi.observed_at, lst.observed_at, water.observed_at) AS date
-            FROM zones z
-            LEFT JOIN latest_aqi aqi ON aqi.zone_id = z.id
-            LEFT JOIN latest_ndvi ndvi ON ndvi.zone_id = z.id
-            LEFT JOIN latest_lst lst ON lst.zone_id = z.id
-            LEFT JOIN latest_water water ON water.zone_id = z.id
-            ORDER BY z.name
-            """
-        )
-        rows = db.execute(stmt).mappings().all()
-        out = []
-        for r in rows:
-            d = dict(r)
-            d["source_metadata"] = {
-                "aqi": d.pop("aqi_source_metadata"),
-                "ndvi": d.pop("ndvi_source_metadata"),
-                "lst": d.pop("lst_source_metadata"),
-                "water_health": d.pop("water_health_source_metadata"),
-            }
-            d["geometry"] = json.loads(d.pop("geometry_geojson")) if d.get("geometry_geojson") else None
-            d["composite"] = calculate_composite(
-                aqi=d.get("aqi"),
-                ndvi=d.get("ndvi"),
-                lst=d.get("lst"),
-                water_health_score=d.get("water_health_score"),
-            )
-            out.append(d)
-        return out
+        raise HTTPException(status_code=503, detail=f"{get_city().name} boundary unavailable: {exc}") from exc
 
 
 @router.get("/municipalities/latest")
 async def get_municipalities_latest(db_cm=Depends(_db_cm)):
-    """Return aggregated metrics for real MMR municipality polygons."""
+    """The city's municipality polygons with mean cell values from the latest ML snapshot."""
+    from app.services.municipality_aggregation import get_municipality_metrics
     try:
         with db_cm as db:
             return get_municipality_metrics(db)
@@ -154,43 +163,36 @@ async def get_municipalities_latest(db_cm=Depends(_db_cm)):
         raise HTTPException(status_code=503, detail=f"Municipality aggregation failed: {exc}") from exc
 
 
-@router.get("/water-bodies/latest")
-async def get_water_bodies(db_cm=Depends(_db_cm)):
-    """Return actual OSM water body polygons with water health scores."""
-    try:
-        with db_cm as db:
-            return get_water_bodies_with_health(db)
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Water bodies fetch failed: {exc}") from exc
-
+# ─────────────────────────────────────────────────────────────────────────────
+# map layers (latest surface of each layer)
+# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/surfaces/aqi/latest")
 async def get_latest_aqi_surface():
     """Station-based CPCB AQI surface (OpenAQ -> CPCB AQI -> IDW).
 
-    Always 200 with `available`; when coverage is insufficient the response says so
-    honestly (with the station audit) instead of serving a proxy surface.
+    Always 200 with `available`; when coverage is insufficient or the readings are older than
+    48 h the response says so (with the station audit) instead of serving a proxy surface.
     """
-    from app.services.surfaces.aqi_station_surface import MANIFEST_PATH as _AQI_MANIFEST
-    try:
-        surfaces = json.loads(_AQI_MANIFEST.read_text(encoding="utf-8")).get("surfaces", {})
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"AQI surface manifest unavailable: {exc}") from exc
-    surface = surfaces.get("aqi") or {}
     from app.services.surfaces import aqi_refresh
     from app.services.surfaces.aqi_station_surface import aqi_expired, reading_age
+
+    surface = _manifest_surfaces().get("aqi") or {}
     expired = surface.get("generation_status") == "generated" and aqi_expired(surface)
-    refreshing = bool(aqi_refresh.STATE["running"])
+    st = aqi_refresh.state()
+    refreshing = bool(st["running"])
     base = {
         "metric": "aqi",
+        "city": get_city().id,
         "available": False,
         "status": "expired" if expired else surface.get("generation_status", "not_generated"),
         "reason": (("AQI data expired (readings older than 48 hours) — refreshing now." if refreshing else
                     "Station readings are now older than 48 hours, so the AQI layer is hidden. Regenerate it: "
-                    "python scripts/generate_aqi_station_surface.py") if expired else surface.get("reason")),
+                    f"python scripts/generate_aqi_station_surface.py --city {get_city().id}")
+                   if expired else surface.get("reason")),
         "reading_age_hours": reading_age(surface),
         "refresh": {"auto": aqi_refresh.enabled(), "running": refreshing,
-                    "last_attempt": aqi_refresh.STATE["last_attempt"], "last_result": aqi_refresh.STATE["last_result"]},
+                    "last_attempt": st["last_attempt"], "last_result": st["last_result"]},
         "methodology": surface.get("methodology"),
         "stations": surface.get("stations", []),
         "audit": surface.get("audit"),
@@ -198,17 +200,9 @@ async def get_latest_aqi_surface():
     }
     if surface.get("generation_status") != "generated" or expired:
         return base
-    sharp_rel = _safe_surface_asset(surface, "sharp_png_filename")
-    glow_rel = _safe_surface_asset(surface, "glow_png_filename")
-    halo_rel = _safe_surface_asset(surface, "halo_png_filename")
-    ck = surface.get("checksums", {})
     return {
-        **base,
+        **base, **_layer_urls(surface, "aqi"),
         "available": True,
-        "image_url": f"/surface-assets/{sharp_rel}?v={ck.get('sharp_png_sha256', '')}",
-        "sharp_url": f"/surface-assets/{sharp_rel}?v={ck.get('sharp_png_sha256', '')}",
-        "glow_url": f"/surface-assets/{glow_rel}?v={ck.get('glow_png_sha256', '')}" if glow_rel else None,
-        "halo_url": f"/surface-assets/{halo_rel}?v={ck.get('halo_png_sha256', '')}" if halo_rel else None,
         "coordinates": surface["mapbox_coordinates"],
         "source_timestamp": surface.get("source_timestamp"),
         "interpretation": surface.get("interpretation"),
@@ -220,69 +214,20 @@ async def get_latest_aqi_surface():
     }
 
 
-def _safe_surface_asset(surface: dict, key: str) -> str | None:
-    filename = surface.get(key)
-    if not isinstance(filename, str) or not filename or ".." in filename.replace("\\", "/").split("/"):
-        return None
-    return filename
-
-
-def _versioned_water_health_asset(surface: dict, filename: str, checksum_key: str) -> str:
-    """Give overwritten Water Health PNG paths a content-versioned URL."""
-    checksum = (surface.get("checksums") or {}).get(checksum_key)
-    if not isinstance(checksum, str) or not checksum:
-        checksum = str(surface.get("generated_at") or "current")
-    return f"/surface-assets/{filename}?v={checksum}"
-
-
 @router.get("/surfaces/ndvi/latest")
 async def get_latest_ndvi_surface():
-    """Return metadata for the latest real Sentinel-2 NDVI image surface."""
-    # ═══════════════════════════════════════════════════════════════════════════
-    # NDVI API DIAGNOSTICS
-    # ═══════════════════════════════════════════════════════════════════════════
-    print("[NDVI API ENTER] /api/surfaces/ndvi/latest endpoint called")
-    import sys
-    sys.stdout.flush()
-    # ═══════════════════════════════════════════════════════════════════════════
-    
+    """The latest real Sentinel-2 NDVI surface of the city."""
     try:
-        print("[NDVI API] About to call load_latest_ndvi_surface()")
-        sys.stdout.flush()
         surface = load_latest_ndvi_surface()
-        print(f"[NDVI API] load_latest_ndvi_surface returned: {surface is not None}")
-        sys.stdout.flush()
     except Exception as exc:
-        print(f"[NDVI API ERROR] Exception in load_latest_ndvi_surface: {exc}")
-        sys.stdout.flush()
         raise HTTPException(status_code=503, detail=f"NDVI surface manifest unavailable: {exc}") from exc
     if surface is None:
-        print("[NDVI API] Surface is None, returning 404")
-        sys.stdout.flush()
-        raise HTTPException(status_code=404, detail="No generated NDVI surface is available")
-    
-    print("[NDVI API] Building response object")
-    sys.stdout.flush()
-
-    sharp_rel = _safe_surface_asset(surface, "sharp_png_filename") or _safe_surface_asset(surface, "png_filename")
-    glow_rel  = _safe_surface_asset(surface, "glow_png_filename")
-    halo_rel  = _safe_surface_asset(surface, "halo_png_filename")
-    if not sharp_rel:
-        raise HTTPException(status_code=503, detail="NDVI surface manifest contains an unsafe PNG path")
-
-    # version stamp (content hash) on every image link, like the other layers: a re-render
-    # writes new content under the same file name, so without it the browser shows its old copy
-    ck = surface.get("checksums") or {}
-    fallback_v = surface.get("generated_at", "current")
-    sharp_v = ck.get("sharp_png_sha256") or ck.get("png_sha256") or fallback_v
-    glow_v = ck.get("glow_png_sha256") or fallback_v
-    halo_v = ck.get("halo_png_sha256") or fallback_v
-    response = {
-        "metric": surface["metric"],
-        "image_url": f"/surface-assets/{sharp_rel}?v={sharp_v}",
-        "sharp_url": f"/surface-assets/{sharp_rel}?v={sharp_v}",
-        "glow_url":  f"/surface-assets/{glow_rel}?v={glow_v}"  if glow_rel  else None,
-        "halo_url":  f"/surface-assets/{halo_rel}?v={halo_v}"  if halo_rel  else None,
+        raise HTTPException(status_code=404, detail=f"No NDVI surface has been generated for {get_city().name} yet")
+    urls = _layer_urls(surface, "ndvi")
+    if not urls["sharp_url"]:
+        raise HTTPException(status_code=503, detail="NDVI surface manifest contains an unsafe image path")
+    return {
+        "metric": surface["metric"], "city": get_city().id, **urls,
         "coordinates": surface["mapbox_coordinates"], "generated_at": surface["generated_at"],
         "source_timestamp": surface["source_timestamp"], "source_period": surface["source_period"],
         "source": surface["source"], "dataset": surface["dataset"],
@@ -294,46 +239,20 @@ async def get_latest_ndvi_surface():
         "valid_pixels": surface.get("valid_pixels"),
         "ndvi_statistics": surface.get("ndvi_statistics"),
     }
-    print("[NDVI API RETURN] Returning response")
-    sys.stdout.flush()
-    return response
 
 
 @router.get("/surfaces/lst/latest")
 async def get_latest_lst_surface():
-    """Return the latest generated LST surface metadata + asset URLs."""
+    """The latest Landsat LST surface of the city."""
     surface = load_latest_lst_surface()
     if surface is None:
-        raise HTTPException(status_code=404, detail="No generated LST surface is available")
-
-    # Validate filenames to prevent path traversal
-    png_filename = surface["files"]["png"]
-    glow_filename = surface["files"]["glow_png"]
-    for filename in (png_filename, glow_filename):
-        if not isinstance(filename, str) or not filename or ".." in filename.replace("\\", "/").split("/"):
-            raise HTTPException(status_code=503, detail="LST surface manifest contains an unsafe file path")
-
-    checksums = surface.get("checksums") or {}
-    png_version = checksums.get("png_sha256")
-    glow_version = checksums.get("glow_png_sha256")
-    png_url = f"/surface-assets/lst/{png_filename}"
-    glow_url = f"/surface-assets/lst/{glow_filename}"
-    if isinstance(png_version, str) and png_version:
-        png_url = f"{png_url}?v={png_version}"
-    if isinstance(glow_version, str) and glow_version:
-        glow_url = f"{glow_url}?v={glow_version}"
-
-    halo_filename = surface["files"].get("halo_png")
-    halo_url = None
-    if isinstance(halo_filename, str) and halo_filename and ".." not in halo_filename:
-        halo_url = f"/surface-assets/lst/{halo_filename}?v={checksums.get('halo_png_sha256', '')}"
-    response = {
-        "metric": surface["metric"],
-        "image_url": png_url,
-        "sharp_url": png_url,
-        "glow_url": glow_url,
-        "halo_url": halo_url,
-        "coordinates": surface["coordinates"],
+        raise HTTPException(status_code=404, detail=f"No LST surface has been generated for {get_city().name} yet")
+    urls = _layer_urls(surface, "lst")
+    if not urls["sharp_url"]:
+        raise HTTPException(status_code=503, detail="LST surface manifest contains an unsafe file path")
+    return {
+        "metric": surface["metric"], "city": get_city().id, **urls,
+        "coordinates": surface.get("mapbox_coordinates") or surface["coordinates"],
         "generated_at": surface["generated_at"],
         "source_timestamp": surface["timestamp"],
         "source_period": surface["source_period"],
@@ -341,50 +260,30 @@ async def get_latest_lst_surface():
         "methodology": surface["methodology"],
         "unit": surface["unit"],
         "source_scale_m": surface["scale_m"],
-        "lst_min_c": surface["lst_min_c"],
-        "lst_max_c": surface["lst_max_c"],
-        "lst_mean_c": surface["lst_mean_c"],
-        "lst_median_c": surface["lst_median_c"],
-        "glow_threshold_c": surface["glow_threshold_c"],
+        "lst_min_c": surface["lst_min_c"], "lst_max_c": surface["lst_max_c"],
+        "lst_mean_c": surface["lst_mean_c"], "lst_median_c": surface["lst_median_c"],
+        "glow_threshold_c": surface.get("glow_threshold_c"),
         "visualization": surface.get("visualization"),
         "nodata": True,
         "nodata_semantics": "transparent",
         "valid_pixels": surface["valid_pixels"],
     }
-    return response
 
 
 @router.get("/surfaces/water-health/latest")
 async def get_latest_water_health_surface():
-    """Return metadata for the latest real Sentinel-2 Water Health image surface."""
+    """The latest real Sentinel-2 Water Health surface of the city."""
     try:
         surface = load_latest_water_health_surface()
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Water Health surface manifest unavailable: {exc}") from exc
     if surface is None:
-        raise HTTPException(status_code=404, detail="No generated Water Health surface is available")
-
-    sharp_rel = _safe_surface_asset(surface, "sharp_png_filename") or _safe_surface_asset(surface, "png_filename")
-    glow_rel  = _safe_surface_asset(surface, "glow_png_filename")
-    halo_rel  = _safe_surface_asset(surface, "halo_png_filename")
-    if not sharp_rel:
-        raise HTTPException(status_code=503, detail="Water Health surface manifest contains an unsafe PNG path")
-
-    checksums = surface.get("checksums") or {}
-    sharp_url = _versioned_water_health_asset(
-        surface,
-        sharp_rel,
-        "sharp_png_sha256" if checksums.get("sharp_png_sha256") else "png_sha256",
-    )
-    glow_url = _versioned_water_health_asset(surface, glow_rel, "glow_png_sha256") if glow_rel else None
-    halo_url = _versioned_water_health_asset(surface, halo_rel, "halo_png_sha256") if halo_rel else None
-
-    response = {
-        "metric": surface["metric"],
-        "image_url": sharp_url,
-        "sharp_url": sharp_url,
-        "glow_url": glow_url,
-        "halo_url": halo_url,
+        raise HTTPException(status_code=404, detail=f"No Water Health surface has been generated for {get_city().name} yet")
+    urls = _layer_urls(surface, "water-health")
+    if not urls["sharp_url"]:
+        raise HTTPException(status_code=503, detail="Water Health surface manifest contains an unsafe image path")
+    return {
+        "metric": surface["metric"], "city": get_city().id, **urls,
         "coordinates": surface["mapbox_coordinates"],
         "generated_at": surface["generated_at"],
         "source_timestamp": surface.get("source_timestamp"),
@@ -400,720 +299,28 @@ async def get_latest_water_health_surface():
         "source_scale_m": surface["source_scale_m"],
         "scale_m": surface.get("scale_m"),
         "unit": surface.get("unit"),
-        "wh_min": surface.get("wh_min"),
-        "wh_max": surface.get("wh_max"),
-        "wh_mean": surface.get("wh_mean"),
-        "wh_median": surface.get("wh_median"),
+        "wh_min": surface.get("wh_min"), "wh_max": surface.get("wh_max"),
+        "wh_mean": surface.get("wh_mean"), "wh_median": surface.get("wh_median"),
         "water_health_statistics": surface.get("water_health_statistics"),
         "valid_pixels": surface.get("valid_pixels"),
         "nodata": True,
         "nodata_semantics": surface["nodata_semantics"],
     }
-    return response
-
-
-@router.get("/surfaces/lst/value")
-async def get_lst_pixel_value(lon: float, lat: float):
-    """Return pixel-level LST value from the underlying GeoTIFF."""
-    surface = load_latest_lst_surface()
-    if not surface:
-        raise HTTPException(status_code=404, detail="No LST surface available")
-        
-    tif_filename = surface["files"]["geotiff"]
-    from pathlib import Path
-    import os
-    import numpy as np
-    import rasterio
-    
-    SERVER_ROOT = Path(__file__).resolve().parents[2]
-    tif_path = SERVER_ROOT / "data" / "surfaces" / "lst" / tif_filename
-    
-    if not tif_path.exists():
-        raise HTTPException(status_code=404, detail="GeoTIFF not found")
-        
-    try:
-        with rasterio.open(tif_path) as dataset:
-            if not (dataset.bounds.left <= lon <= dataset.bounds.right and dataset.bounds.bottom <= lat <= dataset.bounds.top):
-                return {
-                    "metric": "lst", "longitude": lon, "latitude": lat,
-                    "value_c": None, "nodata": True, "source": surface["methodology"],
-                    "resolution_m": surface["scale_m"], "source_period": surface["source_period"]
-                }
-            
-            row, col = dataset.index(lon, lat)
-            from rasterio.windows import Window
-            val = dataset.read(1, window=Window(col, row, 1, 1))[0, 0]
-            is_nodata = bool(val == dataset.nodata or not np.isfinite(val))
-            
-            return {
-                "metric": "lst",
-                "longitude": lon,
-                "latitude": lat,
-                "value_c": None if is_nodata else round(float(val), 2),
-                "nodata": is_nodata,
-                "source": "Landsat 8/9 Collection 2 Level-2 Surface Temperature",
-                "resolution_m": surface["scale_m"],
-                "source_period": surface["source_period"]
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/surfaces/ndvi/value")
-async def get_ndvi_pixel_value(lon: float, lat: float):
-    """Return pixel-level NDVI value from the underlying GeoTIFF."""
-    surface = load_latest_ndvi_surface()
-    if not surface:
-        raise HTTPException(status_code=404, detail="No NDVI surface available")
-        
-    tif_filename = surface.get("geotiff_filename")
-    if not tif_filename:
-        raise HTTPException(status_code=404, detail="NDVI GeoTIFF not found in manifest")
-        
-    from pathlib import Path
-    import os
-    import numpy as np
-    import rasterio
-    
-    SERVER_ROOT = Path(__file__).resolve().parents[2]
-    # In NDVI, the filename is usually relative to output_root e.g. "ndvi/ndvi_2026...tif"
-    # But let's check if it already has 'ndvi/' prefix.
-    # We'll just join it to data/surfaces.
-    tif_path = SERVER_ROOT / "data" / "surfaces" / tif_filename
-    
-    if not tif_path.exists():
-        # Fallback if it just gives basename
-        tif_path = SERVER_ROOT / "data" / "surfaces" / "ndvi" / os.path.basename(tif_filename)
-        if not tif_path.exists():
-            raise HTTPException(status_code=404, detail="GeoTIFF not found on disk")
-        
-    try:
-        with rasterio.open(tif_path) as dataset:
-            if not (dataset.bounds.left <= lon <= dataset.bounds.right and dataset.bounds.bottom <= lat <= dataset.bounds.top):
-                return {
-                    "metric": "ndvi", "longitude": lon, "latitude": lat,
-                    "value": None, "nodata": True, "source": surface.get("methodology"),
-                    "resolution_m": surface.get("source_scale_m"), "source_period": surface.get("source_period")
-                }
-            
-            row, col = dataset.index(lon, lat)
-            from rasterio.windows import Window
-            val = dataset.read(1, window=Window(col, row, 1, 1))[0, 0]
-            is_nodata = bool(val == dataset.nodata or not np.isfinite(val))
-            
-            return {
-                "metric": "ndvi",
-                "longitude": lon,
-                "latitude": lat,
-                "value": None if is_nodata else round(float(val), 3),
-                "nodata": is_nodata,
-                "source": "Sentinel-2 NDVI",
-                "resolution_m": surface.get("source_scale_m"),
-                "source_period": surface.get("source_period")
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/surfaces/water-health/value")
-async def get_water_health_pixel_value(lon: float, lat: float):
-    """Return pixel-level Water Health value from the underlying scientific GeoTIFF."""
-    surface = load_latest_water_health_surface()
-    if not surface:
-        raise HTTPException(status_code=404, detail="No Water Health surface available")
-
-    tif_filename = surface.get("geotiff_filename")
-    if not tif_filename:
-        raise HTTPException(status_code=404, detail="Water Health GeoTIFF not found in manifest")
-
-    from pathlib import Path as _WhPath
-    import os as _WhOs
-    import numpy as _WhNp
-    import rasterio as _WhRasterio
-
-    _SERVER_ROOT = _WhPath(__file__).resolve().parents[2]
-    tif_path = _SERVER_ROOT / "data" / "surfaces" / tif_filename
-    if not tif_path.exists():
-        tif_path = _SERVER_ROOT / "data" / "surfaces" / "water-health" / _WhOs.path.basename(tif_filename)
-        if not tif_path.exists():
-            raise HTTPException(status_code=404, detail="GeoTIFF not found on disk")
-
-    try:
-        with _WhRasterio.open(tif_path) as dataset:
-            if not (dataset.bounds.left <= lon <= dataset.bounds.right and dataset.bounds.bottom <= lat <= dataset.bounds.top):
-                return {
-                    "metric": "water_health",
-                    "longitude": lon,
-                    "latitude": lat,
-                    "value": None,
-                    "nodata": True,
-                    "source": surface.get("methodology"),
-                    "resolution_m": surface.get("source_scale_m"),
-                    "source_period": surface.get("source_period"),
-                }
-            row, col = dataset.index(lon, lat)
-            from rasterio.windows import Window as _WhWindow
-            val = dataset.read(1, window=_WhWindow(col, row, 1, 1))[0, 0]
-            is_nodata = bool(val == dataset.nodata or not _WhNp.isfinite(val))
-            return {
-                "metric": "water_health",
-                "longitude": lon,
-                "latitude": lat,
-                "value": None if is_nodata else round(float(val), 3),
-                "nodata": is_nodata,
-                "source": "Sentinel-2 derived Water Health raster",
-                "resolution_m": surface.get("source_scale_m"),
-                "source_period": surface.get("source_period"),
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-def _read_manifest_pixel(metric: str, lon: float, lat: float, digits: int = 3) -> dict | None:
-    """Exact 1x1 window read from the scientific GeoTIFF referenced in the manifest."""
-    from pathlib import Path as _P
-    from rasterio.windows import Window as _W
-    root = _P(__file__).resolve().parents[2] / "data" / "surfaces"
-    rec = json.loads((root / "manifest.json").read_text(encoding="utf-8")).get("surfaces", {}).get(metric) or {}
-    rel = rec.get("geotiff_filename")
-    if not rel or not (root / rel).exists():
-        return None
-    with rasterio.open(root / rel) as ds:
-        b = ds.bounds
-        if not (b.left <= lon <= b.right and b.bottom <= lat <= b.top):
-            return {"value": None, "nodata": True}
-        r, c = ds.index(lon, lat)
-        v = float(ds.read(1, window=_W(c, r, 1, 1))[0, 0])
-        nd = v == ds.nodata or not np.isfinite(v)
-    return {"value": None if nd else round(v, digits), "nodata": nd, "source": rec.get("methodology"),
-            "inputs_used": rec.get("inputs_used"), "weights": rec.get("weights")}
-
-
-@router.get("/zones/boundary")
-async def get_zone_boundary(db_cm=Depends(_db_cm)):
-    """Return real Mumbai administrative polygons for map-side filtering."""
-    try:
-        return _mumbai_boundary()
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Mumbai boundary unavailable: {exc}") from exc
-
-
-@lru_cache(maxsize=1)
-def _mumbai_boundary() -> dict:
-    from app.services.municipality_boundaries import load_study_region_geometry
-    geometry = load_study_region_geometry()
-    return {"type": "Feature", "geometry": mapping(geometry)}
-
-
-@router.get("/analysis/point")
-async def get_point_analysis(lon: float, lat: float, db_cm=Depends(_db_cm)):
-    """Return 3-level analysis for a coordinate: Pixel, Cell (300m), Municipality.
-
-    Hierarchy:
-      1. PIXEL        — exact raster values from scientific GeoTIFFs (windowed reads)
-      2. DENSE CELL   — 300m analytical grid: aggregated metrics, anomalies, history
-      3. MUNICIPALITY — administrative boundary containment (Mumbai / Thane / Mira-Bhayandar)
-
-    These three levels are intentionally distinct: PIXEL ≠ CELL ≠ MUNICIPALITY.
-    """
-    from app.services.municipality_boundaries import load_municipality_boundaries, MunicipalityBoundaryError
-    from shapely.geometry import Point as ShapelyPoint
-
-    # ══════════════════════════════════════════════════════════════════════
-    # 1. PIXEL LEVEL — exact scientific raster pixel reads (windowed, 1x1)
-    # ══════════════════════════════════════════════════════════════════════
-    pixel_ndvi = None
-    try:
-        ndvi_res = await get_ndvi_pixel_value(lon, lat)
-        if ndvi_res:
-            pixel_ndvi = {
-                "value": ndvi_res.get("value"),
-                "nodata": bool(ndvi_res.get("nodata", True)),
-                "source": ndvi_res.get("source"),
-                "resolution_m": ndvi_res.get("resolution_m"),
-                "source_period": ndvi_res.get("source_period"),
-            }
-    except HTTPException:
-        pass
-    except Exception:
-        pass
-
-    pixel_lst = None
-    try:
-        lst_res = await get_lst_pixel_value(lon, lat)
-        if lst_res:
-            pixel_lst = {
-                "value_c": lst_res.get("value_c"),
-                "nodata": bool(lst_res.get("nodata", True)),
-                "qc_flag": (
-                    "probable_residual_cloud"
-                    if lst_res.get("value_c") is not None and lst_res.get("value_c") < __import__("app.services.qc", fromlist=["x"]).LST_QC_MIN_C
-                    else None
-                ),
-                "source": lst_res.get("source"),
-                "resolution_m": lst_res.get("resolution_m"),
-                "source_period": lst_res.get("source_period"),
-            }
-    except HTTPException:
-        pass
-    except Exception:
-        pass
-
-    pixel_aqi = None
-    try:
-        from app.services.surfaces.aqi_station_surface import read_aqi_pixel
-        pixel_aqi = read_aqi_pixel(lon, lat)
-    except Exception as exc:  # never fabricate; report why
-        pixel_aqi = {"value": None, "nodata": True, "available": False, "reason": f"AQI read failed: {exc}"}
-
-    pixel_composite = None
-    try:
-        pixel_composite = _read_manifest_pixel("composite", lon, lat, digits=3)
-        if pixel_composite and not pixel_composite.get("nodata"):
-            from app.services.composite_v2 import read_components_pixel
-            from pathlib import Path as _Path
-            root = _Path(__file__).resolve().parents[2] / "data" / "surfaces"
-            pixel_composite["breakdown"] = read_components_pixel(lon, lat, root / "manifest.json")
-    except Exception:
-        pixel_composite = pixel_composite or None
-
-    pixel_water_health = None
-    try:
-        wh_res = await get_water_health_pixel_value(lon, lat)
-        if wh_res:
-            pixel_water_health = {
-                "value": wh_res.get("value"),
-                "nodata": bool(wh_res.get("nodata", True)),
-                "source": wh_res.get("source"),
-                "resolution_m": wh_res.get("resolution_m"),
-                "source_period": wh_res.get("source_period"),
-            }
-    except HTTPException:
-        pass
-    except Exception:
-        pass
-
-    # supporting Sentinel-2 indices (20 m; NDBI = -NDMI, derived) — not map layers
-    pixel_ndmi = pixel_ndbi = None
-    try:
-        from app.services.surfaces.index_surfaces import read_index_pixel
-        pixel_ndmi = read_index_pixel("ndmi", lon, lat)
-        pixel_ndbi = read_index_pixel("ndbi", lon, lat)
-    except Exception:
-        pass
-
-    pixel_block = {
-        "longitude": lon,
-        "latitude": lat,
-        "ndmi": pixel_ndmi,
-        "ndbi": pixel_ndbi,
-        "ndvi": pixel_ndvi,
-        "lst": pixel_lst,
-        "aqi": pixel_aqi,
-        "water_health": pixel_water_health,
-        "composite": pixel_composite,
-    }
-
-    # ══════════════════════════════════════════════════════════════════════
-    # 2. DENSE ANALYTICAL CELL — 300m grid (spatial_cells table)
-    # ══════════════════════════════════════════════════════════════════════
-    cell_block = None
-    with db_cm as db:
-        cell_stmt = text("""
-            WITH point AS (
-                SELECT ST_GeomFromEWKT('SRID=4326;POINT(' || :lon || ' ' || :lat || ')') AS geom
-            ),
-            matched_cell AS (
-                -- 1st priority: exact containment
-                SELECT sc.id, sc.cell_code, sc.resolution_m, sc.municipality_name,
-                       ST_AsBinary(sc.geometry) AS cell_wkb,
-                       ST_X(sc.centroid) AS centroid_lon,
-                       ST_Y(sc.centroid) AS centroid_lat,
-                       ST_Distance(sc.centroid::geography, point.geom::geography) AS dist_m,
-                       1 AS match_rank
-                FROM spatial_cells sc, point
-                WHERE ST_Contains(sc.geometry, point.geom)
-                LIMIT 1
-            ),
-            fallback_cell AS (
-                -- 2nd priority: nearest cell within 1 km (for clicks on gaps / edges)
-                SELECT sc.id, sc.cell_code, sc.resolution_m, sc.municipality_name,
-                       ST_AsBinary(sc.geometry) AS cell_wkb,
-                       ST_X(sc.centroid) AS centroid_lon,
-                       ST_Y(sc.centroid) AS centroid_lat,
-                       ST_Distance(sc.centroid::geography, point.geom::geography) AS dist_m,
-                       2 AS match_rank
-                FROM spatial_cells sc, point
-                WHERE NOT EXISTS (SELECT 1 FROM matched_cell)
-                  AND ST_DWithin(sc.centroid::geography, point.geom::geography, 1000)
-                ORDER BY sc.centroid <-> point.geom
-                LIMIT 1
-            ),
-            chosen AS (
-                SELECT * FROM matched_cell UNION ALL SELECT * FROM fallback_cell LIMIT 1
-            )
-            SELECT c.*,
-                   -- latest NON-NULL value per metric: AQI, NDVI, LST and Water Health are
-                   -- written by different jobs at different times, so a single "latest row"
-                   -- would hide the satellite metrics behind a newer AQI-only row.
-                   (SELECT e.aqi FROM environment_data e WHERE e.cell_id = c.id AND e.aqi IS NOT NULL
-                     ORDER BY e.observed_at DESC, e.id DESC LIMIT 1) AS ed_aqi,
-                   (SELECT e.ndvi FROM environment_data e WHERE e.cell_id = c.id AND e.ndvi IS NOT NULL
-                     ORDER BY e.observed_at DESC, e.id DESC LIMIT 1) AS ed_ndvi,
-                   (SELECT e.lst FROM environment_data e WHERE e.cell_id = c.id AND e.lst IS NOT NULL
-                     ORDER BY e.observed_at DESC, e.id DESC LIMIT 1) AS ed_lst,
-                   (SELECT e.water_health_score FROM environment_data e
-                     WHERE e.cell_id = c.id AND e.water_health_score IS NOT NULL
-                     ORDER BY e.observed_at DESC, e.id DESC LIMIT 1) AS ed_water_health,
-                   ed.observed_at AS ed_observed_at,
-                   ar.is_anomaly AS ar_is_anomaly, ar.anomaly_score AS ar_score,
-                   ar.anomaly_type AS ar_type, ar.root_cause AS ar_root_cause,
-                   ar.evidence AS ar_evidence, ar.detected_at AS ar_detected_at
-            FROM chosen c
-            LEFT JOIN (
-                SELECT DISTINCT ON (cell_id) *
-                FROM environment_data
-                WHERE cell_id IS NOT NULL
-                ORDER BY cell_id, observed_at DESC, id DESC
-            ) ed ON ed.cell_id = c.id
-            LEFT JOIN (
-                SELECT DISTINCT ON (cell_id) *
-                FROM anomaly_results
-                WHERE cell_id IS NOT NULL
-                ORDER BY cell_id, detected_at DESC, id DESC
-            ) ar ON ar.cell_id = c.id
-        """)
-        cell_row = db.execute(cell_stmt, {"lon": lon, "lat": lat}).mappings().one_or_none()
-
-        if cell_row:
-            anomaly_block = None
-            if cell_row["ar_is_anomaly"] is not None:
-                anomaly_block = {
-                    "flag": bool(cell_row["ar_is_anomaly"]),
-                    "score": cell_row["ar_score"],
-                    "anomaly_type": cell_row["ar_type"],
-                    "root_cause": cell_row["ar_root_cause"],
-                    "detected_at": cell_row["ar_detected_at"].isoformat() if cell_row["ar_detected_at"] else None,
-                }
-            cell_block = {
-                "id": cell_row["id"],
-                "cell_code": cell_row["cell_code"],
-                "resolution_m": cell_row["resolution_m"],
-                "match_type": "contains" if cell_row["match_rank"] == 1 else "nearest",
-                "distance_to_centroid_m": round(cell_row["dist_m"], 1),
-                "centroid": {
-                    "longitude": cell_row["centroid_lon"],
-                    "latitude": cell_row["centroid_lat"],
-                },
-                "metrics": {
-                    "aqi": cell_row["ed_aqi"],
-                    "ndvi": cell_row["ed_ndvi"],
-                    "lst": cell_row["ed_lst"],
-                    "water_health_score": cell_row["ed_water_health"],
-                    "observed_at": cell_row["ed_observed_at"].isoformat() if cell_row["ed_observed_at"] else None,
-                },
-                "anomaly": anomaly_block,
-                "municipality_name_from_cell": cell_row["municipality_name"],
-            }
-            models_rows = db.execute(text("""
-                SELECT DISTINCT ON (model_name) model_name, is_anomaly, anomaly_score, anomaly_type,
-                       root_cause, evidence, observed_at
-                FROM anomaly_results WHERE cell_id = :cid
-                ORDER BY model_name, observed_at DESC, id DESC
-            """), {"cid": cell_row["id"]}).mappings().all()
-            cell_block["models"] = {
-                r["model_name"]: {
-                    "flag": bool(r["is_anomaly"]), "score": r["anomaly_score"], "type": r["anomaly_type"],
-                    "summary": r["root_cause"], "evidence": r["evidence"],
-                    "observed_at": r["observed_at"].isoformat() if r["observed_at"] else None,
-                } for r in models_rows
-            }
-            fv = db.execute(text("""
-                SELECT feature_values FROM engineered_features WHERE cell_id = :cid
-                ORDER BY observed_at DESC, id DESC LIMIT 1
-            """), {"cid": cell_row["id"]}).scalar_one_or_none()
-            cell_block["features"] = (fv or {}).get("raw_values") if isinstance(fv, dict) else None
-            cell_block["feature_sources"] = (fv or {}).get("sources") if isinstance(fv, dict) else None
-            # Cell AQI = mean of the same CPCB IDW surface the pixel is read from, so the header
-            # and the pixel/explanation never disagree (older rows used a station-assignment method).
-            # seasonal history (own tables; never mixed with current values)
-            try:
-                from app.services.history.analytics import cell_history
-                cell_block["history"] = cell_history(db, cell_row["id"], lat, lon)
-            except Exception:
-                db.rollback()
-                cell_block["history"] = None
-            _aqi_cell = (cell_block["features"] or {}).get("aqi_idw") if cell_block["features"] else None
-            if _aqi_cell is not None:
-                cell_block["metrics"]["aqi"] = int(round(float(_aqi_cell)))
-                cell_block["metrics"]["aqi_method"] = "cell mean of the CPCB IDW surface"
-            # The cell's values NOW: means over this 300 m cell of the GeoTIFFs the map is showing,
-            # so the panel never shows an older value than the map (e.g. AQI after a refresh).
-            # The stored values stay available as the ML snapshot the models were run on.
-            try:
-                from shapely import wkb as _wkb
-                from app.services.ml.cell_features import live_cell_values
-                live = live_cell_values(_wkb.loads(bytes(cell_row["cell_wkb"])),
-                                        (cell_row["centroid_lon"], cell_row["centroid_lat"]))
-                cell_block["metrics_snapshot"] = dict(cell_block["metrics"])
-                cell_block["metrics"].update({
-                    "aqi": live["aqi"], "ndvi": live["ndvi"], "ndvi_land": live["ndvi_land"], "lst": live["lst"],
-                    "water_health_score": live["water_health_score"],
-                    "composite": (live["composite"] or {}).get("score"),
-                    "composite_breakdown": live["composite"],
-                    "basis": "live: cell mean of the current map GeoTIFFs",
-                    "files": live["files"],
-                })
-                cell_block["metrics"].pop("aqi_method", None)
-                if live["aqi"] is not None:
-                    cell_block["metrics"]["aqi_method"] = "cell mean of the current CPCB IDW surface"
-            except Exception as exc:   # keep the snapshot values, say so
-                logger.warning("live cell values failed for cell %s: %s", cell_row["id"], exc)
-                cell_block["metrics"]["basis"] = "ML snapshot (live values unavailable)"
-            iso = cell_block["models"].get("isolation_forest_cell_v2")
-            if iso is not None:
-                cell_block["anomaly"] = {
-                    "flag": iso["flag"], "score": iso["score"], "anomaly_type": iso["type"],
-                    "root_cause": iso["summary"], "detected_at": iso["observed_at"],
-                }
-
-    # ══════════════════════════════════════════════════════════════════════
-    # 3. MUNICIPALITY — administrative containment (local GeoJSON boundaries)
-    # ══════════════════════════════════════════════════════════════════════
-    municipality_block = None
-    try:
-        boundaries = load_municipality_boundaries()
-        click_point = ShapelyPoint(lon, lat)
-        for b in boundaries:
-            if b["shapely_geom"].contains(click_point):
-                municipality_block = {
-                    "id": b["id"],
-                    "name": b["name"],
-                    "source": "local GeoJSON boundary containment",
-                }
-                break
-    except (MunicipalityBoundaryError, Exception):
-        pass
-
-    if municipality_block is None and cell_block is not None and cell_block["municipality_name_from_cell"]:
-        municipality_block = {
-            "id": None,
-            "name": cell_block["municipality_name_from_cell"],
-            "source": "spatial_cells.municipality_name fallback",
-        }
-
-    place = None
-    try:
-        from starlette.concurrency import run_in_threadpool
-        from app.services.place_names import place_name
-        place = await run_in_threadpool(place_name, lon, lat, (municipality_block or {}).get("name"))
-    except Exception:
-        place = None
-
-    return {
-        "location": {
-            "longitude": lon,
-            "latitude": lat,
-        },
-        "place": place,
-        "pixel": pixel_block,
-        "cell": cell_block,
-        "municipality": municipality_block,
-    }
-
-
-@router.get("/metrics/{locality_id}")
-async def get_locality_metrics(locality_id: int, days: int = 14, db_cm=Depends(_db_cm)):
-    # Interpret locality_id as zone_id in the new schema
-    cutoff = datetime.utcnow() - timedelta(days=days)
-    with db_cm as db:
-        stmt = (
-            select(
-                EnvironmentData.observed_at.label("date"),
-                EnvironmentData.ndvi,
-                EnvironmentData.lst,
-                EnvironmentData.ndwi,
-                EnvironmentData.mndwi,
-                EnvironmentData.ndci,
-                EnvironmentData.turbidity_proxy,
-                EnvironmentData.water_extent_m2,
-                EnvironmentData.water_health_score,
-                EnvironmentData.water_health_status,
-                EnvironmentData.aqi,
-                EnvironmentData.pm25,
-                EnvironmentData.pm10,
-                EnvironmentData.no2,
-                EnvironmentData.temperature,
-                EnvironmentData.humidity,
-            )
-            .where(EnvironmentData.zone_id == locality_id)
-            .where(EnvironmentData.observed_at >= cutoff)
-            .order_by(EnvironmentData.observed_at.desc())
-        )
-        rows = db.execute(stmt).mappings().all()
-        out = []
-        for r in rows:
-            d = dict(r)
-            out.append(d)
-        return out
-
-
-@router.get("/aqi/stations")
-async def get_aqi_stations(db_cm=Depends(_db_cm)):
-    with db_cm as db:
-        # For each zone, get latest environment_data where aqi is not null
-        subq = select(func.max(EnvironmentData.observed_at)).scalar_subquery()
-        # Simpler: get latest per zone by ordering and distinct on zone
-        stmt = (
-            select(
-                Zone.name.label("locality_name"),
-                Zone.ward.label("ward"),
-                EnvironmentData.aqi,
-                EnvironmentData.pm25,
-                EnvironmentData.pm10,
-                EnvironmentData.no2,
-                EnvironmentData.observed_at.label("timestamp"),
-                EnvironmentData.aqi_source_type,
-                EnvironmentData.aqi_nearest_station_distance_m,
-            )
-            .join(EnvironmentData, Zone.id == EnvironmentData.zone_id)
-            .where(EnvironmentData.aqi != None)
-            .order_by(Zone.name, EnvironmentData.observed_at.desc())
-        )
-        rows = db.execute(stmt).mappings().all()
-        # keep the most recent per zone
-        seen = set()
-        out = []
-        for r in rows:
-            zname = r["locality_name"]
-            if zname in seen:
-                continue
-            seen.add(zname)
-            out.append(dict(r))
-        return out
-
-
-@router.get("/anomalies")
-async def get_anomalies(days: int = 7, limit: int = 20, db_cm=Depends(_db_cm)):
-    with db_cm as db:
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        stmt = (
-            select(
-                AnomalyResult.id,
-                AnomalyResult.zone_id.label("locality_id"),
-                Zone.name.label("locality_name"),
-                AnomalyResult.anomaly_score,
-                AnomalyResult.root_cause,
-                AnomalyResult.mitigation_suggestion.label("mitigation"),
-                AnomalyResult.detected_at,
-                AnomalyResult.observed_at,
-                AnomalyResult.is_anomaly,
-                AnomalyResult.evidence,
-            )
-            .join(Zone, AnomalyResult.zone_id == Zone.id)
-            .where(AnomalyResult.detected_at >= cutoff)
-            .where(AnomalyResult.is_anomaly.is_(True))
-            .order_by(AnomalyResult.anomaly_score.desc())
-            .limit(limit)
-        )
-        rows = db.execute(stmt).mappings().all()
-        out = []
-        for row in rows:
-            item = dict(row)
-            evidence = item.get("evidence") or {}
-            raw_values = evidence.get("raw_values") or {}
-            # The anomaly's relational anchor is usually the satellite row.  Use
-            # stored structured evidence for all source-aligned raw values so AQI
-            # and its provenance are not lost when their timestamps differ.
-            item.update(
-                {
-                    "aqi": raw_values.get("aqi"),
-                    "lst": raw_values.get("lst"),
-                    "ndvi": raw_values.get("ndvi"),
-                    "ndwi": raw_values.get("ndwi"),
-                    "pm25": raw_values.get("pm25"),
-                    "pm10": raw_values.get("pm10"),
-                    "no2": raw_values.get("no2"),
-                    "aqi_provenance": evidence.get("aqi_provenance"),
-                    "evidence": evidence,
-                }
-            )
-            out.append(item)
-        return out
-
-
-@router.post("/surfaces/aqi/refresh")
-async def refresh_aqi_now(background_tasks: BackgroundTasks, request: Request):
-    """Rebuild the AQI layer now (same as the automatic refresh). Local only unless ADMIN_TOKEN."""
-    from app.api.admin_guard import require_admin
-    from app.services.surfaces import aqi_refresh
-    require_admin(request)
-    if aqi_refresh.STATE["running"]:
-        raise HTTPException(status_code=409, detail="An AQI refresh is already running.")
-    background_tasks.add_task(aqi_refresh.refresh, "requested")
-    return {"status": "started"}
-
-
-@router.post("/anomalies/detect")
-async def trigger_anomaly_detection(background_tasks: BackgroundTasks, request: Request):
-    from app.api.admin_guard import PIPELINE_LOCK, require_admin, run_exclusive
-    require_admin(request)
-    if PIPELINE_LOCK.locked():
-        raise HTTPException(status_code=409, detail="The ML pipeline is already running.")
-    background_tasks.add_task(run_exclusive, run_anomaly_detection)
-    return {
-        "status": "detection_started",
-        "message": "Anomaly detection running in background",
-    }
-
-
-def run_anomaly_detection():
-    """Compatibility hook: runs the cell-level ML pipeline (IF + XGBoost + WH z)."""
-    from app.services.ml.pipeline import run_cell_ml_pipeline
-    with get_db() as db:
-        run_cell_ml_pipeline(db)
 
 
 @router.get("/surfaces/composite/latest")
 async def get_latest_composite_surface():
-    """Return metadata for the latest static composite image surface."""
-    try:
-        import json
-        from pathlib import Path
-        manifest_path = Path(__file__).resolve().parents[2] / "data" / "surfaces" / "manifest.json"
-        if not manifest_path.exists():
-            surface = None
-        else:
-            data = json.loads(manifest_path.read_text(encoding="utf-8"))
-            surface = data.get("surfaces", {}).get("composite")
-            # Inject empty coordinates if missing just in case
-            if surface and "mapbox_coordinates" not in surface:
-                surface["mapbox_coordinates"] = data.get("surfaces", {}).get("lst", {}).get("mapbox_coordinates")
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Composite surface manifest unavailable: {exc}") from exc
-    if surface is None:
-        raise HTTPException(status_code=404, detail="No generated composite surface is available")
-
-    # Use the existing _build_surface_response builder or just raw construct
-    sharp_rel = _safe_surface_asset(surface, "sharp_png_filename") or _safe_surface_asset(surface, "png_filename")
-    glow_rel  = _safe_surface_asset(surface, "glow_png_filename")
-    halo_rel  = _safe_surface_asset(surface, "halo_png_filename")
-    
-    if not sharp_rel:
-        raise HTTPException(status_code=503, detail="Composite surface manifest contains an unsafe PNG path")
-
-    checksums = surface.get("checksums", {})
-    sharp_v = checksums.get("sharp_png_sha256") or checksums.get("png_sha256") or surface.get("generated_at", "current")
-    glow_v = checksums.get("glow_png_sha256", surface.get("generated_at", "current"))
-    halo_v = checksums.get("halo_png_sha256", surface.get("generated_at", "current"))
-
+    """The latest composite environmental stress surface of the city."""
+    surfaces = _manifest_surfaces()
+    surface = surfaces.get("composite")
+    if not surface or surface.get("generation_status", "generated") != "generated":
+        raise HTTPException(status_code=404, detail=f"No composite surface has been generated for {get_city().name} yet")
+    urls = _layer_urls(surface, "composite")
+    if not urls["sharp_url"]:
+        raise HTTPException(status_code=503, detail="Composite surface manifest contains an unsafe image path")
     return {
-        "metric": surface["metric"],
-        "image_url": f"/surface-assets/{sharp_rel}?v={sharp_v}",
-        "sharp_url": f"/surface-assets/{sharp_rel}?v={sharp_v}",
-        "glow_url":  f"/surface-assets/{glow_rel}?v={glow_v}"  if glow_rel  else None,
-        "halo_url":  f"/surface-assets/{halo_rel}?v={halo_v}"  if halo_rel  else None,
-        "coordinates": surface["mapbox_coordinates"],
+        "metric": surface["metric"], "city": get_city().id, **urls,
+        "coordinates": surface.get("mapbox_coordinates") or (surfaces.get("lst") or {}).get("mapbox_coordinates"),
         "generated_at": surface["generated_at"],
         "source_timestamp": surface.get("source_timestamp", surface["generated_at"]),
         "methodology": surface.get("methodology", "Composite environmental stress"),
@@ -1122,8 +329,245 @@ async def get_latest_composite_surface():
         "weights": surface.get("weights"),
         "visualization": surface.get("visualization"),
         "nodata": True,
-        "nodata_semantics": "transparent outside city",
+        "nodata_semantics": "transparent outside the city",
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# exact pixel values
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _pixel(metric: str, folder: str, lon: float, lat: float, digits: int, surface: dict | None,
+           source: str, scale_key: str = "source_scale_m") -> dict | None:
+    path = _tif_path(surface, folder)
+    if path is None:
+        return None
+    v, nodata = _read_pixel(path, lon, lat)
+    return {"metric": metric, "longitude": lon, "latitude": lat,
+            "value": None if v is None else round(v, digits), "nodata": nodata, "source": source,
+            "resolution_m": (surface or {}).get(scale_key), "source_period": (surface or {}).get("source_period")}
+
+
+@router.get("/surfaces/lst/value")
+async def get_lst_pixel_value(lon: float, lat: float):
+    """Pixel-level LST from the scientific GeoTIFF."""
+    out = _pixel("lst", "lst", lon, lat, 2, load_latest_lst_surface(),
+                 "Landsat 8/9 Collection 2 Level-2 Surface Temperature", "scale_m")
+    if out is None:
+        raise HTTPException(status_code=404, detail="No LST GeoTIFF for this city")
+    out["value_c"] = out.pop("value")
+    return out
+
+
+@router.get("/surfaces/ndvi/value")
+async def get_ndvi_pixel_value(lon: float, lat: float):
+    """Pixel-level NDVI from the scientific GeoTIFF."""
+    out = _pixel("ndvi", "ndvi", lon, lat, 3, load_latest_ndvi_surface(), "Sentinel-2 NDVI")
+    if out is None:
+        raise HTTPException(status_code=404, detail="No NDVI GeoTIFF for this city")
+    return out
+
+
+@router.get("/surfaces/water-health/value")
+async def get_water_health_pixel_value(lon: float, lat: float):
+    """Pixel-level Water Health from the scientific GeoTIFF."""
+    out = _pixel("water_health", "water-health", lon, lat, 3, load_latest_water_health_surface(),
+                 "Sentinel-2 derived Water Health raster")
+    if out is None:
+        raise HTTPException(status_code=404, detail="No Water Health GeoTIFF for this city")
+    return out
+
+
+def _read_manifest_pixel(metric: str, lon: float, lat: float, digits: int = 3) -> dict | None:
+    rec = _manifest_surfaces().get(metric) or {}
+    path = _tif_path(rec, metric)
+    if path is None:
+        return None
+    v, nodata = _read_pixel(path, lon, lat)
+    return {"value": None if v is None else round(v, digits), "nodata": nodata, "source": rec.get("methodology"),
+            "inputs_used": rec.get("inputs_used"), "weights": rec.get("weights")}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# one map click: PIXEL -> 300 m CELL -> MUNICIPALITY
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _pixel_block(lon: float, lat: float) -> dict[str, Any]:
+    from app.services.qc import lst_qc_min_c
+
+    def safe(fn):
+        try:
+            return fn()
+        except Exception:
+            return None
+
+    def pick(r):
+        if r is None:
+            return None
+        return {"value": r.get("value"), "nodata": bool(r.get("nodata", True)), "source": r.get("source"),
+                "resolution_m": r.get("resolution_m"), "source_period": r.get("source_period")}
+
+    ndvi = pick(safe(lambda: _pixel("ndvi", "ndvi", lon, lat, 3, load_latest_ndvi_surface(), "Sentinel-2 NDVI")))
+    lst_raw = safe(lambda: _pixel("lst", "lst", lon, lat, 2, load_latest_lst_surface(),
+                                  "Landsat 8/9 Collection 2 Level-2 Surface Temperature", "scale_m"))
+    lst = None
+    if lst_raw is not None:
+        v = lst_raw.get("value")
+        lst = {"value_c": v, "nodata": bool(lst_raw.get("nodata", True)),
+               "qc_flag": "probable_residual_cloud" if v is not None and v < lst_qc_min_c() else None,
+               "source": lst_raw.get("source"), "resolution_m": lst_raw.get("resolution_m"),
+               "source_period": lst_raw.get("source_period")}
+    wh = pick(safe(lambda: _pixel("water_health", "water-health", lon, lat, 3, load_latest_water_health_surface(),
+                                  "Sentinel-2 derived Water Health raster")))
+    try:
+        from app.services.surfaces.aqi_station_surface import read_aqi_pixel
+        aqi = read_aqi_pixel(lon, lat)
+    except Exception as exc:  # never fabricate; report why
+        aqi = {"value": None, "nodata": True, "available": False, "reason": f"AQI read failed: {exc}"}
+    composite = safe(lambda: _read_manifest_pixel("composite", lon, lat, digits=3))
+    if composite and not composite.get("nodata"):
+        try:
+            from app.services.composite_v2 import read_components_pixel
+            composite["breakdown"] = read_components_pixel(lon, lat, MANIFEST)
+        except Exception:
+            pass
+    ndmi = ndbi = None
+    try:
+        from app.services.surfaces.index_surfaces import read_index_pixel
+        ndmi, ndbi = read_index_pixel("ndmi", lon, lat), read_index_pixel("ndbi", lon, lat)
+    except Exception:
+        pass
+    return {"longitude": lon, "latitude": lat, "ndmi": ndmi, "ndbi": ndbi, "ndvi": ndvi, "lst": lst, "aqi": aqi,
+            "water_health": wh, "composite": composite}
+
+
+_CELL_SQL = text("""
+    WITH point AS (SELECT ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) AS geom),
+    matched_cell AS (
+        -- 1st priority: the cell containing the point
+        SELECT sc.id, sc.cell_code, sc.resolution_m, sc.municipality_name,
+               ST_AsBinary(sc.geometry) AS cell_wkb, ST_X(sc.centroid) AS centroid_lon, ST_Y(sc.centroid) AS centroid_lat,
+               ST_Distance(sc.centroid::geography, point.geom::geography) AS dist_m, 1 AS match_rank
+        FROM spatial_cells sc, point
+        WHERE sc.city = :city AND ST_Contains(sc.geometry, point.geom)
+        LIMIT 1
+    ),
+    fallback_cell AS (
+        -- 2nd priority: nearest cell within 1 km (clicks on gaps / edges)
+        SELECT sc.id, sc.cell_code, sc.resolution_m, sc.municipality_name,
+               ST_AsBinary(sc.geometry) AS cell_wkb, ST_X(sc.centroid) AS centroid_lon, ST_Y(sc.centroid) AS centroid_lat,
+               ST_Distance(sc.centroid::geography, point.geom::geography) AS dist_m, 2 AS match_rank
+        FROM spatial_cells sc, point
+        WHERE NOT EXISTS (SELECT 1 FROM matched_cell) AND sc.city = :city
+          AND ST_DWithin(sc.centroid::geography, point.geom::geography, 1000)
+        ORDER BY sc.centroid <-> point.geom
+        LIMIT 1
+    )
+    SELECT * FROM matched_cell UNION ALL SELECT * FROM fallback_cell LIMIT 1
+""")
+
+
+def _cell_block(db, lon: float, lat: float) -> dict[str, Any] | None:
+    row = db.execute(_CELL_SQL, {"lon": lon, "lat": lat, "city": get_city().id}).mappings().one_or_none()
+    if not row:
+        return None
+    cid = row["id"]
+    cell: dict[str, Any] = {
+        "id": cid, "cell_code": row["cell_code"], "resolution_m": row["resolution_m"],
+        "match_type": "contains" if row["match_rank"] == 1 else "nearest",
+        "distance_to_centroid_m": round(row["dist_m"], 1),
+        "centroid": {"longitude": row["centroid_lon"], "latitude": row["centroid_lat"]},
+        "municipality_name_from_cell": row["municipality_name"],
+        "anomaly": None,
+    }
+    # ML snapshot: features and every model's latest result for this cell
+    fv = db.execute(text("SELECT feature_values, observed_at FROM engineered_features WHERE cell_id = :c "
+                         "ORDER BY observed_at DESC, id DESC LIMIT 1"), {"c": cid}).mappings().one_or_none()
+    feats = (fv or {}).get("feature_values") or {}
+    cell["features"] = feats.get("raw_values") if isinstance(feats, dict) else None
+    cell["feature_sources"] = feats.get("sources") if isinstance(feats, dict) else None
+    f = cell["features"] or {}
+    cell["metrics_snapshot"] = {"aqi": None if f.get("aqi_idw") is None else int(round(float(f["aqi_idw"]))),
+                                "ndvi": f.get("ndvi_mean"), "lst": f.get("lst_mean"),
+                                "water_health_score": f.get("wh_mean"),
+                                "observed_at": fv["observed_at"].isoformat() if fv else None}
+    models = db.execute(text("""
+        SELECT DISTINCT ON (model_name) model_name, is_anomaly, anomaly_score, anomaly_type, root_cause, evidence, observed_at
+        FROM anomaly_results WHERE cell_id = :c ORDER BY model_name, observed_at DESC, id DESC
+    """), {"c": cid}).mappings().all()
+    cell["models"] = {r["model_name"]: {"flag": bool(r["is_anomaly"]), "score": r["anomaly_score"],
+                                        "type": r["anomaly_type"], "summary": r["root_cause"], "evidence": r["evidence"],
+                                        "observed_at": r["observed_at"].isoformat() if r["observed_at"] else None}
+                     for r in models}
+    iso = cell["models"].get("isolation_forest_cell_v2")
+    if iso is not None:
+        cell["anomaly"] = {"flag": iso["flag"], "score": iso["score"], "anomaly_type": iso["type"],
+                           "root_cause": iso["summary"], "detected_at": iso["observed_at"]}
+    # seasonal history (own tables; never mixed with current values)
+    try:
+        from app.services.history.analytics import cell_history
+        cell["history"] = cell_history(db, cid, lat, lon)
+    except Exception:
+        db.rollback()
+        cell["history"] = None
+    # The cell's values NOW: means over this 300 m cell of the GeoTIFFs the map is showing, so the
+    # panel never shows an older value than the map. The ML snapshot stays in metrics_snapshot.
+    try:
+        from shapely import wkb as _wkb
+
+        from app.services.ml.cell_features import live_cell_values
+        live = live_cell_values(_wkb.loads(bytes(row["cell_wkb"])), (row["centroid_lon"], row["centroid_lat"]))
+        cell["metrics"] = {
+            "aqi": live["aqi"], "ndvi": live["ndvi"], "ndvi_land": live["ndvi_land"], "lst": live["lst"],
+            "water_health_score": live["water_health_score"],
+            "composite": (live["composite"] or {}).get("score"), "composite_breakdown": live["composite"],
+            "basis": "live: cell mean of the current map GeoTIFFs", "files": live["files"],
+            "observed_at": cell["metrics_snapshot"]["observed_at"],
+        }
+        if live["aqi"] is not None:
+            cell["metrics"]["aqi_method"] = "cell mean of the current CPCB IDW surface"
+    except Exception as exc:   # keep the snapshot values, say so
+        logger.warning("live cell values failed for cell %s: %s", cid, exc)
+        cell["metrics"] = {**cell["metrics_snapshot"], "basis": "ML snapshot (live values unavailable)"}
+    return cell
+
+
+@router.get("/analysis/point")
+async def get_point_analysis(lon: float, lat: float, db_cm=Depends(_db_cm)):
+    """Three-level analysis of a map click: PIXEL (exact GeoTIFF values), 300 m CELL (live cell
+    means, ML snapshot, models, history) and MUNICIPALITY (boundary containment)."""
+    from shapely.geometry import Point
+
+    from app.services.municipality_boundaries import load_municipality_boundaries
+
+    city = get_city()
+    pixel = _pixel_block(lon, lat)
+    with db_cm as db:
+        cell = _cell_block(db, lon, lat)
+
+    municipality = None
+    try:
+        p = Point(lon, lat)
+        b = next((b for b in load_municipality_boundaries() if b["shapely_geom"].contains(p)), None)
+        if b:
+            municipality = {"id": b["id"], "name": b["name"], "source": "local GeoJSON boundary containment"}
+    except Exception:
+        pass
+    if municipality is None and cell is not None and cell["municipality_name_from_cell"]:
+        municipality = {"id": None, "name": cell["municipality_name_from_cell"],
+                        "source": "spatial_cells.municipality_name fallback"}
+
+    place = None
+    try:
+        from starlette.concurrency import run_in_threadpool
+
+        from app.services.place_names import place_name
+        place = await run_in_threadpool(place_name, lon, lat, (municipality or {}).get("name"))
+    except Exception:
+        place = None
+
+    return {"location": {"longitude": lon, "latitude": lat}, "city": city.id, "city_name": city.name,
+            "place": place, "pixel": pixel, "cell": cell, "municipality": municipality}
 
 
 @router.get("/history/point")
@@ -1133,30 +577,61 @@ async def get_point_history(lon: float, lat: float, db_cm=Depends(_db_cm)):
     with db_cm as db:
         row = db.execute(text("""
             SELECT id FROM spatial_cells
-            WHERE ST_Contains(geometry, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)) LIMIT 1
-        """), {"lon": lon, "lat": lat}).scalar_one_or_none()
+            WHERE city = :city AND ST_Contains(geometry, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)) LIMIT 1
+        """), {"lon": lon, "lat": lat, "city": get_city().id}).scalar_one_or_none()
         if row is None:
             raise HTTPException(status_code=404, detail="No analytical cell at this point")
         h = cell_history(db, row, lat, lon)
     if h is None:
-        return {"available": False, "reason": "Seasonal history not built yet (run scripts/build_history.py)."}
+        return {"available": False,
+                "reason": f"Seasonal history not built yet (run scripts/build_history.py --city {get_city().id})."}
     return {"available": True, **h}
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# jobs (local or with X-Admin-Token)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/surfaces/aqi/refresh")
+async def refresh_aqi_now(background_tasks: BackgroundTasks, request: Request):
+    """Rebuild the city's AQI layer now (same as the automatic refresh)."""
+    from app.api.admin_guard import require_admin
+    from app.services.surfaces import aqi_refresh
+    require_admin(request)
+    if aqi_refresh._LOCK.locked():
+        raise HTTPException(status_code=409, detail="An AQI refresh is already running.")
+    background_tasks.add_task(aqi_refresh.refresh, "requested", get_city().id)
+    return {"status": "started", "city": get_city().id}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# status
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.get("/provenance")
 async def get_provenance():
-    """Source, dates, resolution, image/station counts and freshness for every layer."""
+    """Source, dates, resolution, image/station counts and freshness for every layer of the city."""
     from app.services.provenance import all_provenance
     return all_provenance()
 
 
 @router.get("/health")
 async def health_check():
-    return {"status": "healthy", "phase": "2", "version": "2.0.0"}
+    """Liveness + database reachability (hosting platforms poll this)."""
+    from starlette.concurrency import run_in_threadpool
+
+    from app.database import test_database_connection
+    try:
+        await run_in_threadpool(test_database_connection)
+        db = "ok"
+    except Exception:
+        db = "unreachable"
+    return {"status": "healthy", "database": db, "version": "3.0.0", "time": datetime.now(timezone.utc).isoformat()}
 
 
 @router.get("/system/status")
 async def get_system_status(db_cm=Depends(_db_cm)):
-    """Read-only operational evidence for scheduled-history accumulation."""
+    """Read-only pipeline status of the city: cells, ML snapshot, models, layers, history, AQI refresh."""
+    from app.services.operational_status import get_operational_status
     with db_cm as db:
         return get_operational_status(db)

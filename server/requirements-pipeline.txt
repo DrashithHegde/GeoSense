@@ -1,0 +1,9 @@
+# Everything the API needs, plus what the local data pipeline uses (run on your machine).
+-r requirements.txt
+# fallback sentence embeddings when the bge-small model cannot be downloaded (offline)
+spacy>=3.8,<3.9
+en_core_web_md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl
+# RAG document ingestion (scripts/ingest_corpus.py)
+pypdf>=4.0
+fonttools>=4.40   # lets pypdf decode CFF fonts in some PDFs (otherwise text can be garbled)
+pytest

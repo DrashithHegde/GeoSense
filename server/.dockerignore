@@ -1,0 +1,17 @@
+.venv/
+venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+tests/
+*.log
+data/logs/
+data/rag/corpus/
+data/rag/models/
+data/ml/*.csv
+data/ml/*.joblib
+data/history/*.csv
+data/validation/
+data/**/*.tmp
+.env
+.env.*

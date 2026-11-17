@@ -1,3 +1,4 @@
+# GeoSense API (what the deployed server needs). The data pipeline adds requirements-pipeline.txt.
 fastapi==0.115.12
 uvicorn[standard]==0.34.0
 pydantic-settings==2.8.1
@@ -7,21 +8,17 @@ SQLAlchemy==2.0.41
 GeoAlchemy2==0.17.1
 alembic==1.18.5
 numpy==2.3.2
-scikit-learn==1.8.0
-earthengine-api==1.7.22
-google-auth==2.23.0
-httpx
-google-generativeai
-rasterio
-Pillow
-shapely
-requests
 scipy
+scikit-learn==1.8.0
 xgboost>=2.0
 joblib
-# RAG embeddings (hybrid retrieval); the app falls back to BM25 if these are missing
-spacy>=3.8,<3.9
-en_core_web_md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl
-# RAG document ingestion + sentence embeddings (bge-small-en-v1.5 via ONNX; model downloaded once)
+rasterio
+shapely
+Pillow
+requests
+httpx
+# imported by the layer modules (Earth Engine helpers); calls are only made by the pipeline scripts
+earthengine-api==1.7.22
+google-auth==2.23.0
+# RAG sentence embeddings: BAAI/bge-small-en-v1.5 via ONNX (no PyTorch). RAG_EMBEDDER=off -> BM25 only
 fastembed>=0.4
-pypdf>=4.0

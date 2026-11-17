@@ -1,0 +1,59 @@
+# Render Blueprint for the GeoSense API + its PostgreSQL (PostGIS + pgvector).
+# Render dashboard -> New -> Blueprint -> pick this repository. Values marked sync:false are asked
+# for once when the Blueprint is created. Full walk-through: deploy/DEPLOY.md
+#
+# Memory: the API uses ~320 MB with keyword (BM25) retrieval and ~500 MB with the sentence-embedding
+# model loaded. On the 512 MB plan keep RAG_EMBEDDER=off; on 1c-2g set it to "auto" (hybrid RAG).
+
+services:
+  - type: web
+    name: geosense-api
+    runtime: docker
+    region: singapore                 # closest Render region to India
+    plan: 0.5c-512mb                  # "starter"; use 1c-2g for hybrid RAG, "free" sleeps after 15 min idle
+    dockerContext: ./server
+    dockerfilePath: ./server/Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: geosense-db
+          property: connectionString
+      # the Vercel site (and the Azure Static Web App, if used), comma-separated, no trailing slash
+      - key: CORS_ORIGINS
+        sync: false
+      # Vercel preview deployments of this project
+      - key: CORS_ORIGIN_REGEX
+        value: ^https://geosense[a-z0-9-]*\.vercel\.app$
+      # where the map layers come from: Azure Blob first, GitHub Release as the fallback (comma list)
+      - key: DATA_BUNDLE_URL
+        sync: false
+      - key: OPENAQ_AQI_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: MAPBOX_TOKEN
+        sync: false
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: AI_MODE
+        value: summary
+      - key: RAG_EMBEDDER
+        value: "off"
+      - key: AQI_AUTO_REFRESH
+        value: "1"
+      - key: WARM_UP
+        value: "1"
+      - key: ENV
+        value: production
+
+databases:
+  - name: geosense-db
+    region: singapore
+    plan: 0.1c-256mb                  # "free" works too, but Render deletes free databases after 30 days
+    postgresMajorVersion: "16"
+    databaseName: geosense
+    user: geosense

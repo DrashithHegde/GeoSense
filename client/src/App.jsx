@@ -10,7 +10,7 @@ import { useGeoSenseData, useZoneExplanation } from "./hooks/useGeoSenseData";
 // ── Constants ─────────────────────────────────────────────────────────────
 import { CITY_CONFIG } from "./constants/cities";
 import { LAYER_CONFIG } from "./constants/layers";
-import { getApiUrl } from "./utils/api";
+import { getApiUrl, setApiCity } from "./utils/api";
 
 // ── Map ───────────────────────────────────────────────────────────────────
 import IntroOverlay from "./components/map/IntroOverlay";
@@ -68,12 +68,12 @@ export default function App() {
   const [layerControlsVisible, setLayerControlsVisible] = useState(false);
   const [isLeavingCity, setIsLeavingCity] = useState(false);
   const activeCityLabel = activeCity ? CITY_CONFIG[activeCity]?.label : null;
+  // every /api/ request from here on is for the city on screen
+  setApiCity(activeCity);
 
   // ── Data Fetching ────────────────────────────────────────────────────────
   const {
-    zones: liveZones,
     liveMunicipalities,
-    waterBodies,
     aqiSurface,
     aqiSurfaceStatus,
     aqiSurfaceInfo,
@@ -84,8 +84,6 @@ export default function App() {
     waterHealthSurface,
     compositeSurface,
     boundary: liveBoundary,
-    loading: zonesLoading,
-    error: zonesError,
   } = useGeoSenseData(activeCity);
   const {
     explanationData,
@@ -98,16 +96,13 @@ export default function App() {
   // The layer the user is looking at ("composite" when all layers are on).
   const focusLayer = activeLayers.all
     ? "composite"
-    : ["aqi", "ndvi", "water_health", "lst"].find((k) => activeLayers[k]) ||
-      "composite";
+    : ["aqi", "ndvi", "water_health", "lst"].find((k) => activeLayers[k]) || "composite";
 
   // Load a layer's heatmap images only once it has been switched on. Previously all five
   // layers (~15 MB of PNGs, 12 large GPU textures) were downloaded at start-up.
   const [loadedLayers, setLoadedLayers] = useState({});
   useEffect(() => {
-    const anyOn =
-      activeLayers.all ||
-      ["aqi", "ndvi", "water_health", "lst"].some((k) => activeLayers[k]);
+    const anyOn = activeLayers.all || ["aqi", "ndvi", "water_health", "lst"].some((k) => activeLayers[k]);
     if (anyOn && !loadedLayers[focusLayer]) {
       setLoadedLayers((prev) => ({ ...prev, [focusLayer]: true }));
     }
@@ -119,12 +114,11 @@ export default function App() {
     if (!insightOpen || !pointAnalysis) return null;
     const m = pointAnalysis.cell?.metrics || {};
     const px = pointAnalysis.pixel || {};
-    const pt = (b, f = "value") => (b && !b.nodata ? (b[f] ?? null) : null);
+    const pt = (b, f = "value") => (b && !b.nodata ? b[f] ?? null : null);
     if (focusLayer === "aqi") return m.aqi ?? pt(px.aqi);
     if (focusLayer === "ndvi") return m.ndvi_land ?? m.ndvi ?? pt(px.ndvi);
     if (focusLayer === "lst") return m.lst ?? pt(px.lst, "value_c");
-    if (focusLayer === "water_health")
-      return m.water_health_score ?? pt(px.water_health);
+    if (focusLayer === "water_health") return m.water_health_score ?? pt(px.water_health);
     return m.composite ?? pt(px.composite);
   })();
 
@@ -136,22 +130,13 @@ export default function App() {
     if (!insightOpen || deepAnalysisOpen) return;
     const lon = pointAnalysis?.location?.longitude ?? selectedZone?.coords?.[0];
     const lat = pointAnalysis?.location?.latitude ?? selectedZone?.coords?.[1];
-    if (!(Number.isFinite(lon) && Number.isFinite(lat) && pointAnalysis?.cell))
-      return;
+    if (!(Number.isFinite(lon) && Number.isFinite(lat) && pointAnalysis?.cell)) return;
     if (explanationData?.focus === focusLayer) return;
     const key = `${lon},${lat},${focusLayer}`;
     if (panelFocusRef.current === key) return;
     panelFocusRef.current = key;
     fetchExplanation(lon, lat, focusLayer, false, { keep: !!explanationData });
-  }, [
-    insightOpen,
-    deepAnalysisOpen,
-    focusLayer,
-    explanationData,
-    pointAnalysis,
-    selectedZone,
-    fetchExplanation,
-  ]);
+  }, [insightOpen, deepAnalysisOpen, focusLayer, explanationData, pointAnalysis, selectedZone, fetchExplanation]);
 
   // ── Mapbox container ref (used in production) ────────────────────────────
   const mapContainerRef = useRef(null);
@@ -164,32 +149,22 @@ export default function App() {
     onZoneClick: handleZoneClick,
     onPointAnalysis: (zone, analysis) => handleZoneClick(zone, analysis),
     liveMunicipalities,
-    waterBodies,
     aqiSurface: loadedLayers.aqi ? aqiSurface : null,
     ndviSurface: loadedLayers.ndvi ? ndviSurface : null,
     lstSurface: loadedLayers.lst ? lstSurface : null,
     waterHealthSurface: loadedLayers.water_health ? waterHealthSurface : null,
     compositeSurface: loadedLayers.composite ? compositeSurface : null,
     boundary: liveBoundary,
-    zones: liveZones,
     // The pin drops where you clicked straight away ("Scanning…"), then shows the place name
     // when the answer for THAT click arrives.
     markerPoint: clickPoint
-      ? clickPoint.answered
+      ? (clickPoint.answered
         ? {
             longitude: clickPoint.longitude,
             latitude: clickPoint.latitude,
-            label:
-              pointAnalysis?.place?.label ||
-              selectedZone?.name ||
-              pointAnalysis?.municipality?.name,
+            label: pointAnalysis?.place?.label || selectedZone?.name || pointAnalysis?.municipality?.name,
           }
-        : {
-            longitude: clickPoint.longitude,
-            latitude: clickPoint.latitude,
-            label: "Scanning…",
-            pending: true,
-          }
+        : { longitude: clickPoint.longitude, latitude: clickPoint.latitude, label: "Scanning…", pending: true })
       : null,
     onPointPending: (lng, lat) => {
       clearTimeout(closeTimerRef.current);
@@ -202,36 +177,21 @@ export default function App() {
   useEffect(() => {
     const anyLoaded = Object.keys(loadedLayers).length > 0;
     if (!anyLoaded) return undefined;
-    const surfaces = {
-      aqi: aqiSurface,
-      ndvi: ndviSurface,
-      lst: lstSurface,
-      water_health: waterHealthSurface,
-      composite: compositeSurface,
-    };
+    const surfaces = { aqi: aqiSurface, ndvi: ndviSurface, lst: lstSurface, water_health: waterHealthSurface, composite: compositeSurface };
     const t = setTimeout(() => {
       Object.entries(surfaces).forEach(([k, srf]) => {
         if (!srf || loadedLayers[k]) return;
-        [srf.sharp_url || srf.image_url, srf.glow_url, srf.halo_url]
-          .filter(Boolean)
-          .forEach((u) => {
-            const img = new Image();
-            // CORS mode, like the map's own request, so the cached copy is reusable by the map
-            img.crossOrigin = "anonymous";
-            img.decoding = "async";
-            img.src = getApiUrl(u);
-          });
+        [srf.sharp_url || srf.image_url, srf.glow_url, srf.halo_url].filter(Boolean).forEach((u) => {
+          const img = new Image();
+          // CORS mode, like the map's own request, so the cached copy is reusable by the map
+          img.crossOrigin = "anonymous";
+          img.decoding = "async";
+          img.src = getApiUrl(u);
+        });
       });
     }, 2500);
     return () => clearTimeout(t);
-  }, [
-    loadedLayers,
-    aqiSurface,
-    ndviSurface,
-    lstSurface,
-    waterHealthSurface,
-    compositeSurface,
-  ]);
+  }, [loadedLayers, aqiSurface, ndviSurface, lstSurface, waterHealthSurface, compositeSurface]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -509,24 +469,13 @@ export default function App() {
             provenance={provenance}
             mlSummary={mlSummary}
             onFocusChange={async (focus) => {
-              const lon =
-                pointAnalysis?.location?.longitude ?? selectedZone?.coords?.[0];
-              const lat =
-                pointAnalysis?.location?.latitude ?? selectedZone?.coords?.[1];
-              if (
-                !(
-                  Number.isFinite(lon) &&
-                  Number.isFinite(lat) &&
-                  pointAnalysis?.cell
-                )
-              )
-                return;
+              const lon = pointAnalysis?.location?.longitude ?? selectedZone?.coords?.[0];
+              const lat = pointAnalysis?.location?.latitude ?? selectedZone?.coords?.[1];
+              if (!(Number.isFinite(lon) && Number.isFinite(lat) && pointAnalysis?.cell)) return;
               // 1) evidence for this layer straight away (fast), unless it is already on screen;
               // 2) then the AI plain-words summary, while the evidence stays visible.
               if (explanationData?.focus !== focus) {
-                await fetchExplanation(lon, lat, focus, false, {
-                  keep: !!explanationData,
-                });
+                await fetchExplanation(lon, lat, focus, false, { keep: !!explanationData });
               }
               fetchExplanation(lon, lat, focus, true, { keep: true });
             }}

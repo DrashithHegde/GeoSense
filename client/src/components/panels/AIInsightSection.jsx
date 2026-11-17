@@ -36,31 +36,11 @@ export const FOCUS_NAME = {
   aqi: "AQI",
 };
 export const SUGGESTED = {
-  composite: [
-    "What stands out here overall?",
-    "What would improve this area?",
-    "How reliable is this analysis?",
-  ],
-  ndvi: [
-    "Why is vegetation low here?",
-    "Is this greener than nearby areas?",
-    "What would increase green cover?",
-  ],
-  lst: [
-    "Why is it hot here?",
-    "Is this hotter than its land cover explains?",
-    "What would cool this block?",
-  ],
-  water_health: [
-    "Why is water health low here?",
-    "Is this water worse than nearby water?",
-    "How can this be confirmed on the ground?",
-  ],
-  aqi: [
-    "Why is AQI like this here?",
-    "Which pollutant dominates nearby?",
-    "Who is most at risk at this AQI?",
-  ],
+  composite: ["What stands out here overall?", "What would improve this area?", "How reliable is this analysis?"],
+  ndvi: ["Why is vegetation low here?", "Is this greener than nearby areas?", "What would increase green cover?"],
+  lst: ["Why is it hot here?", "Is this hotter than its land cover explains?", "What would cool this block?"],
+  water_health: ["Why is water health low here?", "Is this water worse than nearby water?", "How can this be confirmed on the ground?"],
+  aqi: ["Why is AQI like this here?", "Which pollutant dominates nearby?", "Who is most at risk at this AQI?"],
 };
 
 export function Chip({ children, color = "255,59,212" }) {
@@ -84,26 +64,16 @@ export function LayerIFCard({ layer, r, focused, models = {} }) {
   // When another model already flagged this layer, say so, so "not flagged" here doesn't look contradictory.
   const otherFlag =
     !r.is_anomaly &&
-    (layer === "water_health" &&
-    ["low_water_condition", "high_water_condition"].includes(
-      models.water_health?.flag,
-    )
+    ((layer === "water_health" && ["low_water_condition", "high_water_condition"].includes(models.water_health?.flag))
       ? "the Water Health z-score model flags this cell (see its card)"
-      : layer === "lst" &&
-          ["unexplained_heat", "unexplained_cooling"].includes(
-            models.xgboost_lst?.flag,
-          )
+      : layer === "lst" && ["unexplained_heat", "unexplained_cooling"].includes(models.xgboost_lst?.flag)
         ? "XGBoost flags this cell's temperature as unexplained (see its card)"
         : layer === "aqi" && models.station_isolation_forest?.is_anomaly
           ? "the nearest station has an unusual pollutant mix (see the station card)"
           : null);
   const meta = LAYER_META[layer];
   const word =
-    r.direction === "high"
-      ? "unusually HIGH"
-      : r.direction === "low"
-        ? "unusually LOW"
-        : "unusual PATTERN";
+    r.direction === "high" ? "unusually HIGH" : r.direction === "low" ? "unusually LOW" : "unusual PATTERN";
   const bad = r.is_anomaly && r.direction === meta.bad;
   return (
     <ModelCard
@@ -119,16 +89,8 @@ export function LayerIFCard({ layer, r, focused, models = {} }) {
         · score higher than {r.score_percentile}% of cells
       </div>
       {otherFlag && (
-        <div
-          style={{
-            marginTop: 4,
-            fontSize: "0.62rem",
-            color: "#ffd23c",
-            lineHeight: 1.5,
-          }}
-        >
-          Not an outlier for this Isolation Forest, but {otherFlag}. The models
-          answer different questions.
+        <div style={{ marginTop: 4, fontSize: "0.62rem", color: "#ffd23c", lineHeight: 1.5 }}>
+          Not an outlier for this Isolation Forest, but {otherFlag}. The models answer different questions.
         </div>
       )}
       <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -252,10 +214,7 @@ export function AskBox({ lon, lat, focus, suggestions = null }) {
     try {
       setAnswer(await askAssistant(text.trim(), lon, lat, focus, intent));
     } catch (err) {
-      setAnswer({
-        answer: `Assistant unavailable: ${err.message}`,
-        citations: [],
-      });
+      setAnswer({ answer: `Assistant unavailable: ${err.message}`, citations: [] });
     } finally {
       setBusy(false);
     }
@@ -267,26 +226,15 @@ export function AskBox({ lon, lat, focus, suggestions = null }) {
     try {
       setAnswer(await askAssistant(q.trim(), lon, lat, focus));
     } catch (err) {
-      setAnswer({
-        answer: `Assistant unavailable: ${err.message}`,
-        citations: [],
-      });
+      setAnswer({ answer: `Assistant unavailable: ${err.message}`, citations: [] });
     } finally {
       setBusy(false);
     }
   };
   return (
     <div>
-      <div
-        style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}
-      >
-        {(suggestions?.length
-          ? suggestions
-          : (SUGGESTED[focus] || SUGGESTED.composite).map((q) => ({
-              id: null,
-              q,
-            }))
-        ).map(({ id, q: t }) => (
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+        {(suggestions?.length ? suggestions : (SUGGESTED[focus] || SUGGESTED.composite).map((q) => ({ id: null, q }))).map(({ id, q: t }) => (
           <button
             key={t}
             type="button"
@@ -350,24 +298,12 @@ export function AskBox({ lon, lat, focus, suggestions = null }) {
         >
           {answer.answer}
           {answer.citations?.length > 0 && (
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: "0.6rem",
-                color: "var(--text-dim)",
-              }}
-            >
+            <div style={{ marginTop: 6, fontSize: "0.6rem", color: "var(--text-dim)" }}>
               Sources: {answer.citations.map((c) => c.title).join(" · ")}
             </div>
           )}
           {answer.mode && (
-            <div
-              style={{
-                marginTop: 4,
-                fontSize: "0.55rem",
-                color: "var(--text-faint)",
-              }}
-            >
+            <div style={{ marginTop: 4, fontSize: "0.55rem", color: "var(--text-faint)" }}>
               {answer.mode === "llm_validated"
                 ? `AI answer (${answer.llm?.provider}) · checked against this location's data`
                 : answer.mode === "evidence"
@@ -409,15 +345,7 @@ export function Bullets({ items }) {
   return (
     <div style={{ display: "grid", gap: 5 }}>
       {items.map((it, i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            gap: 8,
-            fontSize: "0.74rem",
-            lineHeight: 1.5,
-          }}
-        >
+        <div key={i} style={{ display: "flex", gap: 8, fontSize: "0.74rem", lineHeight: 1.5 }}>
           <span style={{ color: it.color || "#5ad1ff", flexShrink: 0 }}>●</span>
           <span style={{ color: "rgba(255,255,255,0.86)" }}>{it.text}</span>
         </div>
@@ -428,81 +356,37 @@ export function Bullets({ items }) {
 
 export function MitigationList({ mit, fallback }) {
   if (!mit) {
-    return fallback?.length ? (
-      <Bullets items={fallback.map((t) => ({ text: t, color: "#29d967" }))} />
-    ) : null;
+    return fallback?.length ? <Bullets items={fallback.map((t) => ({ text: t, color: "#29d967" }))} /> : null;
   }
   if (!mit.items?.length) {
-    return (
-      <div style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>
-        {mit.note}
-      </div>
-    );
+    return <div style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>{mit.note}</div>;
   }
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      {mit.note && (
-        <div style={{ fontSize: "0.62rem", color: "var(--text-dim)" }}>
-          {mit.note}
-        </div>
-      )}
+      {mit.note && <div style={{ fontSize: "0.62rem", color: "var(--text-dim)" }}>{mit.note}</div>}
       {mit.items.map((it) => (
-        <div
-          key={it.layer + it.key}
-          style={{
-            display: "flex",
-            gap: 8,
-            fontSize: "0.74rem",
-            lineHeight: 1.5,
-          }}
-        >
-          <span
-            style={{
-              color: it.fits_this_cell ? "#29d967" : "rgba(41,217,103,0.45)",
-              flexShrink: 0,
-            }}
-          >
+        <div key={it.layer + it.key} style={{ display: "flex", gap: 8, fontSize: "0.74rem", lineHeight: 1.5 }}>
+          <span style={{ color: it.fits_this_cell ? "#29d967" : "rgba(41,217,103,0.45)", flexShrink: 0 }}>
             {it.fits_this_cell ? "★" : "•"}
           </span>
           <span style={{ color: "#d4f7dd" }}>
             {it.text}
             {it.fits_this_cell && it.why && (
-              <span
-                style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.62rem" }}
-              >
-                {" "}
-                — fits here: {it.why}
-              </span>
+              <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.62rem" }}> — fits here: {it.why}</span>
             )}
             {it.evidence?.cite && (
-              <span
-                style={{
-                  display: "block",
-                  fontSize: "0.58rem",
-                  color: "rgba(159,232,176,0.55)",
-                }}
-              >
+              <span style={{ display: "block", fontSize: "0.58rem", color: "rgba(159,232,176,0.55)" }}>
                 Evidence:{" "}
                 {it.evidence.url ? (
-                  <a
-                    href={it.evidence.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: "inherit" }}
-                  >
-                    {it.evidence.cite}
-                  </a>
-                ) : (
-                  it.evidence.cite
-                )}
+                  <a href={it.evidence.url} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>{it.evidence.cite}</a>
+                ) : it.evidence.cite}
               </span>
             )}
           </span>
         </div>
       ))}
       <div style={{ fontSize: "0.55rem", color: "var(--text-faint)" }}>
-        ★ = matches this cell's evidence · each measure lists its scientific or
-        official source
+        ★ = matches this cell's evidence · each measure lists its scientific or official source
       </div>
     </div>
   );
@@ -511,83 +395,43 @@ export function MitigationList({ mit, fallback }) {
 export function ModelLines({ models, focus }) {
   const L = models.layer_isolation_forest || {};
   const word = (r) =>
-    !r
-      ? null
-      : r.is_anomaly
-        ? `flagged — unusually ${r.direction === "pattern" ? "patterned" : r.direction?.toUpperCase()}`
-        : "not flagged";
+    !r ? null : r.is_anomaly
+      ? `flagged — unusually ${r.direction === "pattern" ? "patterned" : r.direction?.toUpperCase()}`
+      : "not flagged";
   const lines = [];
   const x = models.xgboost_lst;
   if ((focus === "lst" || focus === "composite" || !focus) && x) {
-    const flag =
-      x.flag === "unexplained_heat"
-        ? "unexplained HEAT"
-        : x.flag === "unexplained_cooling"
-          ? "unexplained COOLING"
-          : "consistent with land cover";
-    lines.push({
-      k: "xgb",
-      c: x.flag === "unexplained_heat" ? "#ff5a5a" : "#ff8a66",
-      t: `XGBoost: observed ${x.observed_lst_c} °C vs expected ${x.expected_lst_c} °C → ${flag}`,
-    });
+    const flag = x.flag === "unexplained_heat" ? "unexplained HEAT" : x.flag === "unexplained_cooling" ? "unexplained COOLING" : "consistent with land cover";
+    lines.push({ k: "xgb", c: x.flag === "unexplained_heat" ? "#ff5a5a" : "#ff8a66",
+      t: `XGBoost: observed ${x.observed_lst_c} °C vs expected ${x.expected_lst_c} °C → ${flag}` });
   }
   if (focus && focus !== "composite" && L[focus]) {
-    lines.push({
-      k: "lif",
-      c: L[focus].is_anomaly ? "#ffd23c" : "#8fa3b8",
-      t: `Isolation Forest (${LAYER_META[focus].name}): ${word(L[focus])}`,
-    });
+    lines.push({ k: "lif", c: L[focus].is_anomaly ? "#ffd23c" : "#8fa3b8",
+      t: `Isolation Forest (${LAYER_META[focus].name}): ${word(L[focus])}` });
   }
   if (focus === "water_health" && models.water_health) {
     const w = models.water_health;
-    lines.push({
-      k: "wh",
-      c: w.flag === "low_water_condition" ? "#ff5a5a" : "#8fa3b8",
-      t: `Water Health z-score: ${w.robust_z} (percentile ${w.percentile} among water cells)${w.flag === "low_water_condition" ? " → low condition" : ""}`,
-    });
+    lines.push({ k: "wh", c: w.flag === "low_water_condition" ? "#ff5a5a" : "#8fa3b8",
+      t: `Water Health z-score: ${w.robust_z} (percentile ${w.percentile} among water cells)${w.flag === "low_water_condition" ? " → low condition" : ""}` });
   }
   if (focus === "aqi" && models.station_isolation_forest) {
     const st = models.station_isolation_forest;
-    lines.push({
-      k: "st",
-      c: st.is_anomaly ? "#ffb347" : "#8fa3b8",
-      t: `Nearest station ${st.station_name}: ${st.is_anomaly ? "unusual pollutant mix" : "typical pollutant mix"}`,
-    });
+    lines.push({ k: "st", c: st.is_anomaly ? "#ffb347" : "#8fa3b8",
+      t: `Nearest station ${st.station_name}: ${st.is_anomaly ? "unusual pollutant mix" : "typical pollutant mix"}` });
   }
   if (focus === "composite" || !focus) {
     const i = models.isolation_forest;
-    if (i)
-      lines.push({
-        k: "if",
-        c: i.is_anomaly ? "#ff3bd4" : "#8fa3b8",
-        t: `Combined Isolation Forest: ${i.is_anomaly ? "flagged" : "not flagged"}`,
-      });
+    if (i) lines.push({ k: "if", c: i.is_anomaly ? "#ff3bd4" : "#8fa3b8", t: `Combined Isolation Forest: ${i.is_anomaly ? "flagged" : "not flagged"}` });
     const n = Object.values(L).filter((r) => r?.is_anomaly).length;
-    lines.push({
-      k: "n",
-      c: "#8fa3b8",
-      t: `Layer Isolation Forests flagging this cell: ${n} of ${Object.keys(L).length}`,
-    });
+    lines.push({ k: "n", c: "#8fa3b8", t: `Layer Isolation Forests flagging this cell: ${n} of ${Object.keys(L).length}` });
   }
   if (!lines.length) {
-    return (
-      <div style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>
-        No model output for this layer here.
-      </div>
-    );
+    return <div style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>No model output for this layer here.</div>;
   }
   return (
     <div style={{ display: "grid", gap: 4 }}>
       {lines.map((l) => (
-        <div
-          key={l.k}
-          style={{
-            fontSize: "0.7rem",
-            color: "rgba(255,255,255,0.85)",
-            display: "flex",
-            gap: 8,
-          }}
-        >
+        <div key={l.k} style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.85)", display: "flex", gap: 8 }}>
           <span style={{ color: l.c }}>■</span>
           <span>{l.t}</span>
         </div>
@@ -596,11 +440,7 @@ export function ModelLines({ models, focus }) {
   );
 }
 
-export default function AIInsightSection({
-  explanationData,
-  loading,
-  compact = true,
-}) {
+export default function AIInsightSection({ explanationData, loading, compact = true }) {
   if (loading || !explanationData) {
     return (
       <div style={{ color: "var(--text-dim)", fontSize: "0.8rem" }}>
@@ -610,15 +450,8 @@ export default function AIInsightSection({
   }
   if (explanationData._unavailable) {
     return (
-      <div
-        style={{
-          color: "var(--text-dim)",
-          fontSize: "0.8rem",
-          fontStyle: "italic",
-        }}
-      >
-        No analysis available for this location (outside study region or no
-        data).
+      <div style={{ color: "var(--text-dim)", fontSize: "0.8rem", fontStyle: "italic" }}>
+        {explanationData.reason || "No analysis available for this location (outside the study region or no data)."}
       </div>
     );
   }
@@ -626,42 +459,27 @@ export default function AIInsightSection({
   const ex = explanationData.explanation || {};
   const cls = CLASS_STYLE[explanationData.classification] || CLASS_STYLE.inlier;
   return (
-    <div>
-      <div
-        style={{
-          fontSize: "0.55rem",
-          letterSpacing: "0.18em",
-          color: cls.color,
-          marginBottom: 6,
-        }}
-      >
-        ● {cls.label}
-      </div>
-      <div
-        style={{
-          fontSize: "0.74rem",
-          lineHeight: 1.55,
-          color: "rgba(255,255,255,0.9)",
-        }}
-      >
-        {ex.summary}
-      </div>
-      {(explanationData.mitigation?.items?.[0]?.text ||
-        ex.what_could_help?.[0]) && (
+      <div>
         <div
           style={{
-            marginTop: 6,
-            fontSize: "0.66rem",
-            color: "#9fe8b0",
-            lineHeight: 1.5,
+            fontSize: "0.55rem",
+            letterSpacing: "0.18em",
+            color: cls.color,
+            marginBottom: 6,
           }}
         >
-          ↳{" "}
-          {explanationData.mitigation?.items?.[0]?.text ||
-            ex.what_could_help[0]}
+          ● {cls.label}
         </div>
-      )}
-    </div>
+        <div style={{ fontSize: "0.74rem", lineHeight: 1.55, color: "rgba(255,255,255,0.9)" }}>
+          {ex.summary}
+        </div>
+        {(explanationData.mitigation?.items?.[0]?.text || ex.what_could_help?.[0]) && (
+          <div style={{ marginTop: 6, fontSize: "0.66rem", color: "#9fe8b0", lineHeight: 1.5 }}>
+            ↳ {explanationData.mitigation?.items?.[0]?.text || ex.what_could_help[0]}
+          </div>
+        )}
+      </div>
   );
   // The full Deep Analysis layout lives in DeepAnalysisSections.jsx (one component per section).
 }
+

@@ -9,6 +9,7 @@ Layers, in order of authority:
                 uses causal language. Deterministic text is the fallback.
 """
 from __future__ import annotations
+from app.core.cities import city_path, get_city
 
 import json
 import re
@@ -18,12 +19,12 @@ from typing import Any
 
 import numpy as np
 
-from app.services.qc import LST_QC_MIN_C
+from app.services.qc import lst_qc_min_c
 from app.services.rag import retriever
 from app.services.rag.guardrails import AnswerOut, SummaryOut, check_question, parse_output, sanitize_passages
 from app.services.rag.llm import LLMUnavailable, active_provider, complete_json
 
-ML_SUMMARY = Path(__file__).resolve().parents[3] / "data" / "ml" / "ml_summary.json"
+ML_SUMMARY = city_path("ml", "ml_summary.json")
 CAUSAL = ("caused by", "because of", "is due to", "responsible for", "results from", "leads to")
 # Satellite proxies and interpolated AQI cannot certify quality or safety.
 OVERCLAIM = ("good water quality", "water quality is good", "water is clean", "clean water", "safe water",
@@ -32,15 +33,23 @@ OVERCLAIM = ("good water quality", "water quality is good", "water is clean", "c
              "safe to breathe", "healthy air", "no pollution", "pollution-free")
 
 
-@lru_cache(maxsize=1)
-def _summary_cached(mtime: float) -> dict:
-    return json.loads(ML_SUMMARY.read_text(encoding="utf-8"))
+@lru_cache(maxsize=8)
+def _summary_cached(path: str, mtime: float) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def ml_summary() -> dict:
-    if not ML_SUMMARY.exists():
+    """The current city's ML summary (cached per file and modification time)."""
+    p = ML_SUMMARY.resolve_path()
+    if not p.exists():
         return {}
-    return _summary_cached(ML_SUMMARY.stat().st_mtime)
+    return _summary_cached(str(p), p.stat().st_mtime)
+
+
+def _ckb(role: str) -> list[str]:
+    """The current city's knowledge note for a role (e.g. its air-pollution sources), if it has one."""
+    kid = get_city().kb.get(role)
+    return [kid] if kid else []
 
 
 def city_percentile(feature: str, value: float | None) -> float | None:
@@ -139,7 +148,7 @@ def build_evidence(analysis: dict) -> dict[str, Any]:
     if (pixel.get("lst") or {}).get("nodata", True):
         gaps.append("No cloud-free Landsat LST pixel at this point in the current composite.")
     elif lst_qc:
-        gaps.append(f"LST pixel below {LST_QC_MIN_C:.0f} °C flagged as probable residual cloud and not interpreted.")
+        gaps.append(f"LST pixel below {lst_qc_min_c():.0f} °C flagged as probable residual cloud and not interpreted.")
     if not aqi_b.get("available"):
         gaps.append("AQI unavailable: " + (aqi_b.get("reason") or "no fresh station coverage").rstrip(".") + ".")
     if not models:
@@ -404,7 +413,7 @@ def _history_signals(h: dict | None) -> list[dict]:
         for kind, t in (e.get("trend") or {}).items():
             if abs(t["per_year"]) * (t["seasons"] - 1) >= {"lst": 1.0, "ndvi": 0.05, "ndmi_veg": 0.05, "wh": 0.03,
                                                            "ndbi_land": 0.05}[m]:
-                name = "pre-monsoon" if kind == "pre" else "post-monsoon"
+                name = (get_city().seasons.get(kind) or (None, None, kind))[2].lower()
                 out.append({"id": f"{pre}_trend", "level": "info", "kb": ["history_method"],
                             "text": f"Over {t['seasons']} {name} seasons, {e['label']} here has moved "
                                     f"{_fmt_delta(m, t['per_year'], e['unit'])} per year (Theil-Sen; indicative with "
@@ -469,7 +478,7 @@ def derive_signals(ev: dict) -> list[dict[str, Any]]:
                           + (" (land only; water excluded)." if on_land else ".")})
     if cf.get("built_frac") is not None and pct.get("built_frac") is not None:
         if pct["built_frac"] >= 75:
-            S.append({"id": "built_up", "level": "notice", "kb": ["uhi", "ndvi_season_mumbai"],
+            S.append({"id": "built_up", "level": "notice", "kb": ["uhi", *_ckb("ndvi_season")],
                       "text": f"{cf['built_frac']*100:.0f}% of this 300 m cell is bare/built-up surface "
                               f"(higher than {pct['built_frac']:.0f}% of cells in the study region)."})
         elif cf.get("veg_frac") is not None and (pct.get("veg_frac") or 0) >= 75:
@@ -622,7 +631,7 @@ def derive_signals(ev: dict) -> list[dict[str, Any]]:
         names = {"pm25": "PM2.5", "pm10": "PM10", "no2": "NO₂", "so2": "SO₂", "o3": "O₃", "co": "CO", "nh3": "NH₃"}
         subs = {names.get(k, k): v for k, v in (st.get("sub_indices") or {}).items() if v is not None}
         detail = ", ".join(f"{k} {v:g}" for k, v in sorted(subs.items(), key=lambda kv: -kv[1]))
-        S.append({"id": "aqi_station_mix", "level": "info", "kb": ["aqi_cpcb_scale", "mumbai_air_sources"],
+        S.append({"id": "aqi_station_mix", "level": "info", "kb": ["aqi_cpcb_scale", *_ckb("air_sources")],
                   "text": f"At the nearest station ({st.get('station_name')}) the dominant pollutant is "
                           f"{names.get(st['dominant_pollutant'], st['dominant_pollutant'])} (station AQI {st.get('aqi')})"
                           + (f"; CPCB sub-indices: {detail}." if detail else ".")})
@@ -630,7 +639,7 @@ def derive_signals(ev: dict) -> list[dict[str, Any]]:
     if sif and sif.get("is_anomaly"):
         devs = "; ".join(f"{d['pollutant']} sub-index {d['sub_index']} ({d['z']:+.1f}σ)"
                          for d in (sif.get("dominant_deviations") or [])[:2])
-        S.append({"id": "station_outlier", "level": "notice", "kb": ["station_isolation_forest", "mumbai_air_sources"],
+        S.append({"id": "station_outlier", "level": "notice", "kb": ["station_isolation_forest", *_ckb("air_sources")],
                   "text": f"The nearest station ({sif['station_name']}) has an unusual pollutant mix compared with the "
                           f"other stations (station Isolation Forest): {devs}."})
     return S
@@ -661,8 +670,8 @@ RECOMMENDATIONS = {
     "heat": ("mitigate_heat", "Prioritise cool/reflective roofs, street-tree shade and lighter permeable paving in this block; "
                               "protect any remaining open green or water space."),
     "green": ("mitigate_greening", "Protect existing tree and mangrove cover; add street trees or dense native plantations on open plots."),
-    "water": ("mitigate_water", "Check for sewage outfalls, dumping or hyacinth growth and request MPCB/municipal sampling "
-                                "(DO, BOD, coliforms) to confirm the satellite signal."),
+    "water": ("mitigate_water", "Check for sewage outfalls, dumping or hyacinth growth and request sampling by the state "
+                                "pollution control board or the municipality (DO, BOD, coliforms) to confirm the satellite signal."),
     "air": ("mitigate_air", "On Moderate-or-worse days limit prolonged outdoor exertion for sensitive groups; local dust "
                             "control and stopping waste burning reduce PM."),
     "inspect": ("isolation_forest", "The combination of values here is unusual for the region (see the deviations above). Check the "
@@ -672,7 +681,11 @@ RECOMMENDATIONS = {
 }
 
 
-def recommendations(signals: list[dict]) -> list[dict]:
+# on a layer's tab only that layer's advice is given (heat advice never appears on the AQI tab)
+REC_THEMES_FOR_FOCUS = {"lst": {"heat", "keep"}, "ndvi": {"green", "keep"}, "water_health": {"water"}, "aqi": {"air"}}
+
+
+def recommendations(signals: list[dict], focus: str | None = None) -> list[dict]:
     ids = {s["id"] for s in signals}
     out = []
     bad = {s["id"] for s in signals if s["id"].startswith("layer_") and s["level"] == "warning"}
@@ -690,6 +703,8 @@ def recommendations(signals: list[dict]) -> list[dict]:
     if not out and ("green_cell" in ids or "multivariate_outlier_favourable" in ids
                     or any(s["id"] == "heat_cell" and "cooler" in s["text"] for s in signals)):
         out.append("keep")
+    if focus in REC_THEMES_FOR_FOCUS:
+        out = [k for k in out if k in REC_THEMES_FOR_FOCUS[focus]]
     return [{"kb": RECOMMENDATIONS[k][0], "text": RECOMMENDATIONS[k][1], "theme": k} for k in out]
 
 
@@ -874,7 +889,8 @@ MITIGATION = {
         ("water_green", "mitigate_greening", "Water-sensitive greening (rain gardens, mulching, rainwater retention) so existing vegetation stays moist through the dry season."),
     ]},
     "water_health": {"title": "Improve the water body", "items": [
-        ("sample", "water_quality_insitu", "Confirm on the ground first: MPCB / municipal sampling of DO, BOD and coliforms."),
+        ("sample", "water_quality_insitu", "Confirm on the ground first: sampling of DO, BOD and coliforms by the state "
+                                           "pollution control board or the municipality."),
         ("sewage", "mitigate_water", "Intercept and treat sewage before it enters the water body."),
         ("dumping", "mitigate_water", "Stop solid-waste dumping and encroachment along the banks."),
         ("hyacinth", "mitigate_water", "Remove invasive water hyacinth where it covers the surface."),
@@ -901,15 +917,15 @@ MEASURE_EVIDENCE = {
     "keep_open": ("Völker et al. 2013, Erdkunde 67; Bowler et al. 2010", "https://doi.org/10.1016/j.landurbplan.2010.05.006"),
     "heat_warning": ("NDMA 2019 heat-wave guidelines; Knowlton et al. 2014, IJERPH 11", "https://doi.org/10.3390/ijerph110403473"),
     "protect_green": ("Bowler et al. 2010, Landsc. Urban Plan. 97", "https://doi.org/10.1016/j.landurbplan.2010.05.006"),
-    "native_planting": ("Bowler et al. 2010; BMC Mumbai Climate Action Plan 2022", "https://mcap.mcgm.gov.in/"),
-    "campus": ("BMC Mumbai Climate Action Plan 2022", "https://mcap.mcgm.gov.in/"),
+    "native_planting": ("Bowler et al. 2010, Landsc. Urban Plan. 97", "https://doi.org/10.1016/j.landurbplan.2010.05.006"),
+    "campus": ("Bowler et al. 2010, Landsc. Urban Plan. 97", "https://doi.org/10.1016/j.landurbplan.2010.05.006"),
     "water_green": ("Coutts et al. 2013, Prog. Phys. Geogr. 37", "https://doi.org/10.1177/0309133312461032"),
     "sample": ("CPCB National Water Quality Monitoring Programme", "https://cpcb.nic.in/"),
     "sewage": ("MoEFCC National Plan for Conservation of Aquatic Ecosystems", None),
     "dumping": ("MoEFCC Solid Waste Management Rules 2016", None),
     "hyacinth": ("Villamagna & Murphy 2010, Freshw. Biol. 55", "https://doi.org/10.1111/j.1365-2427.2009.02294.x"),
     "buffer": ("Mayer et al. 2007, J. Environ. Qual. 36; Barbier et al. 2011, Ecol. Monogr. 81", "https://doi.org/10.2134/jeq2006.0462"),
-    "dust_sites": ("NCAP 2019; MoEFCC C&D Waste Rules 2016; BMC 2023 site guidelines", "https://moef.gov.in/"),
+    "dust_sites": ("NCAP 2019; MoEFCC Construction and Demolition Waste Management Rules 2016", "https://moef.gov.in/"),
     "road_dust": ("NCAP 2019 city action plans", "https://moef.gov.in/"),
     "burning": ("MoEFCC Solid Waste Management Rules 2016; NCAP 2019", "https://moef.gov.in/"),
     "traffic": ("NCAP 2019 city action plans", "https://moef.gov.in/"),
@@ -988,10 +1004,17 @@ def mitigation_plan(ev: dict, signals: list[dict], focus: str | None = None, n: 
                 "priority": bool(priority.get(layer)), "note": note, "items": items}
 
     if focus in MITIGATION:
+        # no measurement on this layer here -> no measures (nothing is suggested without evidence)
         if focus == "water_health" and not has_wh:
             return plan(focus, [], "No water detected in this cell, so water-body measures do not apply here.", False)
         if focus == "aqi" and aqi is None:
-            return plan(focus, pick("aqi", n), "AQI is unavailable at this point; general measures are shown.")
+            return plan(focus, [], "AQI is unavailable here, so no air-quality measures are suggested.", False)
+        if focus == "lst" and px.get("lst_c") is None and cf.get("lst_mean") is None:
+            return plan(focus, [], "Surface temperature is unavailable here (no cloud-free Landsat pixels in the "
+                                   "current composite), so no heat measures are suggested.", False)
+        if focus == "ndvi" and px.get("ndvi") is None and cf.get("ndvi_mean") is None:
+            return plan(focus, [], "Vegetation (NDVI) is unavailable here, so no greening measures are suggested.",
+                        False)
         if focus == "lst" and water_dom:
             return plan(focus, pick("lst", 2, {"keep_open", "heat_warning"} if hot else {"keep_open"}),
                         f"This cell is mostly open water ({_share(cf.get('openwater_frac'))}), so building-level heat "
@@ -1021,7 +1044,11 @@ def mitigation_plan(ev: dict, signals: list[dict], focus: str | None = None, n: 
     if layers:
         items = [r for l in layers for r in pick(l, 2)][:6]
         return plan("composite", items, title="Priority measures for this location")
-    # nothing needs action: protect what keeps this place in good condition
+    # nothing needs action: protect what keeps this place in good condition - but only when the
+    # main layers were actually measured here (missing data is never read as "in good condition")
+    if px.get("lst_c") is None or px.get("ndvi") is None:
+        return plan("composite", [], "Not enough measured layers here to judge which measures would help.", False,
+                    title="Measures for this location")
     items = []
     if has_water:
         items += pick("lst", 1, {"keep_open"})
@@ -1159,21 +1186,6 @@ def flag_claim_problems(text: str, ev: dict) -> list[str]:
     return out
 
 
-SYSTEM = (
-    "You are GeoSense's environmental analyst for Mumbai, Thane and Mira-Bhayandar. Explain one map location "
-    "to a city official in plain English. Use ONLY numbers that appear in EVIDENCE or KNOWLEDGE. Never invent "
-    "measurements; if something is missing say it is unavailable. Use associative language ('associated with', "
-    "'consistent with', 'the model flags') — never claim causes. Satellite Water Health is a proxy, not lab data; "
-    "interpolated AQI is an estimate. Cite knowledge by knowledge_id. Lead with the FOCUS_LAYER the user is viewing, "
-    "then mention other layers briefly. Say a model 'flags' something ONLY when that model's is_anomaly is true or "
-    "its flag is unexplained_heat, unexplained_cooling, low_water_condition or high_water_condition; otherwise say "
-    "the value is 'above/below the city norm' or 'not flagged'. Round percentages to whole numbers and temperatures "
-    "to one decimal. Do not invent recommendations beyond RECOMMENDATION_THEMES. Never call water clean, polluted, "
-    "safe or of good/poor quality, and never call air clean or safe (proxies and estimates cannot certify that). "
-    "Return JSON only."
-)
-
-
 SUMMARY_SYSTEM = (
     "You turn GeoSense's checked findings for one map location into a short plain-English summary for a "
     "non-expert. Use ONLY the FACTS and ASSOCIATED_FACTORS given; add no new facts, numbers, places or advice. "
@@ -1230,13 +1242,20 @@ def _factor_evidence(f: dict, city: str | None) -> dict | None:
     return None
 
 
+def _station_count() -> int | None:
+    """Number of stations behind the current city's AQI surface (None if there is no surface)."""
+    try:
+        rec = json.loads(city_path("surfaces", "manifest.json").read_text(encoding="utf-8"))["surfaces"].get("aqi") or {}
+        return len(rec.get("stations") or []) or None
+    except Exception:
+        return None
+
+
 def _composite_card() -> dict | None:
     """Composite v2 method card from the manifest (weights, coverage, sensitivity)."""
     import json as _json
-    from pathlib import Path as _P
     try:
-        rec = _json.loads((_P(__file__).resolve().parents[3] / "data" / "surfaces" / "manifest.json")
-                          .read_text(encoding="utf-8"))["surfaces"].get("composite") or {}
+        rec = _json.loads(city_path("surfaces", "manifest.json").read_text(encoding="utf-8"))["surfaces"].get("composite") or {}
     except Exception:
         return None
     if rec.get("version") != 2:
@@ -1255,9 +1274,9 @@ async def explain_point(analysis: dict, use_llm: bool = True, focus: str | None 
     ev = build_evidence(analysis)
     signals = [x for x in derive_signals(ev) if ABSENCE_OWNER.get(x["id"], focus) == focus]
     signals = focus_order(signals, focus)
-    recs = recommendations(signals)
+    recs = recommendations(signals, focus)
     must = sorted({k for s in signals for k in s["kb"]} | {r["kb"] for r in recs} | {"pixel_cell_municipality"})
-    query = " ".join([s["text"] for s in signals] + [ev["municipality"] or "", "mumbai"])
+    city = get_city()
     factors = associated_factors(ev, signals, focus)
     must = sorted(set(must) | {f["kb"] for f in factors})
     det = deterministic_text(ev, signals, recs, focus, factors)
@@ -1268,21 +1287,21 @@ async def explain_point(analysis: dict, use_llm: bool = True, focus: str | None 
     must = sorted(set(must) | {i["kb"] for i in mitigation["items"]})
     # the cell's own signals as the query; curated notes the rules used are always included,
     # and the best-matching document passages (with page numbers) are added as primary evidence
-    factor_evidence = [_factor_evidence(f, ev["municipality"]) for f in factors[:4]]
+    factor_evidence = [_factor_evidence(f, city.id) for f in factors[:4]]
 
     keys = FOCUS_SIGNALS.get(focus or "", ())
     focus_signals = [s for s in signals if any(s["id"].startswith(k) for k in keys)] if focus in FACTOR_THEME_FOR_FOCUS else []
     shown = (focus_signals or signals)[:6]
     # Sources = what this tab actually shows: page-level passages from source documents that match this
     # location's findings, then the curated notes behind the displayed findings, factors and measures.
-    tab_query = " ".join([x["text"] for x in shown] + [ev["municipality"] or "", "mumbai"])
-    doc_hits = retriever.retrieve(tab_query, k=4, city=ev["municipality"], include_notes=False, min_score=1.5, strict=True)
+    tab_query = " ".join([x["text"] for x in shown] + [ev["municipality"] or "", city.name])
+    doc_hits = retriever.retrieve(tab_query, k=4, city=city.id, include_notes=False, min_score=1.5, strict=True)
     used_notes = list(dict.fromkeys([k for x in shown for k in x["kb"]] + [f["kb"] for f in factors[:2]]
                                     + [i["kb"] for i in mitigation["items"]]))
     passages = doc_hits + [d for d in (retriever.get(k) for k in used_notes) if d]
 
     from app.services.ml.area_relationships import area_relationships
-    relationships = area_relationships(ev, focus)
+    relationships = area_relationships(ev, focus, n_stations=_station_count())
 
     result: dict[str, Any] = {
         "rag": rag_info(),
@@ -1479,7 +1498,7 @@ def intent_answer(intent: str, ev: dict, signals: list[dict], focus: str | None)
         return (f"Its Water Health index is {abs(d['value']):.3f} {word} than nearby water within 1 km "
                 f"({d['z']:+.1f} standard deviations). {flag}"), ["layer_isolation_forest", "water_health_geosense"]
     if intent == "water_confirm":
-        return ("Ask MPCB or the municipal corporation to take water samples and test dissolved oxygen (DO), BOD, pH "
+        return ("Ask the state pollution control board or the municipal corporation to take water samples and test dissolved oxygen (DO), BOD, pH "
                 "and faecal coliforms, the National Water Quality Monitoring Programme parameters. A site visit can "
                 "also check for sewage outfalls, dumping and water hyacinth."), ["water_quality_insitu"]
     if intent == "aqi_level":
@@ -1579,7 +1598,7 @@ def match_intent(question: str, ev: dict, focus: str | None) -> str | None:
 
 
 QA_SYSTEM = (
-    "You answer a user's question about ONE map location in GeoSense (Mumbai, Thane, Mira-Bhayandar). Use ONLY "
+    "You answer a user's question about ONE map location in GeoSense ({region}). Use ONLY "
     "the FACTS, DATA_ANSWER and KNOWLEDGE given; copy numbers exactly; add no new numbers, places or advice. Answer "
     "the question that was asked, directly, in at most 90 words. If the question assumes something the facts "
     "contradict (e.g. 'why is it low' when it is high), say so politely and give the actual situation. Say a model "
@@ -1627,7 +1646,7 @@ async def answer_question(question: str, analysis: dict | None = None, focus: st
 
     if ai_enabled():
         # retrieval rail: retrieved text is data, never instructions
-        passages = sanitize_passages(retriever.retrieve(question, k=4, city=ev["municipality"] if ev else None,
+        passages = sanitize_passages(retriever.retrieve(question, k=4, city=get_city().id,
                                                         must_include=list(data_kb)))
         user = json.dumps({
             "QUESTION": question, "FOCUS_LAYER": FOCUS_LABEL.get(focus or "", "all layers"),
@@ -1636,7 +1655,7 @@ async def answer_question(question: str, analysis: dict | None = None, focus: st
             "OUTPUT_SCHEMA": {"answer": "str (<= 90 words) or OUT_OF_SCOPE", "citations": ["knowledge_id"]},
         }, ensure_ascii=False, default=str)
         try:
-            out, meta = await complete_json(QA_SYSTEM, user)
+            out, meta = await complete_json(QA_SYSTEM.replace("{region}", get_city().region_label), user)
             # output rail: strict schema (Pydantic) + secrets/links/markup scan
             parsed, schema_problems = parse_output(AnswerOut, out)
             ans = parsed.answer if parsed else ""

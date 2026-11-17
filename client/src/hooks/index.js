@@ -1,13 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  formatUTCTime,
-  buildMunicipalitiesGeoJSON,
-  buildWaterBodiesGeoJSON,
-  buildZonesGeoJSON,
-} from "../utils/helpers";
+import { formatUTCTime, buildMunicipalitiesGeoJSON } from "../utils/helpers";
 import { CITY_CONFIG } from "../constants/cities";
 import { MAPBOX_TOKEN } from "../constants/layers";
-import { getApiUrl } from "../utils/api";
+import { apiFetch, getApiUrl } from "../utils/api";
 import mapboxgl from "mapbox-gl";
 
 // Map diagnostics are off unless VITE_DEBUG_MAP=1 is set in client/.env — logging on every
@@ -53,8 +48,7 @@ function runWhenStyleReady(map, fn, name = "layer") {
 
 function styleReady(map) {
   if (!map) return false;
-  if (map.style && typeof map.style._loaded === "boolean")
-    return map.style._loaded;
+  if (map.style && typeof map.style._loaded === "boolean") return map.style._loaded;
   try {
     return !!map.getStyle();
   } catch (_) {
@@ -83,11 +77,6 @@ const MUNI_SOURCE = "mmr-municipalities";
 const MUNI_EXTRUDE = "muni-extrusion";
 const MUNI_OUTLINE = "muni-outline";
 const MUNI_LABEL = "muni-label";
-const WATER_SOURCE = "water-bodies";
-const WATER_FILL = "water-fill";
-const WATER_OUTLINE = "water-outline";
-const ZONES_SOURCE = "zones-source";
-const COMPOSITE_EXTRUDE = "composite-extrude";
 const AQI_HALO_SOURCE = "aqi-halo";
 const AQI_HALO_LAYER = "aqi-halo-raster";
 const AQI_GLOW_SOURCE = "aqi-glow";
@@ -275,14 +264,12 @@ export function useMapbox({
   onZoneClick,
   onPointAnalysis,
   liveMunicipalities = [],
-  waterBodies = [],
   aqiSurface = null,
   ndviSurface = null,
   lstSurface = null,
   waterHealthSurface = null,
   compositeSurface = null,
   boundary = null,
-  zones = [],
   hotspots = null,
   markerPoint = null,
   onPointPending = null,
@@ -312,58 +299,12 @@ export function useMapbox({
   const pendingCityRef = useRef(null);
   const activeLayersRef = useRef(activeLayers);
   const liveMunisRef = useRef(liveMunicipalities);
-  const waterBodiesRef = useRef(waterBodies);
   const selectedMuniRef = useRef(null);
   const aqiSurfaceRef = useRef(aqiSurface);
   const ndviSurfaceRef = useRef(ndviSurface);
   const lstSurfaceRef = useRef(lstSurface);
   const waterHealthSurfaceRef = useRef(waterHealthSurface);
   const compositeSurfaceRef = useRef(compositeSurface);
-  const anomalyMarkersRef = useRef({});
-  const zonesRef = useRef(zones);
-
-  useEffect(() => {
-    zonesRef.current = zones;
-    const map = mapRef.current;
-    if (!map) return;
-    const syncMarkers = () => {
-      const activeIds = new Set();
-      zonesRef.current.forEach((zone) => {
-        if (zone.is_anomaly && zone.coords) {
-          activeIds.add(zone.id);
-          if (!anomalyMarkersRef.current[zone.id]) {
-            const el = document.createElement("div");
-            el.className = "anomaly-zone";
-            const ring1 = document.createElement("div");
-            ring1.className = "anomaly-zone-ring";
-            const ring2 = document.createElement("div");
-            ring2.className = "anomaly-zone-ring-2";
-            el.appendChild(ring1);
-            el.appendChild(ring2);
-
-            const marker = new mapboxgl.Marker({ element: el })
-              .setLngLat(zone.coords)
-              .addTo(map);
-            anomalyMarkersRef.current[zone.id] = marker;
-          }
-        }
-      });
-      Object.keys(anomalyMarkersRef.current).forEach((id) => {
-        if (!activeIds.has(Number(id)) && !activeIds.has(String(id))) {
-          anomalyMarkersRef.current[id].remove();
-          delete anomalyMarkersRef.current[id];
-        }
-      });
-
-      const zonesSource = map.getSource(ZONES_SOURCE);
-      if (zonesSource) {
-        zonesSource.setData(buildZonesGeoJSON(zonesRef.current));
-      }
-    };
-    if (styleReady(map)) syncMarkers();
-    else map.once("idle", syncMarkers);
-  }, [zones]);
-
   useEffect(() => {
     onZoneClickRef.current = onZoneClick;
   }, [onZoneClick]);
@@ -397,17 +338,6 @@ export function useMapbox({
     else map.once("idle", sync);
   }, [liveMunicipalities]);
 
-  useEffect(() => {
-    waterBodiesRef.current = waterBodies;
-    const map = mapRef.current;
-    if (!map || !styleReady(map)) return;
-    const sync = () => {
-      const src = map.getSource(WATER_SOURCE);
-      if (src) src.setData(buildWaterBodiesGeoJSON(waterBodiesRef.current));
-    };
-    if (styleReady(map)) sync();
-    else map.once("idle", sync);
-  }, [waterBodies]);
 
   // ── ML hotspot overlay: glowing heatmap + crisp cell markers ───────────────
   const hotspotsRef = useRef(hotspots);
@@ -435,41 +365,16 @@ export function useMapbox({
           maxzoom: 16,
           paint: {
             "heatmap-weight": ["get", "intensity"],
-            "heatmap-intensity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              9,
-              0.6,
-              14,
-              1.6,
-            ],
-            "heatmap-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              9,
-              8,
-              12,
-              22,
-              15,
-              48,
-            ],
+            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 0.6, 14, 1.6],
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 9, 8, 12, 22, 15, 48],
             "heatmap-opacity": 0.75,
             "heatmap-color": [
-              "interpolate",
-              ["linear"],
-              ["heatmap-density"],
-              0,
-              "rgba(0,0,0,0)",
-              0.2,
-              "rgba(120,30,160,0.35)",
-              0.45,
-              "rgba(255,59,212,0.6)",
-              0.7,
-              "rgba(255,120,40,0.8)",
-              1,
-              "rgba(255,240,180,0.95)",
+              "interpolate", ["linear"], ["heatmap-density"],
+              0, "rgba(0,0,0,0)",
+              0.2, "rgba(120,30,160,0.35)",
+              0.45, "rgba(255,59,212,0.6)",
+              0.7, "rgba(255,120,40,0.8)",
+              1, "rgba(255,240,180,0.95)",
             ],
           },
         });
@@ -479,15 +384,7 @@ export function useMapbox({
           source: SRC,
           minzoom: 11.5,
           paint: {
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              11.5,
-              2.5,
-              15,
-              7,
-            ],
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 11.5, 2.5, 15, 7],
             "circle-color": "#ffffff",
             "circle-opacity": 0.85,
             "circle-stroke-width": 1.5,
@@ -498,13 +395,9 @@ export function useMapbox({
         map.getSource(SRC).setData(data || empty);
       }
       const color = COLORS[data?.model] || "#ff3bd4";
-      if (map.getLayer(DOTS))
-        map.setPaintProperty(DOTS, "circle-stroke-color", color);
+      if (map.getLayer(DOTS)) map.setPaintProperty(DOTS, "circle-stroke-color", color);
       const vis = data && data.features?.length ? "visible" : "none";
-      [HEAT, DOTS].forEach(
-        (id) =>
-          map.getLayer(id) && map.setLayoutProperty(id, "visibility", vis),
-      );
+      [HEAT, DOTS].forEach((id) => map.getLayer(id) && map.setLayoutProperty(id, "visibility", vis));
       [HEAT, DOTS].forEach((id) => map.getLayer(id) && map.moveLayer(id));
     };
     if (styleReady(map)) sync();
@@ -522,10 +415,7 @@ export function useMapbox({
 
       // HALO
       if (aqiSurface.halo_url) {
-        const haloOpts = {
-          url: getApiUrl(aqiSurface.halo_url),
-          coordinates: coords,
-        };
+        const haloOpts = { url: getApiUrl(aqiSurface.halo_url), coordinates: coords };
         const s = map.getSource(AQI_HALO_SOURCE);
         if (s) s.updateImage(haloOpts);
         else map.addSource(AQI_HALO_SOURCE, { type: "image", ...haloOpts });
@@ -536,11 +426,7 @@ export function useMapbox({
               type: "raster",
               source: AQI_HALO_SOURCE,
               layout: { visibility: "none" },
-              paint: {
-                "raster-opacity": HALO_OPACITY,
-                "raster-fade-duration": 500,
-                "raster-resampling": "linear",
-              },
+              paint: { "raster-opacity": HALO_OPACITY, "raster-fade-duration": 500, "raster-resampling": "linear" },
             },
             beforeId,
           );
@@ -549,10 +435,7 @@ export function useMapbox({
 
       // GLOW
       if (aqiSurface.glow_url) {
-        const glowOpts = {
-          url: getApiUrl(aqiSurface.glow_url),
-          coordinates: coords,
-        };
+        const glowOpts = { url: getApiUrl(aqiSurface.glow_url), coordinates: coords };
         const s = map.getSource(AQI_GLOW_SOURCE);
         if (s) s.updateImage(glowOpts);
         else map.addSource(AQI_GLOW_SOURCE, { type: "image", ...glowOpts });
@@ -563,11 +446,7 @@ export function useMapbox({
               type: "raster",
               source: AQI_GLOW_SOURCE,
               layout: { visibility: "none" },
-              paint: {
-                "raster-opacity": GLOW_OPACITY,
-                "raster-fade-duration": 380,
-                "raster-resampling": "linear",
-              },
+              paint: { "raster-opacity": GLOW_OPACITY, "raster-fade-duration": 380, "raster-resampling": "linear" },
             },
             beforeId,
           );
@@ -575,10 +454,7 @@ export function useMapbox({
       }
 
       // SHARP
-      const sharpOpts = {
-        url: getApiUrl(aqiSurface.sharp_url || aqiSurface.image_url),
-        coordinates: coords,
-      };
+      const sharpOpts = { url: getApiUrl(aqiSurface.sharp_url || aqiSurface.image_url), coordinates: coords };
       const s = map.getSource(AQI_SURFACE_SOURCE);
       if (s) s.updateImage(sharpOpts);
       else map.addSource(AQI_SURFACE_SOURCE, { type: "image", ...sharpOpts });
@@ -589,11 +465,7 @@ export function useMapbox({
             type: "raster",
             source: AQI_SURFACE_SOURCE,
             layout: { visibility: "none" },
-            paint: {
-              "raster-opacity": AQI_RASTER_OPACITY,
-              "raster-fade-duration": 300,
-              "raster-resampling": "linear",
-            },
+            paint: { "raster-opacity": AQI_RASTER_OPACITY, "raster-fade-duration": 300, "raster-resampling": "linear" },
           },
           beforeId,
         );
@@ -731,10 +603,7 @@ export function useMapbox({
 
       // Halo layer (wide soft glow, like Water Health)
       if (lstSurface.halo_url) {
-        const haloOpts = {
-          url: getApiUrl(lstSurface.halo_url),
-          coordinates: lstSurface.coordinates,
-        };
+        const haloOpts = { url: getApiUrl(lstSurface.halo_url), coordinates: lstSurface.coordinates };
         const hs = map.getSource(LST_HALO_SOURCE);
         if (hs) hs.updateImage(haloOpts);
         else map.addSource(LST_HALO_SOURCE, { type: "image", ...haloOpts });
@@ -745,11 +614,7 @@ export function useMapbox({
               type: "raster",
               source: LST_HALO_SOURCE,
               layout: { visibility: "none" },
-              paint: {
-                "raster-opacity": HALO_OPACITY,
-                "raster-fade-duration": 500,
-                "raster-resampling": "linear",
-              },
+              paint: { "raster-opacity": HALO_OPACITY, "raster-fade-duration": 500, "raster-resampling": "linear" },
             },
             map.getLayer(MUNI_EXTRUDE) ? MUNI_EXTRUDE : undefined,
           );
@@ -1082,7 +947,9 @@ export function useMapbox({
     // ═══════════════════════════════════════════════════════════════════════════
     // DIAGNOSTIC: Map initialization useEffect triggered
     // ═══════════════════════════════════════════════════════════════════════════
-    dlog("[GEOSENSE DIAGNOSTICS] Map initialization useEffect triggered");
+    dlog(
+      "[GEOSENSE DIAGNOSTICS] Map initialization useEffect triggered",
+    );
     dlog("  containerRef.current exists:", !!containerRef.current);
     dlog("  mapRef.current exists:", !!mapRef.current);
     dlog(
@@ -1111,7 +978,9 @@ export function useMapbox({
     if (!token || token === "YOUR_MAPBOX_TOKEN_HERE") return;
     mapboxgl.accessToken = token;
 
-    dlog("🚨 [MAP DIAGNOSTIC VERSION] lifecycle instrumentation build ALPHA-1");
+    dlog(
+      "🚨 [MAP DIAGNOSTIC VERSION] lifecycle instrumentation build ALPHA-1",
+    );
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
@@ -1126,7 +995,9 @@ export function useMapbox({
       logoPosition: "bottom-right",
     });
 
-    dlog("🚨 [MAP DIAGNOSTIC VERSION] map constructor completed ALPHA-1");
+    dlog(
+      "🚨 [MAP DIAGNOSTIC VERSION] map constructor completed ALPHA-1",
+    );
     mapRef.current = map;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1281,7 +1152,9 @@ export function useMapbox({
 
     map.on("data", (e) => {
       if (e.sourceId === NDVI_SURFACE_SOURCE && e.isSourceLoaded) {
-        dgroup("✅ [NDVI DATA EVENT] NDVI source data loaded successfully");
+        dgroup(
+          "✅ [NDVI DATA EVENT] NDVI source data loaded successfully",
+        );
         dlog("  Timestamp:", new Date().toISOString());
         dlog("  sourceId:", e.sourceId);
         dlog("  isSourceLoaded:", e.isSourceLoaded);
@@ -1359,10 +1232,8 @@ export function useMapbox({
       pointAbortRef.current?.abort();
       const ctrl = new AbortController();
       pointAbortRef.current = ctrl;
-      onPointPendingRef.current?.(lng, lat); // pin drops immediately, before the answer
-      fetch(getApiUrl(`/api/analysis/point?lon=${lng}&lat=${lat}`), {
-        signal: ctrl.signal,
-      })
+      onPointPendingRef.current?.(lng, lat);   // pin drops immediately, before the answer
+      apiFetch(`/api/analysis/point?lon=${lng}&lat=${lat}`, { signal: ctrl.signal })
         .then((r) => r.json())
         .then((data) => {
           if (seq !== pointSeqRef.current) return;
@@ -1389,10 +1260,7 @@ export function useMapbox({
 
           // a real place name (e.g. "Powai, Mumbai") from the backend; the municipality otherwise
           const displayName =
-            data?.place?.label ||
-            muni.name ||
-            cell.cell_code ||
-            "Selected location";
+            data?.place?.label || muni.name || cell.cell_code || "Selected location";
 
           const syntheticZone = {
             id: cell.id ?? `pt-${lng.toFixed(4)}-${lat.toFixed(4)}`,
@@ -1514,12 +1382,6 @@ export function useMapbox({
           data: buildMunicipalitiesGeoJSON(liveMunisRef.current),
           promoteId: "id",
         });
-      if (!map.getSource(WATER_SOURCE))
-        map.addSource(WATER_SOURCE, {
-          type: "geojson",
-          data: buildWaterBodiesGeoJSON(waterBodiesRef.current),
-          promoteId: "id",
-        });
 
       // Create MUNI_EXTRUDE layer FIRST so raster layers can reference it with beforeId
       if (!map.getLayer(MUNI_EXTRUDE)) {
@@ -1530,34 +1392,6 @@ export function useMapbox({
           paint: {
             "fill-extrusion-color": "#2a2a3a",
             "fill-extrusion-height": 0,
-            "fill-extrusion-base": 0,
-            "fill-extrusion-opacity": 0.85,
-          },
-        });
-      }
-
-      // GeoJSON source for 5000+ 300x300m cells for the composite 3D grid
-      if (!map.getSource(ZONES_SOURCE))
-        map.addSource(ZONES_SOURCE, {
-          type: "geojson",
-          data: buildZonesGeoJSON(zonesRef.current),
-          promoteId: "id",
-        });
-
-      if (!map.getLayer(COMPOSITE_EXTRUDE)) {
-        map.addLayer({
-          id: COMPOSITE_EXTRUDE,
-          type: "fill-extrusion",
-          source: ZONES_SOURCE,
-          layout: { visibility: "none" },
-          paint: {
-            "fill-extrusion-color": buildFillColorExpression("all"),
-            "fill-extrusion-height": [
-              "case",
-              ["==", ["get", "composite_norm"], null],
-              0,
-              ["*", ["get", "composite_norm"], 3000], // Max 3000m height
-            ],
             "fill-extrusion-base": 0,
             "fill-extrusion-opacity": 0.85,
           },
@@ -1609,28 +1443,6 @@ export function useMapbox({
       // No MUNI_LABEL layer: the Mapbox dark-v11 basemap already supplies
       // place/city labels for Mumbai and its districts.  Adding a GeoSense
       // symbol layer on top produces duplicate labels at every municipality.
-      if (!map.getLayer(WATER_FILL)) {
-        map.addLayer({
-          id: WATER_FILL,
-          type: "fill",
-          source: WATER_SOURCE,
-          layout: { visibility: "none" },
-          paint: { "fill-color": "#0fb8c9", "fill-opacity": 0.82 },
-        });
-      }
-      if (!map.getLayer(WATER_OUTLINE)) {
-        map.addLayer({
-          id: WATER_OUTLINE,
-          type: "line",
-          source: WATER_SOURCE,
-          layout: { visibility: "none" },
-          paint: {
-            "line-color": "#00e5ff",
-            "line-width": 1.2,
-            "line-opacity": 0.65,
-          },
-        });
-      }
 
       map.off("click", MUNI_EXTRUDE, handleMuniClick);
       map.off("mouseenter", MUNI_EXTRUDE, handleMouseEnter);
@@ -1661,7 +1473,10 @@ export function useMapbox({
       // ═══════════════════════════════════════════════════════════════════════════
       // [MAP LIFECYCLE] setupLayers() exit
       // ═══════════════════════════════════════════════════════════════════════════
-      dlog("  map.isStyleLoaded() AFTER setupLayers:", map.isStyleLoaded());
+      dlog(
+        "  map.isStyleLoaded() AFTER setupLayers:",
+        map.isStyleLoaded(),
+      );
       dlog("  map.getStyle() exists AFTER:", !!map.getStyle());
       dlog(
         "  ndviSurfaceRef.current at setupLayers time:",
@@ -1773,14 +1588,9 @@ export function useMapbox({
         '<div class="geo-marker-label"><span class="geo-marker-label-text"></span></div>' +
         '<div class="geo-marker-pin"><span class="geo-marker-core"></span></div>' +
         '</div><div class="geo-marker-shadow"></div>';
-      clickMarkerRef.current = new mapboxgl.Marker({
-        element: el,
-        anchor: "bottom",
-      });
+      clickMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" });
     }
-    const label = String(markerPoint?.label || "Selected location")
-      .split(",")[0]
-      .trim();
+    const label = String(markerPoint?.label || "Selected location").split(",")[0].trim();
     const textEl = el.querySelector(".geo-marker-label-text");
     if (textEl) textEl.textContent = label.toUpperCase();
     el.setAttribute("aria-label", `Selected location: ${label}`);
@@ -1794,12 +1604,7 @@ export function useMapbox({
     }
     el.classList.toggle("geo-marker-pending", !!markerPoint?.pending);
     clickMarkerRef.current.setLngLat([lng, lat]).addTo(map);
-  }, [
-    markerPoint?.longitude,
-    markerPoint?.latitude,
-    markerPoint?.label,
-    markerPoint?.pending,
-  ]);
+  }, [markerPoint?.longitude, markerPoint?.latitude, markerPoint?.label, markerPoint?.pending]);
 
   return mapRef;
 }
@@ -1838,7 +1643,8 @@ function applyMunicipalityPaint(
   const isLstSurfaceMode = layerId === "lst" && hasLstSurface;
   const isWaterHealthSurfaceMode =
     layerId === "water_health" && hasWaterHealthSurface;
-  const isCompositeSurfaceMode = layerId === "all" && hasCompositeSurface;
+  const isCompositeSurfaceMode =
+    layerId === "all" && hasCompositeSurface;
   const isSurfaceMode =
     isAqiSurfaceMode ||
     isNdviSurfaceMode ||
@@ -1861,7 +1667,10 @@ function applyMunicipalityPaint(
   dlog("  isLstSurfaceMode:", isLstSurfaceMode);
   dlog("  isNdviSurfaceMode:", isNdviSurfaceMode);
   dlog("  isWaterHealthSurfaceMode:", isWaterHealthSurfaceMode);
-  dlog("  isEnvMetricPendingNoRasterYet:", isEnvMetricPendingNoRasterYet);
+  dlog(
+    "  isEnvMetricPendingNoRasterYet:",
+    isEnvMetricPendingNoRasterYet,
+  );
   dlog("  isFLIRMode:", isFLIRMode);
 
   if (DEBUG_MAP && (layerId === "ndvi" || isNdviSurfaceMode)) {
@@ -1962,11 +1771,7 @@ function applyMunicipalityPaint(
     );
   }
   if (map.getLayer(LST_HALO_LAYER)) {
-    map.setLayoutProperty(
-      LST_HALO_LAYER,
-      "visibility",
-      isLstSurfaceMode ? "visible" : "none",
-    );
+    map.setLayoutProperty(LST_HALO_LAYER, "visibility", isLstSurfaceMode ? "visible" : "none");
   }
   if (map.getLayer(LST_GLOW_LAYER)) {
     map.setLayoutProperty(
@@ -2043,8 +1848,7 @@ function applyMunicipalityPaint(
           isWaterMode || isSurfaceMode || isCompositeMode
             ? "#0e0e1a"
             : buildFillColorExpression(layerId);
-        opacityExpr =
-          isSurfaceMode || isCompositeMode ? 0.0 : isWaterMode ? 0.12 : 0.82;
+        opacityExpr = isSurfaceMode || isCompositeMode ? 0.0 : isWaterMode ? 0.12 : 0.82;
       }
       const heightExpr =
         selectedMuniId != null && !isWaterMode
@@ -2062,21 +1866,16 @@ function applyMunicipalityPaint(
     }
   }
 
-  // Handle the composite extrude layer
-  if (map.getLayer(COMPOSITE_EXTRUDE)) {
-    map.setLayoutProperty(COMPOSITE_EXTRUDE, "visibility", "none");
-  }
-
   if (map.getLayer(MUNI_OUTLINE)) {
     const isCompositeView = layerId === "all" || layerId === "composite";
-
+    
     if (isCompositeView) {
       map.setLayoutProperty(MUNI_OUTLINE, "visibility", "visible");
-
+      
       const outlineColor = "#ffffff";
       const outlineWidth = 1.5;
       const outlineOpacity = 0.8;
-
+      
       map.setPaintProperty(MUNI_OUTLINE, "line-color", outlineColor);
       map.setPaintProperty(MUNI_OUTLINE, "line-width", outlineWidth);
       map.setPaintProperty(MUNI_OUTLINE, "line-opacity", outlineOpacity);
@@ -2133,54 +1932,4 @@ function applyMunicipalityPaint(
     }
   }
 
-  let waterPolyVis;
-  if (isWaterHealthSurfaceMode) {
-    waterPolyVis = "none";
-  } else if (isEnvMetricPendingNoRasterYet && layerId === "water_health") {
-    waterPolyVis = "visible";
-  } else if (isWaterMode && !hasWaterHealthSurface) {
-    waterPolyVis = "visible";
-  } else {
-    waterPolyVis = "none";
-  }
-
-  if (map.getLayer(WATER_FILL)) {
-    map.setLayoutProperty(WATER_FILL, "visibility", waterPolyVis);
-    if (waterPolyVis === "visible" && isWaterMode) {
-      if (isEnvMetricPendingNoRasterYet && layerId === "water_health") {
-        map.setPaintProperty(WATER_FILL, "fill-color", "#0e0e1a");
-        map.setPaintProperty(WATER_FILL, "fill-opacity", 0.0);
-      } else {
-        const waterColorExpr = [
-          "case",
-          ["==", ["get", "water_norm"], null],
-          "rgba(0,0,0,0)",
-          [
-            "interpolate",
-            ["linear"],
-            ["get", "water_norm"],
-            0.0,
-            "#0fb8c9",
-            0.33,
-            "#7ed321",
-            0.6,
-            "#ff8c00",
-            1.0,
-            "#ff3b3b",
-          ],
-        ];
-        const waterOpacityExpr = [
-          "case",
-          ["==", ["get", "water_norm"], null],
-          0.0,
-          0.88,
-        ];
-        map.setPaintProperty(WATER_FILL, "fill-color", waterColorExpr);
-        map.setPaintProperty(WATER_FILL, "fill-opacity", waterOpacityExpr);
-      }
-    }
-  }
-  if (map.getLayer(WATER_OUTLINE)) {
-    map.setLayoutProperty(WATER_OUTLINE, "visibility", waterPolyVis);
-  }
 }

@@ -1,43 +1,41 @@
-"""Orchestrates cell features -> models -> persisted results."""
+"""Orchestrates cell features -> models -> persisted results (for the city in use)."""
 from __future__ import annotations
 
+import json
 from typing import Any
 
+from app.core.cities import city_path
 from app.services.ml.cell_features import (
     compute_cell_features, export_csv, load_cells, persist_cell_features, snapshot_timestamp,
 )
-import json
-
 from app.services.ml.cell_models import (
     persist_results, run_isolation_forest, run_layer_isolation_forests, run_station_isolation_forest,
     run_water_health, run_xgboost_lst, write_summary,
 )
 
 
-def _aqi_stations() -> list[dict]:
-    from pathlib import Path
-    p = Path(__file__).resolve().parents[3] / "data" / "surfaces" / "manifest.json"
-    try:
-        aqi = json.loads(p.read_text(encoding="utf-8"))["surfaces"].get("aqi") or {}
-    except Exception:
-        return []
-    return aqi.get("stations") or [] if aqi.get("available") else []
+MANIFEST = city_path("surfaces", "manifest.json")
 
 
 def _aqi_record() -> dict:
-    from pathlib import Path
-    p = Path(__file__).resolve().parents[3] / "data" / "surfaces" / "manifest.json"
+    """The current city's AQI surface record (empty when there is no generated surface)."""
     try:
-        rec = json.loads(p.read_text(encoding="utf-8"))["surfaces"].get("aqi") or {}
+        rec = json.loads(MANIFEST.read_text(encoding="utf-8"))["surfaces"].get("aqi") or {}
     except Exception:
         return {}
     return rec if rec.get("available") else {}
 
 
+def _aqi_stations() -> list[dict]:
+    return _aqi_record().get("stations") or []
+
+
 def run_cell_ml_pipeline(db) -> dict[str, Any]:
     cells = load_cells(db)
     if not cells:
-        raise RuntimeError("spatial_cells is empty — run scripts/generate_spatial_cells.py first")
+        from app.core.cities import current_city_id
+        raise RuntimeError(f"No 300 m cells for {current_city_id()} — run scripts/generate_spatial_cells.py "
+                           f"--city {current_city_id()} first")
     rows, sources = compute_cell_features(cells)
     observed_at = snapshot_timestamp(sources)
     persist_cell_features(db, rows, sources, observed_at)

@@ -5,13 +5,14 @@ resolution, how many images/stations went into it, when it was generated and how
 Shown as a small badge on each layer and in Deep Analysis.
 """
 from __future__ import annotations
+from app.core.cities import city_path
 
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-MANIFEST = Path(__file__).resolve().parents[2] / "data" / "surfaces" / "manifest.json"
+MANIFEST = city_path("surfaces", "manifest.json")
 FRESH_DAYS = 30  # satellite composites older than this are marked "older"
 
 LAYERS = {
@@ -19,7 +20,7 @@ LAYERS = {
     "lst": {"label": "Land Surface Temperature", "sensor": "Landsat 8/9 (USGS)", "unit": "°C",
             "resolution_note": "thermal band native 100 m, delivered on a 30 m grid"},
     "water_health": {"label": "Water Health", "sensor": "Sentinel-2 (ESA)", "unit": "index 0..1 (spectral proxy)"},
-    "aqi": {"label": "Air Quality (CPCB AQI)", "sensor": "CPCB/MPCB ground stations via OpenAQ", "unit": "CPCB AQI"},
+    "aqi": {"label": "Air Quality (CPCB AQI)", "sensor": "CPCB-network ground stations via OpenAQ", "unit": "CPCB AQI"},
     "composite": {"label": "Composite Environmental Stress", "sensor": "derived from the layers above",
                   "unit": "index 0..1 (GeoSense-derived)"},
     "ndmi": {"label": "Vegetation moisture (NDMI)", "sensor": "Sentinel-2 (ESA)", "unit": "index -1..1"},
@@ -66,7 +67,7 @@ def layer_provenance(metric: str, rec: dict[str, Any], surfaces: dict[str, Any],
                "resolution": "point stations; IDW estimate on a ~270 m grid between them",
                "validation_mae": (rec.get("validation") or {}).get("mae")}
         out["freshness"] = "current" if (out["age_hours"] or 1e9) <= 48 else "stale"
-        out["short"] = f"{len(st)} CPCB/MPCB stations · ≤48 h"
+        out["short"] = f"{len(st)} CPCB-network stations · ≤48 h"
         return out
 
     period = rec.get("source_period") or {}

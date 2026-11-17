@@ -39,6 +39,14 @@ def _pdf(path: Path, pages: list[str]) -> None:
     c.save()
 
 
+try:
+    import reportlab  # noqa: F401  (only needed to build a test PDF)
+    _HAS_REPORTLAB = True
+except ImportError:
+    _HAS_REPORTLAB = False
+
+
+@unittest.skipUnless(_HAS_REPORTLAB, "reportlab not installed (pip install reportlab)")
 class CorpusPipelineTests(unittest.TestCase):
     def test_pages_cleaned_chunked_and_cited_by_page(self):
         from app.services.rag import corpus

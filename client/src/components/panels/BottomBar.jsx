@@ -85,14 +85,8 @@ function getLayerLegendConfig(
     const aqiStops = aqiSurface?.visualization?.stops;
     if (aqiStops?.length) {
       return {
-        valueStops: [
-          [0, 0],
-          [500, 100],
-        ],
-        stops: aqiStops.map((stop) => ({
-          position: (Number(stop.value) / 500) * 100,
-          color: stop.color,
-        })),
+        valueStops: [[0, 0], [500, 100]],
+        stops: aqiStops.map((stop) => ({ position: (Number(stop.value) / 500) * 100, color: stop.color })),
         minimumLabel: "0 Good",
         maximumLabel: "500 Severe",
         minimumColor: aqiStops[0].color,
@@ -100,10 +94,7 @@ function getLayerLegendConfig(
       };
     }
     return {
-      valueStops: [
-        [0, 0],
-        [500, 100],
-      ],
+      valueStops: [[0, 0], [500, 100]],
       stops: AQI_COLOR_STOPS.map(({ value, color }) => ({
         position: (value / 500) * 100,
         color,
@@ -125,10 +116,7 @@ function getLayerLegendConfig(
       color: Array.isArray(stop.rgb) ? rgbToHex(stop.rgb) : stop.color,
     }));
     return {
-      valueStops: [
-        [firstValue, 0],
-        [lastValue, 100],
-      ],
+      valueStops: [[firstValue, 0], [lastValue, 100]],
       stops: rgbStops,
       minimumLabel: ndviSurface?.visualization?.legend?.left_label || "LOW",
       maximumLabel: ndviSurface?.visualization?.legend?.right_label || "HIGH",
@@ -145,10 +133,7 @@ function getLayerLegendConfig(
       Array.isArray(stop.rgb) ? rgbToHex(stop.rgb) : stop.color,
     );
     return {
-      valueStops: stops.map((stop) => [
-        Number(stop.value),
-        Number(stop.display_value ?? stop.position ?? 0) * 100,
-      ]),
+      valueStops: stops.map((stop) => [Number(stop.value), Number(stop.display_value ?? stop.position ?? 0) * 100]),
       stops: stops.map((stop) => ({
         position: Number(stop.display_value ?? stop.position ?? 0) * 100,
         color: Array.isArray(stop.rgb) ? rgbToHex(stop.rgb) : stop.color,
@@ -169,10 +154,7 @@ function getLayerLegendConfig(
     const minimum = Number(stops[0]?.temperature_c ?? -1.2);
     const maximum = Number(stops.at(-1)?.temperature_c ?? 51);
     return {
-      valueStops: stops.map((stop) => [
-        Number(stop.temperature_c),
-        Number(stop.position) * 100,
-      ]),
+      valueStops: stops.map((stop) => [Number(stop.temperature_c), Number(stop.position) * 100]),
       stops: stops.map((stop) => ({
         position: Number(stop.position) * 100,
         color: stop.color,
@@ -188,27 +170,16 @@ function getLayerLegendConfig(
   if (compStops?.length) {
     return {
       // composite score 0-1 (the knots the map was coloured with)
-      valueStops: compStops.map((stop) => [
-        Number(stop.value),
-        Number(stop.position) * 100,
-      ]),
-      stops: compStops.map((stop) => ({
-        position: Number(stop.position) * 100,
-        color: stop.color,
-      })),
-      minimumLabel:
-        compositeSurface.visualization?.legend?.left_label || "LOW STRESS",
-      maximumLabel:
-        compositeSurface.visualization?.legend?.right_label || "HIGH STRESS",
+      valueStops: compStops.map((stop) => [Number(stop.value), Number(stop.position) * 100]),
+      stops: compStops.map((stop) => ({ position: Number(stop.position) * 100, color: stop.color })),
+      minimumLabel: compositeSurface.visualization?.legend?.left_label || "LOW STRESS",
+      maximumLabel: compositeSurface.visualization?.legend?.right_label || "HIGH STRESS",
       minimumColor: compStops[0].color,
       maximumColor: compStops.at(-1).color,
     };
   }
   return {
-    valueStops: [
-      [0, 0],
-      [1, 100],
-    ],
+    valueStops: [[0, 0], [1, 100]],
     stops: COMPOSITE_STOPS.map((stop) => ({
       position: stop.value,
       color: stop.color,
@@ -223,19 +194,16 @@ function getLayerLegendConfig(
 // Where a value sits on the legend: piecewise-linear between the legend's own stops, so the
 // pointer lands on the colour the map uses for that value. Clamped to the bar's ends.
 function legendPosition(config, value) {
-  const vs = (config?.valueStops || [])
-    .filter(([v, p]) => Number.isFinite(v) && Number.isFinite(p))
+  const vs = (config?.valueStops || []).filter(([v, p]) => Number.isFinite(v) && Number.isFinite(p))
     .sort((a, b) => a[0] - b[0]);
-  if (value == null || !Number.isFinite(Number(value)) || vs.length < 2)
-    return null;
+  if (value == null || !Number.isFinite(Number(value)) || vs.length < 2) return null;
   const v = Number(value);
   if (v <= vs[0][0]) return vs[0][1];
   if (v >= vs.at(-1)[0]) return vs.at(-1)[1];
   for (let i = 1; i < vs.length; i += 1) {
     const [v0, p0] = vs[i - 1];
     const [v1, p1] = vs[i];
-    if (v <= v1)
-      return v1 === v0 ? p1 : p0 + ((v - v0) / (v1 - v0)) * (p1 - p0);
+    if (v <= v1) return v1 === v0 ? p1 : p0 + ((v - v0) / (v1 - v0)) * (p1 - p0);
   }
   return null;
 }

@@ -1,6 +1,6 @@
 """Station AQI history from OpenAQ v3 daily aggregates (runs on the user's machine).
 
-For each CPCB/MPCB station: daily means of PM2.5, PM10, NO2 and SO2 (sensors/{id}/days),
+For each CPCB-network station: daily means of PM2.5, PM10, NO2 and SO2 (sensors/{id}/days),
 kept only when the day has >= 16 of 24 hourly values (CPCB's 24-h averaging needs adequate
 coverage), converted to µg/m³, then the CPCB sub-index per pollutant and the daily CPCB AQI
 (needs >= 3 pollutants including a particulate, as in the live pipeline).
@@ -107,11 +107,11 @@ def fetch_sensor_days(api_key: str, sensor_id: int, date_from: date, date_to: da
 
 
 def build_station_history(api_key: str, season_list, today: date | None = None) -> list[dict[str, Any]]:
-    from openaq.client import discover_mmr_stations
+    from openaq.client import discover_stations
 
     today = today or date.today()
     first = min(s.start for s in season_list)
-    stations = [s for s in discover_mmr_stations(api_key) if s["is_cpcb_mpcb"]]
+    stations = [s for s in discover_stations(api_key) if s["is_cpcb_mpcb"]]
     rows = []
     for st in stations:
         by_p: dict[str, dict[date, float]] = {}

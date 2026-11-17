@@ -192,12 +192,16 @@ def retrieve(query: str, k: int = 6, city: str | None = None, must_include: list
                  for kid in cand}
 
     by_id = _by_id()
+    own, others = _city_places(city)
     ranked = []
     for kid, s in fused.items():
         doc = by_id[kid]
-        dcity = doc.get("city")
-        if dcity and city and dcity.lower() != city.lower() and not (city == "Thane" and dcity == "Mumbai"):
-            s *= 0.6  # other-city context only if very relevant
+        dcity = (doc.get("city") or "").lower()
+        if dcity and city:
+            if dcity in others:
+                continue        # another study city's local context never explains this city
+            if dcity not in own:
+                s *= 0.6        # other places only if very relevant
         ranked.append((s, doc))
     ranked.sort(key=lambda x: x[0], reverse=True)
     chosen, per_doc = [], Counter()
@@ -215,6 +219,22 @@ def retrieve(query: str, k: int = 6, city: str | None = None, must_include: list
             chosen.append((0.0, by_id[kid]))
             ids.add(kid)
     return [{**d, "score": round(float(s), 4)} for s, d in chosen]
+
+
+def _city_places(city: str | None) -> tuple[set[str], set[str]]:
+    """(place names of `city`, place names of the other study cities), lower-case. `city` may be a
+    city id ("delhi") or a place name ("Thane")."""
+    if not city:
+        return set(), set()
+    from app.core.cities import CITIES
+    c = city.lower()
+    mine = next((x for x in CITIES.values()
+                 if c == x.id or c in {p.lower() for p in x.knowledge_places}), None)
+    if mine is None:
+        return {c}, set()
+    own = {p.lower() for p in mine.knowledge_places}
+    others = {p.lower() for x in CITIES.values() if x.id != mine.id for p in x.knowledge_places} - own
+    return own, others
 
 
 def get(knowledge_id: str) -> dict | None:
