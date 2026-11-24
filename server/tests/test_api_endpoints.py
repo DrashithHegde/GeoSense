@@ -70,6 +70,13 @@ class ApiEndpointTests(unittest.TestCase):
             self.skipTest("no Mumbai LST surface in this checkout")
         self.assertTrue(res.json()["sharp_url"].startswith("/surface-assets/mumbai/"))
 
+    def test_supporting_index_routes_are_registered(self):
+        paths = {route.path for route in app.routes}
+        self.assertIn("/api/surfaces/ndmi/latest", paths)
+        self.assertIn("/api/surfaces/ndmi/value", paths)
+        self.assertIn("/api/surfaces/ndwi/latest", paths)
+        self.assertIn("/api/surfaces/ndwi/value", paths)
+
     def test_city_without_layers_says_so(self):
         """A city whose layers are not generated yet answers 404 with a reason, never another city's data."""
         from app.core.cities import get_city

@@ -368,6 +368,80 @@ async def get_ndvi_pixel_value(lon: float, lat: float):
     return out
 
 
+@router.get("/surfaces/ndmi/latest")
+async def get_latest_ndmi_surface():
+    """Latest supporting Sentinel-2 vegetation-moisture index (not an independent map layer)."""
+    surface = _manifest_surfaces().get("ndmi")
+    if not surface or surface.get("generation_status") != "generated":
+        raise HTTPException(status_code=404, detail=f"No NDMI index has been generated for {get_city().name} yet")
+    rec = {
+        "metric": "ndmi",
+        "city": get_city().id,
+        "generated_at": surface.get("generated_at"),
+        "source_period": surface.get("source_period"),
+        "source": surface.get("source"),
+        "dataset": surface.get("dataset"),
+        "methodology": surface.get("methodology"),
+        "formula": surface.get("formula"),
+        "interpretation": surface.get("interpretation"),
+        "semantic_label": surface.get("semantic_label"),
+        "scale_m": surface.get("scale_m"),
+        "source_scale_m": surface.get("source_scale_m"),
+        "statistics": surface.get("statistics"),
+        "coordinates": (load_latest_ndvi_surface() or {}).get("mapbox_coordinates"),
+        "available": True,
+        "nodata": True,
+        "nodata_semantics": "transparent outside valid vegetation/moisture pixels",
+    }
+    return rec
+
+
+@router.get("/surfaces/ndmi/value")
+async def get_ndmi_pixel_value(lon: float, lat: float):
+    """Pixel-level NDMI from the supporting 20 m Sentinel-2 index raster."""
+    try:
+        from app.services.surfaces.index_surfaces import read_index_pixel
+        out = read_index_pixel("ndmi", lon, lat)
+    except Exception:
+        out = None
+    if out is None:
+        raise HTTPException(status_code=404, detail="No NDMI GeoTIFF for this city")
+    return {"metric": "ndmi", "longitude": lon, "latitude": lat, **out,
+            "source": "Sentinel-2 NDMI", "resolution_m": out.get("resolution_m")}
+
+
+@router.get("/surfaces/ndwi/latest")
+async def get_latest_ndwi_surface():
+    """Standalone NDWI surface, when a dedicated index raster has been published."""
+    surface = _manifest_surfaces().get("ndwi")
+    if not surface or surface.get("generation_status") != "generated":
+        raise HTTPException(status_code=404, detail=f"No NDWI surface has been generated for {get_city().name} yet")
+    urls = _layer_urls(surface, "indices")
+    return {
+        "metric": "ndwi",
+        "city": get_city().id,
+        **urls,
+        "available": True,
+        "generated_at": surface.get("generated_at"),
+        "source_period": surface.get("source_period"),
+        "methodology": "NDWI/MNDWI-based water-health surface",
+        "interpretation": surface.get("interpretation"),
+        "nodata": True,
+        "nodata_semantics": "transparent outside detected water",
+    }
+
+
+@router.get("/surfaces/ndwi/value")
+async def get_ndwi_pixel_value(lon: float, lat: float):
+    """Pixel-level NDWI from a standalone supporting index raster."""
+    surface = _manifest_surfaces().get("ndwi")
+    out = _pixel("ndwi", "indices", lon, lat, 3, surface,
+                 "Sentinel-2 NDWI")
+    if out is None:
+        raise HTTPException(status_code=404, detail="No NDWI/MNDWI GeoTIFF for this city")
+    return out
+
+
 @router.get("/surfaces/water-health/value")
 async def get_water_health_pixel_value(lon: float, lat: float):
     """Pixel-level Water Health from the scientific GeoTIFF."""
