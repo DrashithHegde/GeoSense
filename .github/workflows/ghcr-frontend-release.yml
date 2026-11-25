@@ -1,0 +1,162 @@
+name: Publish frontend release to GHCR
+
+# Manual only: a release operator must explicitly supply the committed source
+# revision that will be built. This workflow never publishes `latest`.
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact 40-character committed GeoSense source SHA to build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/drashithhegde/geosense-client
+  RELEASE_TAG: frontend-20261124-mapbox-token1
+  PRODUCTION_API_URL: https://azapiodcij72zfek46.wonderfulrock-df4f34b7.eastasia.azurecontainerapps.io
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate the explicitly supplied source revision
+        # Validate before actions/checkout dereferences the user-supplied ref.
+        # The release tag and OCI revision label must always be a full commit SHA.
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          if ! [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "source_sha must be exactly 40 lowercase hexadecimal characters." >&2
+            exit 1
+          fi
+
+      - name: Check out the explicitly approved source revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+
+      - name: Verify the checked out revision
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish immutable frontend image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.RELEASE_TAG }}
+            ${{ env.IMAGE_NAME }}:${{ inputs.source_sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ inputs.source_sha }}
+            org.opencontainers.image.source=https://github.com/DrashithHegde/GeoSense
+          build-args: |
+            VITE_API_URLS=${{ env.PRODUCTION_API_URL }}
+          secrets: |
+            mapbox_public_token=${{ secrets.MAPBOX_PUBLIC_TOKEN }}
+
+      - name: Make the linked package public
+        # The package may already be public. Let the verification step below
+        # decide readiness from the observed visibility and anonymous pull.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method PATCH \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/user/packages/container/geosense-client" \
+            -f visibility=public
+
+      - name: Verify package visibility is public
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          fail_visibility() {
+            echo "Package visibility verification failed." >&2
+            echo "Image may have been published, but anonymous GHCR pulls are not verified. Do not deploy to Azure." >&2
+            exit 1
+          }
+
+          # A package created by this repository's GITHUB_TOKEN is normally
+          # administrable by that token. Verify rather than assume it.
+          visibility="$(gh api \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/user/packages/container/geosense-client" \
+            --jq '.visibility')" || fail_visibility
+          test "$visibility" = "public" || fail_visibility
+
+      - name: Verify anonymous GHCR manifest access
+        # This step intentionally receives no GitHub credential. It obtains a
+        # pull-scoped, unauthenticated registry bearer token through GHCR's
+        # public token service, then validates the exact OCI digest.
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        shell: bash
+        run: |
+          fail_token() {
+            echo "Anonymous GHCR bearer-token acquisition failed." >&2
+            echo "Image may have been published, but anonymous GHCR pulls are not verified. Do not deploy to Azure." >&2
+            exit 1
+          }
+          fail_manifest() {
+            echo "Anonymous GHCR manifest access failed." >&2
+            echo "Image may have been published, but anonymous GHCR pulls are not verified. Do not deploy to Azure." >&2
+            exit 1
+          }
+          fail_digest() {
+            echo "Anonymous GHCR manifest digest did not match the published build digest." >&2
+            echo "Image may have been published, but anonymous GHCR pulls are not verified. Do not deploy to Azure." >&2
+            exit 1
+          }
+
+          # Remove the workflow's authenticated registry session before the
+          # credential-free pull test. The following token request sends no
+          # GitHub credential, PAT, username, or password.
+          docker logout ghcr.io >/dev/null 2>&1 || fail_manifest
+          anonymous_token="$(curl --fail --silent --show-error \
+            --get \
+            --data-urlencode 'service=ghcr.io' \
+            --data-urlencode 'scope=repository:drashithhegde/geosense-client:pull' \
+            'https://ghcr.io/token' | jq -r '.token // .access_token // empty')" || fail_token
+          test -n "$anonymous_token" || fail_token
+
+          headers="$(mktemp)"
+          trap 'rm -f "$headers"' EXIT
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer ${anonymous_token}" \
+            --header 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json' \
+            "https://ghcr.io/v2/drashithhegde/geosense-client/manifests/${IMAGE_DIGEST}" \
+            --dump-header "$headers" \
+            --output /dev/null || fail_manifest
+          returned_digest="$(awk -F ': ' 'tolower($1) == "docker-content-digest" {print $2}' "$headers" | tr -d '\r' | tail -n 1)"
+          test "$returned_digest" = "$IMAGE_DIGEST" || fail_digest
+
+          echo "Anonymous GHCR manifest access verified for ${IMAGE_DIGEST}."
+
+      - name: Record immutable release evidence
+        run: |
+          echo "image=${{ env.IMAGE_NAME }}:${{ env.RELEASE_TAG }}"
+          echo "digest=${{ steps.build.outputs.digest }}"
+          echo "revision=${{ inputs.source_sha }}"

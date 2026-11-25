@@ -269,12 +269,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
 @keyframes slideInLeft {
   from {
     opacity: 0;
-    transform: translateX(-28px) translateY(-50%);
+    transform: translateX(-28px);
   }
 
   to {
     opacity: 1;
-    transform: translateX(0) translateY(-50%);
+    transform: translateX(0);
   }
 }
 

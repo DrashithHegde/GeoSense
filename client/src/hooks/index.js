@@ -76,6 +76,8 @@ const SELECTED_MUNI_HEIGHT = 800;
 const MUNI_SOURCE = "mmr-municipalities";
 const MUNI_EXTRUDE = "muni-extrusion";
 const MUNI_OUTLINE = "muni-outline";
+const STUDY_SOURCE = "geosense-study-region";
+const STUDY_OUTLINE = "geosense-study-outline";
 const MUNI_LABEL = "muni-label";
 const AQI_HALO_SOURCE = "aqi-halo";
 const AQI_HALO_LAYER = "aqi-halo-raster";
@@ -299,6 +301,7 @@ export function useMapbox({
   const pendingCityRef = useRef(null);
   const activeLayersRef = useRef(activeLayers);
   const liveMunisRef = useRef(liveMunicipalities);
+  const boundaryRef = useRef(boundary);
   const selectedMuniRef = useRef(null);
   const aqiSurfaceRef = useRef(aqiSurface);
   const ndviSurfaceRef = useRef(ndviSurface);
@@ -315,6 +318,18 @@ export function useMapbox({
   useEffect(() => {
     activeLayersRef.current = activeLayers;
   }, [activeLayers]);
+
+  useEffect(() => {
+    boundaryRef.current = boundary;
+    const map = mapRef.current;
+    if (!map || !styleReady(map)) return;
+    const sync = () => {
+      const src = map.getSource(STUDY_SOURCE);
+      if (src) src.setData(boundaryRef.current || { type: "FeatureCollection", features: [] });
+    };
+    if (styleReady(map)) sync();
+    else map.once("idle", sync);
+  }, [boundary]);
 
   useEffect(() => {
     liveMunisRef.current = liveMunicipalities;
@@ -1383,6 +1398,16 @@ export function useMapbox({
           promoteId: "id",
         });
 
+      if (!map.getSource(STUDY_SOURCE)) {
+        map.addSource(STUDY_SOURCE, {
+          type: "geojson",
+          data: boundaryRef.current || { type: "FeatureCollection", features: [] },
+        });
+      }
+
+      // The study source is outline-only. It must not tint water or create a blue
+      // background over the satellite heatmap.
+
       // Create MUNI_EXTRUDE layer FIRST so raster layers can reference it with beforeId
       if (!map.getLayer(MUNI_EXTRUDE)) {
         map.addLayer({
@@ -1393,7 +1418,7 @@ export function useMapbox({
             "fill-extrusion-color": "#2a2a3a",
             "fill-extrusion-height": 0,
             "fill-extrusion-base": 0,
-            "fill-extrusion-opacity": 0.85,
+            "fill-extrusion-opacity": 0,
           },
         });
       }
@@ -1431,12 +1456,23 @@ export function useMapbox({
           id: MUNI_OUTLINE,
           type: "line",
           source: MUNI_SOURCE,
-          // Start all boundaries very subdued — applyMunicipalityPaint raises
-          // the selected boundary on click.
           paint: {
             "line-color": "#00e5ff",
-            "line-width": 0.5,
-            "line-opacity": 0.18,
+            "line-width": 0.35,
+            "line-opacity": 0.12,
+          },
+        });
+      }
+
+      if (!map.getLayer(STUDY_OUTLINE)) {
+        map.addLayer({
+          id: STUDY_OUTLINE,
+          type: "line",
+          source: STUDY_SOURCE,
+          paint: {
+            "line-color": "#eef4fa",
+            "line-width": 1.35,
+            "line-opacity": 0.92,
           },
         });
       }
@@ -1842,13 +1878,13 @@ function applyMunicipalityPaint(
       const isCompositeMode = layerId === "all" || layerId === "composite";
       if (isEnvMetricPendingNoRasterYet) {
         colorExpr = "#0e0e1a";
-        opacityExpr = 0.06;
+        opacityExpr = 0;
       } else {
         colorExpr =
           isWaterMode || isSurfaceMode || isCompositeMode
             ? "#0e0e1a"
             : buildFillColorExpression(layerId);
-        opacityExpr = isSurfaceMode || isCompositeMode ? 0.0 : isWaterMode ? 0.12 : 0.82;
+        opacityExpr = isSurfaceMode || isCompositeMode || isWaterMode ? 0 : 0.82;
       }
       const heightExpr =
         selectedMuniId != null && !isWaterMode
@@ -1867,21 +1903,14 @@ function applyMunicipalityPaint(
   }
 
   if (map.getLayer(MUNI_OUTLINE)) {
-    const isCompositeView = layerId === "all" || layerId === "composite";
-    
-    if (isCompositeView) {
-      map.setLayoutProperty(MUNI_OUTLINE, "visibility", "visible");
-      
-      const outlineColor = "#ffffff";
-      const outlineWidth = 1.5;
-      const outlineOpacity = 0.8;
-      
-      map.setPaintProperty(MUNI_OUTLINE, "line-color", outlineColor);
-      map.setPaintProperty(MUNI_OUTLINE, "line-width", outlineWidth);
-      map.setPaintProperty(MUNI_OUTLINE, "line-opacity", outlineOpacity);
-    } else {
-      map.setLayoutProperty(MUNI_OUTLINE, "visibility", "none");
-    }
+    map.setLayoutProperty(MUNI_OUTLINE, "visibility", "none");
+  }
+
+  if (map.getLayer(STUDY_OUTLINE)) {
+    map.setLayoutProperty(STUDY_OUTLINE, "visibility", "visible");
+    map.setPaintProperty(STUDY_OUTLINE, "line-color", "#eef4fa");
+    map.setPaintProperty(STUDY_OUTLINE, "line-width", 1.35);
+    map.setPaintProperty(STUDY_OUTLINE, "line-opacity", 0.92);
   }
 
   if (isFLIRMode) {
@@ -1904,7 +1933,7 @@ function applyMunicipalityPaint(
         }
       });
     }
-    if (map.getPaintProperty("background", "background-color")) {
+    if (map.getLayer("background") && map.getPaintProperty("background", "background-color")) {
       map.setPaintProperty("background", "background-color", "#000000");
     }
   } else {
@@ -1927,7 +1956,7 @@ function applyMunicipalityPaint(
         }
       });
     }
-    if (map.getPaintProperty("background", "background-color")) {
+    if (map.getLayer("background") && map.getPaintProperty("background", "background-color")) {
       map.setPaintProperty("background", "background-color", "#0b0f14");
     }
   }

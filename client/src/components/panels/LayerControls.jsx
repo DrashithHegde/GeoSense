@@ -1,5 +1,5 @@
 import { LAYER_CONFIG } from "../../constants/layers";
-import ProvenanceBadge, { provFor } from "./ProvenanceBadge";
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LayerChip — click-style pill button (no toggle switch)
@@ -14,7 +14,10 @@ function LayerChip({ config, active, onClick, prov }) {
         boxSizing: "border-box",
         overflow: "hidden",
         textAlign: "left",
-        padding: "8px 10px",
+        padding: "5px 8px",
+        height: 48,
+        minHeight: 48,
+        maxHeight: 48,
         background: active ? "rgba(0,229,255,0.1)" : "rgba(11,15,20,0.72)",
         border: active
           ? "1px solid rgba(0,229,255,0.42)"
@@ -43,26 +46,30 @@ function LayerChip({ config, active, onClick, prov }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
-              fontSize: "0.62rem",
+              fontSize: "0.56rem",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              whiteSpace: "normal",
-              overflowWrap: "anywhere",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             {config.label}
           </div>
           <div
             style={{
-              fontSize: "0.5rem",
+              fontSize: "0.44rem",
               color: "var(--text-faint)",
               letterSpacing: "0.04em",
               marginTop: 1,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             {config.desc}
           </div>
-          {prov && <ProvenanceBadge prov={prov} compact style={{ marginTop: 3 }} />}
+
         </div>
       </div>
 
@@ -101,23 +108,23 @@ export default function LayerControls({
       className="slide-in-left"
       style={{
         position: "fixed",
-        top: "50%",
+        top: 190,
         left: 20,
-        transform: "translateY(-50%)",
         zIndex: 35,
-        width: 252,
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        maxHeight: "calc(100vh - 170px)",
-        overflowY: "auto",
-        overflowX: "hidden",
+        width: 230,
+        height: 330,
+        minWidth: 230,
+        maxWidth: 230,
+        minHeight: 330,
+        maxHeight: 330,
+        display: "block",
+        overflow: "hidden",
         boxSizing: "border-box",
         animationDelay: "0.1s",
       }}
     >
       {/* Layer chips */}
-      <div className="glass" style={{ padding: "10px" }}>
+      <div className="glass" style={{ width: "100%", height: "100%", boxSizing: "border-box", padding: "10px", overflow: "hidden" }}>
         {/* Header */}
         <div
           style={{
@@ -148,7 +155,7 @@ export default function LayerControls({
               config={cfg}
               active={activeLayers[cfg.id]}
               onClick={() => onToggleLayer(cfg.id)}
-              prov={provFor(provenance, cfg.id)}
+              prov={null}
             />
           ))}
         </div>
