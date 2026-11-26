@@ -604,6 +604,30 @@ async def refresh_aqi_now(background_tasks: BackgroundTasks, request: Request):
     return {"status": "started", "city": get_city().id}
 
 
+@router.post("/admin/bundle/reload")
+async def reload_data_bundle(request: Request):
+    """Fetch & validate the latest durable data bundle from Azure Blob Storage (or DATA_BUNDLE_URL)."""
+    from starlette.concurrency import run_in_threadpool
+    from app.api.admin_guard import require_admin
+    require_admin(request)
+
+    def _do_reload():
+        import scripts.data_bundle as db_mod
+        urls = [u.strip() for u in os.getenv("DATA_BUNDLE_URL", "").split(",") if u.strip()]
+        rc = db_mod.fetch(urls, force=True)
+        if rc != 0:
+            raise RuntimeError("Bundle fetch/validation failed")
+        if db_mod.MARKER.exists():
+            return json.loads(db_mod.MARKER.read_text(encoding="utf-8"))
+        return {"reloaded": True}
+
+    try:
+        info = await run_in_threadpool(_do_reload)
+        return {"status": "reloaded", "bundle": info}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Bundle reload failed: {exc}")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # status
 # ─────────────────────────────────────────────────────────────────────────────

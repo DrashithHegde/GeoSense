@@ -1,7 +1,8 @@
 services:
   db:
-    # PostGIS + pgvector (docker/db/Dockerfile). Same Postgres 16: the existing volume is kept.
-    build: ./docker/db
+    build:
+      context: ./docker/db
+      dockerfile: Dockerfile
     image: geosense-postgis-pgvector:16-3.4
     container_name: geosense-postgres
     restart: unless-stopped
@@ -13,52 +14,46 @@ services:
       - geosense_postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-geosense}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-geosense}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
+    image: geosense-api:local
     container_name: geosense-server
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./server:/app
-      - ./.env:/.env:ro
-      - ${USERPROFILE}/.config/earthengine:/root/.config/earthengine
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-    # development: live reload on code changes (the image's own start script is for hosting)
-    command: sh -c "python scripts/db_init.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app"
+      DB_HOST: db
+      DB_PORT: 5432
+      ENV: production
+      WARM_UP: 0
+      MIGRATE_ON_START: 1
 
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        VITE_API_URLS: http://localhost:8000
+        MAPBOX_PUBLIC_TOKEN: ${VITE_MAPBOX_TOKEN:-}
+    image: geosense-client:local
     container_name: geosense-client
     restart: unless-stopped
-    ports:
-      - "5173:5173"
     depends_on:
       - server
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_URLS=http://localhost:8000
-      - VITE_MAPBOX_TOKEN=${VITE_MAPBOX_TOKEN:-}
+    ports:
+      - "3000:8080"
 
 volumes:
   geosense_postgres_data:
