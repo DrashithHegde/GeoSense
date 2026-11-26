@@ -686,6 +686,8 @@ async def reload_data_bundle(request: Request):
     require_admin(request)
 
     def _do_reload():
+        import json
+        import os
         import scripts.data_bundle as db_mod
         urls = [u.strip() for u in os.getenv("DATA_BUNDLE_URL", "").split(",") if u.strip()]
         rc = db_mod.fetch(urls, force=True)
