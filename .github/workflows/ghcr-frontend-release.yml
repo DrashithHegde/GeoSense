@@ -88,13 +88,13 @@ jobs:
             "/user/packages/container/geosense-client" \
             -f visibility=public
 
-      - name: Verify public package and anonymous manifest access
+      - name: Verify package visibility is public
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
         shell: bash
         run: |
-          fail_public_verification() {
+          fail_visibility() {
+            echo "Package visibility verification failed." >&2
             echo "Image may have been published, but anonymous GHCR pulls are not verified. Do not deploy to Azure." >&2
             exit 1
           }
@@ -104,21 +104,54 @@ jobs:
           visibility="$(gh api \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "/user/packages/container/geosense-client" \
-            --jq '.visibility')" || fail_public_verification
-          test "$visibility" = "public" || fail_public_verification
+            --jq '.visibility')" || fail_visibility
+          test "$visibility" = "public" || fail_visibility
 
-          # Remove the workflow's registry credentials before exercising the
-          # OCI distribution endpoint with no Authorization header.
-          docker logout ghcr.io >/dev/null 2>&1 || fail_public_verification
+      - name: Verify anonymous GHCR manifest access
+        # This step intentionally receives no GitHub credential. It obtains a
+        # pull-scoped, unauthenticated registry bearer token through GHCR's
+        # public token service, then validates the exact OCI digest.
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        shell: bash
+        run: |
+          fail_token() {
+            echo "Anonymous GHCR bearer-token acquisition failed." >&2
+            echo "Image may have been published, but anonymous GHCR pulls are not verified. Do not deploy to Azure." >&2
+            exit 1
+          }
+          fail_manifest() {
+            echo "Anonymous GHCR manifest access failed." >&2
+            echo "Image may have been published, but anonymous GHCR pulls are not verified. Do not deploy to Azure." >&2
+            exit 1
+          }
+          fail_digest() {
+            echo "Anonymous GHCR manifest digest did not match the published build digest." >&2
+            echo "Image may have been published, but anonymous GHCR pulls are not verified. Do not deploy to Azure." >&2
+            exit 1
+          }
+
+          # Remove the workflow's authenticated registry session before the
+          # credential-free pull test. The following token request sends no
+          # GitHub credential, PAT, username, or password.
+          docker logout ghcr.io >/dev/null 2>&1 || fail_manifest
+          anonymous_token="$(curl --fail --silent --show-error \
+            --get \
+            --data-urlencode 'service=ghcr.io' \
+            --data-urlencode 'scope=repository:drashithhegde/geosense-client:pull' \
+            'https://ghcr.io/token' | jq -r '.token // .access_token // empty')" || fail_token
+          test -n "$anonymous_token" || fail_token
+
           headers="$(mktemp)"
           trap 'rm -f "$headers"' EXIT
           curl --fail --silent --show-error \
-            --header 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json' \
+            --header "Authorization: Bearer ${anonymous_token}" \
+            --header 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json' \
             "https://ghcr.io/v2/drashithhegde/geosense-client/manifests/${IMAGE_DIGEST}" \
             --dump-header "$headers" \
-            --output /dev/null || fail_public_verification
+            --output /dev/null || fail_manifest
           returned_digest="$(awk -F ': ' 'tolower($1) == "docker-content-digest" {print $2}' "$headers" | tr -d '\r' | tail -n 1)"
-          test "$returned_digest" = "$IMAGE_DIGEST" || fail_public_verification
+          test "$returned_digest" = "$IMAGE_DIGEST" || fail_digest
 
           echo "Anonymous GHCR manifest access verified for ${IMAGE_DIGEST}."
 

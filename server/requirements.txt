@@ -22,3 +22,5 @@ earthengine-api==1.7.22
 google-auth==2.23.0
 # RAG sentence embeddings: BAAI/bge-small-en-v1.5 via ONNX (no PyTorch). RAG_EMBEDDER=off -> BM25 only
 fastembed>=0.4
+azure-identity>=1.19.0
+azure-storage-blob>=12.24.0

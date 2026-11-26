@@ -47,6 +47,7 @@ def get_operational_status(db) -> dict[str, Any]:
         GROUP BY ar.model_name, latest.obs ORDER BY ar.model_name
     """), p).mappings().all()
     seasons = db.execute(text("SELECT count(*) FROM history_seasons WHERE city = :city"), p).scalar() or 0
+    from app.services.ingestion_log import recent_runs
     return {
         "city": city.id,
         "cells": int(cells),
@@ -58,6 +59,7 @@ def get_operational_status(db) -> dict[str, Any]:
         "history_seasons": int(seasons),
         "xgboost": _xgboost_status(),
         "aqi_auto_refresh": _aqi_refresh_status(),
+        "recent_ingestion_runs": recent_runs(db, city.id, limit=10),
     }
 
 

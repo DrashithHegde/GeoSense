@@ -19,6 +19,13 @@ MAPBOX_ERROR_DIAGNOSTIC.md
 venv/
 env/
 __pycache__/
+*.py[cod]
+*.log
+*.tmp
+*.bak
+*.backup
+*.orig
+
 *.pyc
 .pytest_cache/
 

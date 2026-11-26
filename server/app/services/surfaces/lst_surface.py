@@ -330,6 +330,14 @@ def publish_lst_geotiff(
 
     municipality_union_mask = np.zeros(source_valid_mask.shape, dtype=bool)
     valid_pixels_by_municipality: dict[str, int] = {}
+    study_region = load_study_region_geometry().buffer(0.0045).buffer(-0.0045)
+    municipality_union_mask = geometry_mask(
+        [mapping(study_region)],
+        out_shape=source_valid_mask.shape,
+        transform=transform,
+        invert=True,
+        all_touched=True,
+    )
     for municipality in load_municipality_boundaries():
         municipality_mask = geometry_mask(
             [municipality["geojson"]],
@@ -338,7 +346,6 @@ def publish_lst_geotiff(
             invert=True,
             all_touched=True,
         )
-        municipality_union_mask |= municipality_mask
         municipality_valid = int(np.count_nonzero(source_valid_mask & municipality_mask))
         valid_pixels_by_municipality[municipality["name"]] = municipality_valid
         if municipality_valid == 0:
@@ -346,6 +353,9 @@ def publish_lst_geotiff(
 
     valid_mask = source_valid_mask & municipality_union_mask
     valid_count = int(np.sum(valid_mask))
+    if valid_count == 0:
+        from app.core.cities import get_city
+        raise ValueError(f"LST export has zero valid pixels inside {get_city().name}")
     if valid_count == 0:
         raise ValueError("LST export has zero valid pixels inside the municipality union")
 
